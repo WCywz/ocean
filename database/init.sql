@@ -162,7 +162,7 @@ INSERT INTO ocean_data (lat, lon, time, chl, depth) VALUES
 -- ============================================
 
 -- 地图网格聚合查询索引
-CREATE INDEX idx_filter ON forecast_record (data_type, forecast_date, longitude, latitude);
+CREATE INDEX IF NOT EXISTS idx_filter ON forecast_record (data_type, forecast_date, longitude, latitude);
 
 -- 单点位趋势查询索引
-CREATE INDEX idx_point_trend ON forecast_record (data_type, longitude, latitude, forecast_date);
+CREATE INDEX IF NOT EXISTS idx_point_trend ON forecast_record (data_type, longitude, latitude, forecast_date);
