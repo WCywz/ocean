@@ -3,5 +3,6 @@ dist/
 target/
 .idea/
 .superpowers/
+.worktrees/
 .DS_Store
 *.log
