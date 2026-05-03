@@ -7,27 +7,34 @@
       <template #header>
         <div class="chart-header">
           <span class="chart-title">海表温度 (SST) 变化趋势</span>
-          <el-select
-            v-model="sstLocations"
-            placeholder="选择经纬度"
-            multiple
-            collapse-tags
-            collapse-tags-tooltip
-            filterable
-            size="small"
-            style="width: 280px"
-            @change="renderSstChart"
-          >
-            <el-option
-              v-for="loc in locationOptions"
-              :key="loc.key"
-              :label="loc.label"
-              :value="loc.key"
-            />
-          </el-select>
+          <div class="chart-header-right">
+            <el-select
+              v-model="sstLocations"
+              placeholder="筛选观测点（默认全部）"
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              filterable
+              size="small"
+              style="width: 260px"
+              @change="renderSstChart"
+            >
+              <el-option
+                v-for="loc in locationOptions"
+                :key="loc.key"
+                :label="loc.locationName || loc.label"
+                :value="loc.key"
+              />
+            </el-select>
+            <el-button size="small" text @click="openFullscreen('SST')">
+              <el-icon><FullScreen /></el-icon>
+            </el-button>
+          </div>
         </div>
       </template>
-      <div ref="sstChartRef" class="chart-container"></div>
+      <div v-loading="sstLoading" class="chart-container" ref="sstChartRef">
+        <div v-if="sstEmpty" class="chart-empty">暂无海表温度数据</div>
+      </div>
     </el-card>
 
     <!-- 叶绿素浓度图表 -->
@@ -35,28 +42,46 @@
       <template #header>
         <div class="chart-header">
           <span class="chart-title">叶绿素浓度 (CHL) 变化趋势</span>
-          <el-select
-            v-model="chlLocations"
-            placeholder="选择经纬度"
-            multiple
-            collapse-tags
-            collapse-tags-tooltip
-            filterable
-            size="small"
-            style="width: 280px"
-            @change="renderChlChart"
-          >
-            <el-option
-              v-for="loc in locationOptions"
-              :key="loc.key"
-              :label="loc.label"
-              :value="loc.key"
-            />
-          </el-select>
+          <div class="chart-header-right">
+            <el-select
+              v-model="chlLocations"
+              placeholder="筛选观测点（默认全部）"
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              filterable
+              size="small"
+              style="width: 260px"
+              @change="renderChlChart"
+            >
+              <el-option
+                v-for="loc in locationOptions"
+                :key="loc.key"
+                :label="loc.locationName || loc.label"
+                :value="loc.key"
+              />
+            </el-select>
+            <el-button size="small" text @click="openFullscreen('CHL')">
+              <el-icon><FullScreen /></el-icon>
+            </el-button>
+          </div>
         </div>
       </template>
-      <div ref="chlChartRef" class="chart-container"></div>
+      <div v-loading="chlLoading" class="chart-container" ref="chlChartRef">
+        <div v-if="chlEmpty" class="chart-empty">暂无叶绿素浓度数据</div>
+      </div>
     </el-card>
+
+    <!-- Fullscreen chart modal -->
+    <el-dialog
+      v-model="fullscreenVisible"
+      :title="fullscreenTitle"
+      fullscreen
+      :close-on-click-modal="false"
+      @opened="onFullscreenOpened"
+    >
+      <div ref="fullscreenChartRef" class="chart-container" style="height: calc(100vh - 100px);"></div>
+    </el-dialog>
 
     <!-- 历史预报记录表格 -->
     <el-card shadow="hover" style="margin-top: 20px;">
@@ -64,7 +89,6 @@
         <span class="chart-title">历史预报记录</span>
       </template>
 
-      <!-- 查询条件 -->
       <el-form :inline="true" :model="tableQuery" size="default" style="margin-bottom: 16px;">
         <el-form-item label="数据类型">
           <el-select v-model="tableQuery.dataType" placeholder="全部" clearable style="width: 150px">
@@ -137,23 +161,38 @@
 import { ref, onMounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getLocations, getSstTrend, getChlTrend, getRecordPage } from '../../api/forecast'
+import {
+  SST_COLORS, CHL_COLORS,
+  buildBaseOption, buildTooltipFormatter, buildSeriesData
+} from '../../utils/chart-config'
 
-// 经纬度选项列表
+// ---- location options ----
 const locationOptions = ref([])
+const locationNameMap = {}
 
-// SST 图表
+// ---- SST chart ----
 const sstChartRef = ref(null)
 const sstLocations = ref([])
 const allSstData = ref([])
+const sstLoading = ref(false)
+const sstEmpty = ref(false)
 let sstChart = null
 
-// CHL 图表
+// ---- CHL chart ----
 const chlChartRef = ref(null)
 const chlLocations = ref([])
 const allChlData = ref([])
+const chlLoading = ref(false)
+const chlEmpty = ref(false)
 let chlChart = null
 
-// 表格数据
+// ---- fullscreen ----
+const fullscreenVisible = ref(false)
+const fullscreenTitle = ref('')
+const fullscreenChartRef = ref(null)
+let fullscreenChart = null
+
+// ---- table ----
 const tableQuery = ref({ pageNum: 1, pageSize: 10, dataType: '', locationName: '' })
 const dateRange = ref([])
 const tableData = ref([])
@@ -161,9 +200,8 @@ const tableTotal = ref(0)
 const tableLoading = ref(false)
 
 onMounted(() => {
-  nextTick(() => {
-    initCharts()
-  })
+  nextTick(() => { initCharts() })
+  loadTableData()
 })
 
 async function initCharts() {
@@ -171,47 +209,46 @@ async function initCharts() {
   chlChart = echarts.init(chlChartRef.value)
 
   await loadLocationOptions()
+  sstLoading.value = true
+  chlLoading.value = true
   await Promise.all([fetchAllSstData(), fetchAllChlData()])
+  sstLoading.value = false
+  chlLoading.value = false
   renderSstChart()
   renderChlChart()
 
   window.addEventListener('resize', () => {
     sstChart?.resize()
     chlChart?.resize()
+    fullscreenChart?.resize()
   })
-}
-
-async function fetchAllSstData() {
-  try {
-    const res = await getSstTrend(null, null)
-    allSstData.value = res.data || []
-  } catch (e) {
-    allSstData.value = []
-  }
-}
-
-async function fetchAllChlData() {
-  try {
-    const res = await getChlTrend(null, null)
-    allChlData.value = res.data || []
-  } catch (e) {
-    allChlData.value = []
-  }
 }
 
 async function loadLocationOptions() {
   try {
     const res = await getLocations()
-    locationOptions.value = (res.data || []).map(item => ({
+    const data = res.data || []
+    locationOptions.value = data.map(item => ({
       key: `${item.longitude},${item.latitude}`,
       label: `经度: ${item.longitude}, 纬度: ${item.latitude}`,
       lon: item.longitude,
       lat: item.latitude,
       locationName: item.locationName
     }))
-  } catch (e) {
-    // ignored
-  }
+    data.forEach(item => {
+      locationNameMap[`(${item.longitude}, ${item.latitude})`] = item.locationName
+    })
+  } catch (e) { /* empty */ }
+}
+
+async function fetchAllSstData() {
+  try { allSstData.value = (await getSstTrend(null, null)).data || [] }
+  catch (e) { allSstData.value = [] }
+}
+
+async function fetchAllChlData() {
+  try { allChlData.value = (await getChlTrend(null, null)).data || [] }
+  catch (e) { allChlData.value = [] }
 }
 
 function renderSstChart() {
@@ -219,76 +256,23 @@ function renderSstChart() {
   const selectedKeys = sstLocations.value
   const filtered = selectedKeys.length > 0
     ? allSstData.value.filter(item => selectedKeys.includes(`${item.longitude},${item.latitude}`))
-    : []
+    : allSstData.value
 
-  const { allDates } = buildLocationMap(allSstData.value)
-  const { seriesMap } = buildLocationMap(filtered)
-  const seriesData = Object.entries(seriesMap).map(([name, values], idx) => ({
-    name,
-    type: 'line',
-    smooth: true,
-    symbol: idx > 15 ? 'none' : 'circle',
-    symbolSize: 5,
-    lineStyle: { width: 2 },
-    data: values,
-    markLine: {
-      silent: true,
-      symbol: 'none',
-      lineStyle: { type: 'dashed', color: '#aaa' },
-      label: { fontSize: 11 },
-      data: [{ type: 'average', name: '均值' }]
-    }
-  }))
+  sstEmpty.value = filtered.length === 0
+  if (filtered.length === 0) { sstChart.clear(); return }
 
-  sstChart.setOption({
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderColor: '#ddd',
-      borderWidth: 1,
-      textStyle: { fontSize: 13, color: '#333' },
-      ...(seriesData.length === 0 ? {} : {
-        formatter: params => {
-          let html = `<b style="font-size:14px">${params[0].axisValue}</b><br/>`
-          params.forEach(p => {
-            html += `<span style="display:inline-block;margin-right:4px;border-radius:50%;width:10px;height:10px;background:${p.color}"></span>`
-            html += ` ${p.seriesName}: <b>${p.value} °C</b><br/>`
-          })
-          return html
-        }
-      })
-    },
-    legend: {
-      data: Object.keys(seriesMap),
-      type: 'scroll',
-      bottom: 0,
-      textStyle: { fontSize: 13 },
-      pageTextStyle: { fontSize: 13 }
-    },
-    grid: { left: 90, right: 50, top: 30, bottom: 80 },
-    dataZoom: [
-      { type: 'slider', bottom: 35, height: 22, textStyle: { fontSize: 11 } },
-      { type: 'inside' }
-    ],
-    xAxis: {
-      type: 'category',
-      data: allDates,
-      axisLabel: { rotate: 25, fontSize: 12, color: '#666' },
-      axisLine: { lineStyle: { color: '#ccc' } },
-      axisTick: { lineStyle: { color: '#ccc' } }
-    },
-    yAxis: {
-      type: 'value',
-      name: '温度 (°C)',
-      nameTextStyle: { fontSize: 14, color: '#666' },
-      axisLabel: { fontSize: 13, formatter: '{value} °C' },
-      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }
-    },
-    series: seriesData,
-    color: ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#fc8452',
-            '#3ba272', '#9a60b4', '#ea7ccc', '#ff9f7f',
-            '#67e0e3', '#d48265', '#61a0a8', '#c23531', '#2f4554']
-  }, true)
+  const { allDates, seriesMap } = buildLocationMap(filtered)
+  const seriesData = buildSeriesData(seriesMap, SST_COLORS, { area: true, markLine: true })
+
+  const base = buildBaseOption({
+    legendData: Object.keys(seriesMap),
+    xAxisData: allDates,
+    yAxisName: '温度 (°C)',
+    yAxisUnit: '°C'
+  })
+  base.tooltip.formatter = buildTooltipFormatter('°C', locationNameMap)
+
+  sstChart.setOption({ ...base, series: seriesData, color: SST_COLORS }, true)
 }
 
 function renderChlChart() {
@@ -296,95 +280,58 @@ function renderChlChart() {
   const selectedKeys = chlLocations.value
   const filtered = selectedKeys.length > 0
     ? allChlData.value.filter(item => selectedKeys.includes(`${item.longitude},${item.latitude}`))
-    : []
+    : allChlData.value
 
-  const { allDates } = buildLocationMap(allChlData.value)
-  const { seriesMap } = buildLocationMap(filtered)
-  const seriesData = Object.entries(seriesMap).map(([name, values], idx) => ({
-    name,
-    type: 'line',
-    smooth: true,
-    symbol: idx > 15 ? 'none' : 'circle',
-    symbolSize: 5,
-    lineStyle: { width: 2 },
-    areaStyle: { opacity: 0.06 },
-    data: values
-  }))
+  chlEmpty.value = filtered.length === 0
+  if (filtered.length === 0) { chlChart.clear(); return }
 
-  chlChart.setOption({
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderColor: '#ddd',
-      borderWidth: 1,
-      textStyle: { fontSize: 13, color: '#333' },
-      ...(seriesData.length === 0 ? {} : {
-        formatter: params => {
-          let html = `<b style="font-size:14px">${params[0].axisValue}</b><br/>`
-          params.forEach(p => {
-            html += `<span style="display:inline-block;margin-right:4px;border-radius:50%;width:10px;height:10px;background:${p.color}"></span>`
-            html += ` ${p.seriesName}: <b>${p.value} mg/m³</b><br/>`
-          })
-          return html
-        }
-      })
-    },
-    legend: {
-      data: Object.keys(seriesMap),
-      type: 'scroll',
-      bottom: 0,
-      textStyle: { fontSize: 13 },
-      pageTextStyle: { fontSize: 13 }
-    },
-    grid: { left: 90, right: 50, top: 30, bottom: 80 },
-    dataZoom: [
-      { type: 'slider', bottom: 35, height: 22, textStyle: { fontSize: 11 } },
-      { type: 'inside' }
-    ],
-    xAxis: {
-      type: 'category',
-      data: allDates,
-      axisLabel: { rotate: 25, fontSize: 12, color: '#666' },
-      axisLine: { lineStyle: { color: '#ccc' } },
-      axisTick: { lineStyle: { color: '#ccc' } }
-    },
-    yAxis: {
-      type: 'value',
-      name: '浓度 (mg/m³)',
-      nameTextStyle: { fontSize: 14, color: '#666' },
-      axisLabel: { fontSize: 13, formatter: '{value} mg/m³' },
-      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }
-    },
-    series: seriesData,
-    color: ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#fc8452',
-            '#3ba272', '#9a60b4', '#ea7ccc', '#ff9f7f',
-            '#67e0e3', '#d48265', '#61a0a8', '#c23531', '#2f4554']
-  }, true)
+  const { allDates, seriesMap } = buildLocationMap(filtered)
+  const seriesData = buildSeriesData(seriesMap, CHL_COLORS, { area: true })
+
+  const base = buildBaseOption({
+    legendData: Object.keys(seriesMap),
+    xAxisData: allDates,
+    yAxisName: '浓度 (mg/m³)',
+    yAxisUnit: 'mg/m³'
+  })
+  base.tooltip.formatter = buildTooltipFormatter('mg/m³', locationNameMap)
+
+  chlChart.setOption({ ...base, series: seriesData, color: CHL_COLORS }, true)
 }
 
-/** 按 (经度, 纬度) 分组，返回 { seriesMap, allDates } */
 function buildLocationMap(data) {
   const map = {}
   const dateSet = new Set()
   data.forEach(item => {
     const key = `(${item.longitude}, ${item.latitude})`
-    if (!map[key]) {
-      map[key] = {}
-    }
+    if (!map[key]) map[key] = {}
     map[key][item.forecastDate] = item.value
     dateSet.add(item.forecastDate)
   })
-
   const allDates = Array.from(dateSet).sort()
   const result = {}
   Object.entries(map).forEach(([key, dateValueMap]) => {
     result[key] = allDates.map(d => dateValueMap[d] ?? null)
   })
-
   return { seriesMap: result, allDates }
 }
 
-// 表格数据加载
+// ---- fullscreen ----
+function openFullscreen(type) {
+  fullscreenTitle.value = type === 'SST' ? '海表温度 (SST) 趋势' : '叶绿素浓度 (CHL) 趋势'
+  fullscreenVisible.value = true
+}
+
+function onFullscreenOpened() {
+  nextTick(() => {
+    fullscreenChart = echarts.init(fullscreenChartRef.value)
+    const targetChart = fullscreenTitle.value.includes('SST') ? sstChart : chlChart
+    fullscreenChart.setOption(targetChart.getOption(), true)
+    window.addEventListener('resize', () => { fullscreenChart?.resize() })
+  })
+}
+
+// ---- table ----
 async function loadTableData() {
   tableLoading.value = true
   try {
@@ -396,9 +343,7 @@ async function loadTableData() {
     const res = await getRecordPage(params)
     tableData.value = res.data.records
     tableTotal.value = res.data.total
-  } finally {
-    tableLoading.value = false
-  }
+  } finally { tableLoading.value = false }
 }
 
 function handleTableSearch() {
@@ -413,10 +358,6 @@ function handleTableReset() {
   dateRange.value = []
   loadTableData()
 }
-
-onMounted(() => {
-  loadTableData()
-})
 </script>
 
 <style scoped>
@@ -425,25 +366,34 @@ onMounted(() => {
   color: #1a3a5c;
   font-size: 22px;
 }
-
 .chart-card {
   background: #fff;
 }
-
 .chart-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-
+.chart-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .chart-title {
   font-weight: 600;
   color: #1a3a5c;
   font-size: 16px;
 }
-
 .chart-container {
   width: 100%;
-  height: 520px;
+  height: 400px;
+}
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #999;
+  font-size: 14px;
 }
 </style>
