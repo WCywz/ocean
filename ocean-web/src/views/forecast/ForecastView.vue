@@ -79,6 +79,7 @@
       fullscreen
       :close-on-click-modal="false"
       @opened="onFullscreenOpened"
+      @close="onFullscreenClosed"
     >
       <div ref="fullscreenChartRef" class="chart-container" style="height: calc(100vh - 100px);"></div>
     </el-dialog>
@@ -158,7 +159,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getLocations, getSstTrend, getChlTrend, getRecordPage } from '../../api/forecast'
 import {
@@ -217,11 +218,7 @@ async function initCharts() {
   renderSstChart()
   renderChlChart()
 
-  window.addEventListener('resize', () => {
-    sstChart?.resize()
-    chlChart?.resize()
-    fullscreenChart?.resize()
-  })
+  window.addEventListener('resize', handleResize)
 }
 
 async function loadLocationOptions() {
@@ -327,9 +324,26 @@ function onFullscreenOpened() {
     fullscreenChart = echarts.init(fullscreenChartRef.value)
     const targetChart = fullscreenTitle.value.includes('SST') ? sstChart : chlChart
     fullscreenChart.setOption(targetChart.getOption(), true)
-    window.addEventListener('resize', () => { fullscreenChart?.resize() })
   })
 }
+
+function onFullscreenClosed() {
+  fullscreenChart?.dispose()
+  fullscreenChart = null
+}
+
+function handleResize() {
+  sstChart?.resize()
+  chlChart?.resize()
+  fullscreenChart?.resize()
+}
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  sstChart?.dispose()
+  chlChart?.dispose()
+  fullscreenChart?.dispose()
+})
 
 // ---- table ----
 async function loadTableData() {
