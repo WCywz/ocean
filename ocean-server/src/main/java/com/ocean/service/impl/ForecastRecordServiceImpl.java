@@ -3,6 +3,7 @@ package com.ocean.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ocean.config.SeaAreaConfig;
 import com.ocean.dto.ForecastQueryDTO;
 import com.ocean.dto.MapGridQueryDTO;
 import com.ocean.entity.ForecastModel;
@@ -33,6 +34,9 @@ public class ForecastRecordServiceImpl implements ForecastRecordService {
 
     @Autowired
     private ForecastModelMapper forecastModelMapper;
+
+    @Autowired
+    private SeaAreaConfig seaAreaConfig;
 
     @Override
     public IPage<ForecastVO> getRecordPage(ForecastQueryDTO dto) {
@@ -137,7 +141,7 @@ public class ForecastRecordServiceImpl implements ForecastRecordService {
 
     @Override
     public List<Map<String, Object>> getSeaAreas() {
-        return List.of();
+        return seaAreaConfig.getSeaAreas();
     }
 
     private ForecastVO toVO(ForecastRecord record) {
