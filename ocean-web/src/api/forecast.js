@@ -24,3 +24,18 @@ export function getSstTrend(lon, lat) {
 export function getChlTrend(lon, lat) {
   return request({ url: '/forecast/chl/trend', method: 'get', params: { lon, lat } })
 }
+
+/** 获取地图网格聚合数据 */
+export function getMapGrid(params) {
+  return request({ url: '/forecast/map/grid', method: 'get', params })
+}
+
+/** 获取单点位历史趋势 */
+export function getPointTrend(params) {
+  return request({ url: '/forecast/trend/point', method: 'get', params })
+}
+
+/** 获取预设海域配置 */
+export function getSeaAreas() {
+  return request({ url: '/forecast/sea-areas', method: 'get' })
+}

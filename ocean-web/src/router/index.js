@@ -43,10 +43,22 @@ const routes = [
         meta: { title: '预报模型管理', role: 'ADMIN' }
       },
       {
-        path: 'forecast',
-        name: 'Forecast',
-        component: () => import('../views/forecast/ForecastView.vue'),
-        meta: { title: '预报数据可视化' }
+        path: 'forecast/sst',
+        name: 'ForecastSst',
+        component: () => import('../views/forecast/SstMapView.vue'),
+        meta: { title: '海表温度预测' }
+      },
+      {
+        path: 'forecast/chl',
+        name: 'ForecastCHL',
+        component: () => import('../views/forecast/ChxMapView.vue'),
+        meta: { title: '叶绿素预测' }
+      },
+      {
+        path: 'forecast/history',
+        name: 'ForecastHistory',
+        component: () => import('../views/forecast/HistoryView.vue'),
+        meta: { title: '历史预报记录' }
       },
       {
         path: 'ocean-data',

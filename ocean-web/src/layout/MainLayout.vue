@@ -21,10 +21,21 @@
           <template #title>首页仪表盘</template>
         </el-menu-item>
 
-        <el-menu-item index="/app/forecast">
-          <el-icon><TrendCharts /></el-icon>
-          <template #title>预报数据可视化</template>
-        </el-menu-item>
+        <el-sub-menu index="/app/forecast">
+          <template #title>
+            <el-icon><TrendCharts /></el-icon>
+            <span>预报数据可视化</span>
+          </template>
+          <el-menu-item index="/app/forecast/sst">
+            <template #title>海表温度预测</template>
+          </el-menu-item>
+          <el-menu-item index="/app/forecast/chl">
+            <template #title>叶绿素预测</template>
+          </el-menu-item>
+          <el-menu-item index="/app/forecast/history">
+            <template #title>历史预报记录</template>
+          </el-menu-item>
+        </el-sub-menu>
 
         <el-menu-item index="/app/ocean-data">
           <el-icon><Watermelon /></el-icon>
@@ -85,7 +96,11 @@ const userStore = useUserStore()
 const isCollapse = ref(false)
 const userInfo = computed(() => userStore.userInfo)
 const isAdmin = computed(() => userStore.isAdmin())
-const activeMenu = computed(() => route.path)
+const activeMenu = computed(() => {
+  const path = route.path
+  if (path.startsWith('/app/forecast')) return '/app/forecast'
+  return path
+})
 
 function handleLogout() {
   ElMessageBox.confirm('确定要退出登录吗？', '提示', { type: 'warning' })

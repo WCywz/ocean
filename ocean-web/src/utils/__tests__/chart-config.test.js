@@ -1,6 +1,6 @@
 // ocean-web/src/utils/__tests__/chart-config.test.js
 import { describe, it, expect } from 'vitest'
-import { SST_COLORS, CHL_COLORS, OCEAN_CHART_COLORS, buildBaseOption, buildTooltipFormatter, buildSeriesData } from '../chart-config'
+import { SST_COLORS, CHL_COLORS, OCEAN_CHART_COLORS, buildBaseOption, buildTooltipFormatter, buildSeriesData, SST_MAP_COLORS, CHL_CONC_COLORS, CHL_PROB_COLORS, getMapColor } from '../chart-config'
 
 describe('chart-config', () => {
   it('SST_COLORS has 10 warm-spectrum colors', () => {
@@ -117,5 +117,34 @@ describe('chart-config', () => {
     const result = buildSeriesData(seriesMap, ['#000'])
     expect(result[0].areaStyle).toBeUndefined()
     expect(result[0].markLine).toBeUndefined()
+  })
+
+  describe('map color configs', () => {
+    it('SST_MAP_COLORS has 5 temperature ranges', () => {
+      expect(SST_MAP_COLORS).toHaveLength(5)
+      expect(SST_MAP_COLORS[0]).toEqual({ min: -Infinity, max: 16, color: '#1A5276', label: '<16°C' })
+      expect(SST_MAP_COLORS[4]).toEqual({ min: 28, max: Infinity, color: '#E74C3C', label: '>28°C' })
+    })
+
+    it('CHL_CONC_COLORS has 5 concentration ranges', () => {
+      expect(CHL_CONC_COLORS).toHaveLength(5)
+      expect(CHL_CONC_COLORS[0].color).toBe('#0B5345')
+      expect(CHL_CONC_COLORS[4].color).toBe('#2ECC71')
+    })
+
+    it('CHL_PROB_COLORS has 5 probability ranges', () => {
+      expect(CHL_PROB_COLORS).toHaveLength(5)
+      expect(CHL_PROB_COLORS[0]).toEqual({ min: -Infinity, max: 20, color: '#27AE60', label: '<20%' })
+    })
+
+    it('getMapColor returns correct color for value', () => {
+      expect(getMapColor(15, SST_MAP_COLORS)).toBe('#1A5276')
+      expect(getMapColor(22, SST_MAP_COLORS)).toBe('#F39C12')
+      expect(getMapColor(30, SST_MAP_COLORS)).toBe('#E74C3C')
+    })
+
+    it('getMapColor returns fallback for undefined value', () => {
+      expect(getMapColor(null, SST_MAP_COLORS)).toBe('#999')
+    })
   })
 })
