@@ -17,7 +17,7 @@ export const OCEAN_CHART_COLORS = SST_COLORS
  */
 export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yAxisUnit } = {}) {
   const seriesCount = legendData.length
-  const useRightLegend = seriesCount <= 8
+  const useRightLegend = seriesCount >= 2 && seriesCount <= 8
 
   return {
     tooltip: {
@@ -92,10 +92,8 @@ export function buildTooltipFormatter(unit, locationMap = {}) {
  * Build ECharts series entries from a seriesMap produced by buildLocationMap.
  */
 export function buildSeriesData(seriesMap, colors, { area, markLine } = {}) {
-  let idx = 0
-  return Object.entries(seriesMap).map(([name, values]) => {
+  return Object.entries(seriesMap).map(([name, values], idx) => {
     const color = colors[idx % colors.length]
-    idx++
     return {
       name,
       type: 'line',
