@@ -7,10 +7,10 @@
       <template #header>
         <div class="chart-header">
           <span class="chart-title">叶绿素浓度时间序列 (Chl-a Time Series)</span>
-          <div class="chart-controls">
+          <div class="chart-header-right">
             <el-select
               v-model="chlLocations"
-              placeholder="选择经纬度（不选则全部）"
+              placeholder="筛选观测点（默认全部）"
               multiple
               collapse-tags
               collapse-tags-tooltip
@@ -37,11 +37,28 @@
               style="width: 260px"
               @change="onDateRangeChange"
             />
+            <el-button size="small" text @click="openFullscreen">
+              <el-icon><FullScreen /></el-icon>
+            </el-button>
           </div>
         </div>
       </template>
-      <div ref="timeSeriesChartRef" class="chart-container"></div>
+      <div v-loading="chartLoading" class="chart-container" ref="timeSeriesChartRef">
+        <div v-if="chartEmpty" class="chart-empty">暂无符合条件的观测数据</div>
+      </div>
     </el-card>
+
+    <!-- Fullscreen chart modal -->
+    <el-dialog
+      v-model="fullscreenVisible"
+      title="叶绿素浓度时间序列 (Chl-a Time Series)"
+      fullscreen
+      :close-on-click-modal="false"
+      @opened="onFullscreenOpened"
+      @close="onFullscreenClosed"
+    >
+      <div ref="fullscreenChartRef" class="chart-container" style="height: calc(100vh - 100px);"></div>
+    </el-dialog>
 
     <!-- 观测数据记录表格 -->
     <el-card shadow="hover" style="margin-top: 20px;">
@@ -76,11 +93,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getChlTimeSeries, getOceanDataPage, getOceanLocations } from '../../api/ocean-data'
+import {
+  CHL_COLORS,
+  buildBaseOption, buildTooltipFormatter, buildSeriesData
+} from '../../utils/chart-config'
 
-// 获取本地日期字符串（修复 UTC 时区问题）
 function toLocalDateStr(date) {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -88,22 +108,28 @@ function toLocalDateStr(date) {
   return `${y}-${m}-${d}`
 }
 
-// 经纬度选项
+// ---- location options ----
 const locationOptions = ref([])
 
-// 日期范围：默认最近7天
 const dateRange = ref([
   toLocalDateStr(new Date(Date.now() - 7 * 86400000)),
   toLocalDateStr(new Date())
 ])
 
-// 时间序列图表
+// ---- chart ----
 const timeSeriesChartRef = ref(null)
 const chlLocations = ref([])
 const allChlData = ref([])
+const chartLoading = ref(false)
+const chartEmpty = ref(false)
 let timeSeriesChart = null
 
-// 表格
+// ---- fullscreen ----
+const fullscreenVisible = ref(false)
+const fullscreenChartRef = ref(null)
+let fullscreenChart = null
+
+// ---- table ----
 const tableQuery = ref({ pageNum: 1, pageSize: 10 })
 const tableData = ref([])
 const tableTotal = ref(0)
@@ -114,15 +140,26 @@ onMounted(() => {
     timeSeriesChart = echarts.init(timeSeriesChartRef.value)
 
     await loadLocationOptions()
+    chartLoading.value = true
     await fetchAllChlData()
+    chartLoading.value = false
     renderChlTimeSeries()
     loadTableData()
 
-    window.addEventListener('resize', () => {
-      timeSeriesChart?.resize()
-    })
+    window.addEventListener('resize', handleResize)
   })
 })
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  timeSeriesChart?.dispose()
+  fullscreenChart?.dispose()
+})
+
+function handleResize() {
+  timeSeriesChart?.resize()
+  fullscreenChart?.resize()
+}
 
 async function loadLocationOptions() {
   try {
@@ -133,23 +170,20 @@ async function loadLocationOptions() {
       lat: item.lat,
       lon: item.lon
     }))
-  } catch (e) {
-    // ignored
-  }
+  } catch (e) { /* empty */ }
 }
 
 async function fetchAllChlData() {
   if (!dateRange.value || dateRange.value.length !== 2) return
   try {
-    const res = await getChlTimeSeries(dateRange.value[0], dateRange.value[1], null, null)
-    allChlData.value = res.data || []
-  } catch (e) {
-    allChlData.value = []
-  }
+    allChlData.value = (await getChlTimeSeries(dateRange.value[0], dateRange.value[1], null, null)).data || []
+  } catch (e) { allChlData.value = [] }
 }
 
 async function onDateRangeChange() {
+  chartLoading.value = true
   await fetchAllChlData()
+  chartLoading.value = false
   renderChlTimeSeries()
 }
 
@@ -158,19 +192,15 @@ function buildLocationMap(data) {
   const dateSet = new Set()
   data.forEach(item => {
     const key = `(${item.lon}, ${item.lat})`
-    if (!map[key]) {
-      map[key] = {}
-    }
+    if (!map[key]) map[key] = {}
     map[key][item.time] = item.chl
     dateSet.add(item.time)
   })
-
   const allDates = Array.from(dateSet).sort()
   const result = {}
   Object.entries(map).forEach(([key, dateValueMap]) => {
     result[key] = allDates.map(d => dateValueMap[d] ?? null)
   })
-
   return { seriesMap: result, allDates }
 }
 
@@ -178,97 +208,53 @@ function renderChlTimeSeries() {
   if (!timeSeriesChart) return
   if (!dateRange.value || dateRange.value.length !== 2) return
 
-  timeSeriesChart.showLoading()
-  try {
-    const selectedKeys = chlLocations.value
-    const filtered = selectedKeys.length > 0
-      ? allChlData.value.filter(item => selectedKeys.includes(`${item.lon},${item.lat}`))
-      : allChlData.value
+  const selectedKeys = chlLocations.value
+  const filtered = selectedKeys.length > 0
+    ? allChlData.value.filter(item => selectedKeys.includes(`${item.lon},${item.lat}`))
+    : allChlData.value
 
-    const { allDates } = buildLocationMap(allChlData.value)
-    const { seriesMap } = buildLocationMap(filtered)
+  chartEmpty.value = filtered.length === 0
+  if (filtered.length === 0) { timeSeriesChart.clear(); return }
 
-    const seriesData = Object.entries(seriesMap).map(([name, values], idx) => ({
-      name,
-      type: 'line',
-      smooth: true,
-      symbol: idx > 15 ? 'none' : 'circle',
-      symbolSize: 5,
-      lineStyle: { width: 2 },
-      areaStyle: { opacity: 0.06 },
-      data: values,
-      markLine: {
-        silent: true,
-        symbol: 'none',
-        lineStyle: { type: 'dashed', color: '#aaa' },
-        label: { fontSize: 11 },
-        data: [{ type: 'average', name: '均值' }]
-      }
-    }))
+  const { allDates, seriesMap } = buildLocationMap(filtered)
+  const seriesData = buildSeriesData(seriesMap, CHL_COLORS, { area: true, markLine: true })
 
-    timeSeriesChart.setOption({
-      tooltip: {
-        trigger: 'axis',
-        backgroundColor: 'rgba(255,255,255,0.95)',
-        borderColor: '#ddd',
-        borderWidth: 1,
-        textStyle: { fontSize: 13, color: '#333' },
-        ...(seriesData.length === 0 ? {} : {
-          formatter: params => {
-            let html = `<b style="font-size:14px">${params[0].axisValue}</b><br/>`
-            params.forEach(p => {
-              html += `<span style="display:inline-block;margin-right:4px;border-radius:50%;width:10px;height:10px;background:${p.color}"></span>`
-              html += ` ${p.seriesName}: <b>${p.value} mg/m³</b><br/>`
-            })
-            return html
-          }
-        })
-      },
-      legend: {
-        data: Object.keys(seriesMap),
-        type: 'scroll',
-        bottom: 0,
-        textStyle: { fontSize: 13 },
-        pageTextStyle: { fontSize: 13 }
-      },
-      grid: { left: 90, right: 50, top: 30, bottom: 80 },
-      dataZoom: [
-        { type: 'slider', bottom: 35, height: 22, textStyle: { fontSize: 11 } },
-        { type: 'inside' }
-      ],
-      xAxis: {
-        type: 'category',
-        data: allDates,
-        axisLabel: { rotate: 25, fontSize: 12, color: '#666' },
-        axisLine: { lineStyle: { color: '#ccc' } },
-        axisTick: { lineStyle: { color: '#ccc' } }
-      },
-      yAxis: {
-        type: 'value',
-        name: '叶绿素浓度 (mg/m³)',
-        nameTextStyle: { fontSize: 14, color: '#666' },
-        axisLabel: { fontSize: 13 },
-        splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }
-      },
-      series: seriesData,
-      color: ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#fc8452',
-              '#3ba272', '#9a60b4', '#ea7ccc', '#ff9f7f',
-              '#67e0e3', '#d48265', '#61a0a8', '#c23531', '#2f4554']
-    }, true)
-  } finally {
-    timeSeriesChart.hideLoading()
-  }
+  const base = buildBaseOption({
+    legendData: Object.keys(seriesMap),
+    xAxisData: allDates,
+    yAxisName: '叶绿素浓度 (mg/m³)',
+    yAxisUnit: 'mg/m³'
+  })
+  base.tooltip.formatter = buildTooltipFormatter('mg/m³', {})
+
+  timeSeriesChart.setOption({ ...base, series: seriesData, color: CHL_COLORS }, true)
 }
 
+// ---- fullscreen ----
+function openFullscreen() {
+  fullscreenVisible.value = true
+}
+
+function onFullscreenOpened() {
+  nextTick(() => {
+    fullscreenChart = echarts.init(fullscreenChartRef.value)
+    fullscreenChart.setOption(timeSeriesChart.getOption(), true)
+  })
+}
+
+function onFullscreenClosed() {
+  fullscreenChart?.dispose()
+  fullscreenChart = null
+}
+
+// ---- table ----
 async function loadTableData() {
   tableLoading.value = true
   try {
     const res = await getOceanDataPage({ ...tableQuery.value })
     tableData.value = res.data.records
     tableTotal.value = res.data.total
-  } finally {
-    tableLoading.value = false
-  }
+  } finally { tableLoading.value = false }
 }
 </script>
 
@@ -286,10 +272,10 @@ async function loadTableData() {
   align-items: center;
   justify-content: space-between;
 }
-.chart-controls {
+.chart-header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 .chart-title {
   font-weight: 600;
@@ -298,6 +284,14 @@ async function loadTableData() {
 }
 .chart-container {
   width: 100%;
-  height: 520px;
+  height: 400px;
+}
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #999;
+  font-size: 14px;
 }
 </style>
