@@ -109,3 +109,42 @@ export function buildSeriesData(seriesMap, colors, { area, markLine } = {}) {
     }
   })
 }
+
+// ---- Map color configs ----
+
+export const SST_MAP_COLORS = [
+  { min: -Infinity, max: 16,  color: '#1A5276', label: '<16°C' },
+  { min: 16,       max: 20,  color: '#2E86C1', label: '16-20°C' },
+  { min: 20,       max: 24,  color: '#F39C12', label: '20-24°C' },
+  { min: 24,       max: 28,  color: '#E67E22', label: '24-28°C' },
+  { min: 28,       max: Infinity, color: '#E74C3C', label: '>28°C' }
+]
+
+export const CHL_CONC_COLORS = [
+  { min: -Infinity, max: 0.5,  color: '#0B5345', label: '<0.5 mg/m³' },
+  { min: 0.5,      max: 1.5,  color: '#148F77', label: '0.5-1.5' },
+  { min: 1.5,      max: 3.0,  color: '#1ABC9C', label: '1.5-3.0' },
+  { min: 3.0,      max: 5.0,  color: '#27AE60', label: '3.0-5.0' },
+  { min: 5.0,      max: Infinity, color: '#2ECC71', label: '>5.0' }
+]
+
+export const CHL_PROB_COLORS = [
+  { min: -Infinity, max: 20,  color: '#27AE60', label: '<20%' },
+  { min: 20,       max: 40,  color: '#F1C40F', label: '20-40%' },
+  { min: 40,       max: 60,  color: '#F39C12', label: '40-60%' },
+  { min: 60,       max: 80,  color: '#E67E22', label: '60-80%' },
+  { min: 80,       max: Infinity, color: '#E74C3C', label: '>80%' }
+]
+
+/**
+ * Get the color for a value from a color range config array.
+ * Returns '#999' as fallback for null/undefined values.
+ */
+export function getMapColor(value, colorRanges) {
+  if (value == null) return '#999'
+  for (const range of colorRanges) {
+    if (value > range.min && value <= range.max) return range.color
+    if (value <= range.min && range.min === -Infinity) return range.color
+  }
+  return '#999'
+}
