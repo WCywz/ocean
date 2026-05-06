@@ -2,102 +2,176 @@
   <div class="dashboard">
     <h2 class="page-title">系统仪表盘</h2>
 
-    <!-- 统计卡片 -->
-    <el-row :gutter="20" class="stat-row">
-      <el-col :span="8">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon" style="background: #e6f7ff;">
-              <el-icon :size="32" color="#1890ff"><Setting /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ dashboard.modelCount }}</div>
-              <div class="stat-label">模型总数</div>
-            </div>
-          </div>
-        </el-card>
+    <StatCards
+      :modelCount="data.modelCount"
+      :runningModelCount="data.runningModelCount"
+      :todayRecordCount="data.todayRecordCount"
+      :alertCount="data.alertCount"
+    />
+
+    <el-row :gutter="20" style="margin-bottom: 20px;">
+      <el-col :span="12">
+        <TrendCard
+          title="海表温度趋势 (SST)"
+          dataType="SST"
+          :series="sstTrend"
+          :loading="loading.trendSst"
+        />
       </el-col>
-      <el-col :span="8">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon" style="background: #f6ffed;">
-              <el-icon :size="32" color="#52c41a"><VideoPlay /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ dashboard.runningModelCount }}</div>
-              <div class="stat-label">运行中模型</div>
-            </div>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="8">
-        <el-card shadow="hover" class="stat-card">
-          <div class="stat-content">
-            <div class="stat-icon" style="background: #fff7e6;">
-              <el-icon :size="32" color="#fa8c16"><TrendCharts /></el-icon>
-            </div>
-            <div class="stat-info">
-              <div class="stat-value">{{ dashboard.todayRecordCount }}</div>
-              <div class="stat-label">今日预报记录</div>
-            </div>
-          </div>
-        </el-card>
+      <el-col :span="12">
+        <TrendCard
+          title="叶绿素浓度趋势 (CHL)"
+          dataType="CHL"
+          :series="chlTrend"
+          :loading="loading.trendChl"
+        />
       </el-col>
     </el-row>
 
-    <!-- 最新数据展示 -->
-    <el-row :gutter="20" style="margin-top: 20px;">
+    <el-row :gutter="20" style="margin-bottom: 20px;">
+      <el-col :span="16">
+        <DashboardMap
+          :gridData="mapGridData"
+          :colorRanges="mapColorRanges"
+          :legendLabels="mapLegendLabels"
+          :legendTitle="mapLegendTitle"
+          :loading="loading.map"
+          :activeType="mapType"
+          @typeChange="onMapTypeChange"
+          @cellClick="onMapCellClick"
+        />
+      </el-col>
+      <el-col :span="8">
+        <AlertPanel :alerts="alerts" :loading="loading.alerts" />
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20">
       <el-col :span="12">
-        <el-card shadow="hover">
-          <template #header>
-            <span class="card-title">最新海表温度 (SST)</span>
-          </template>
-          <el-table :data="dashboard.latestSstData" size="small" stripe>
-            <el-table-column prop="locationName" label="观测点" />
-            <el-table-column prop="value" label="温度值">
-              <template #default="{ row }">{{ row.value }} {{ row.unit }}</template>
-            </el-table-column>
-            <el-table-column prop="forecastDate" label="预报日期" />
-          </el-table>
-        </el-card>
+        <LatestDataTable
+          title="最新海表温度 (SST)"
+          dataType="SST"
+          :data="data.latestSstData"
+          :loading="loading.dashboard"
+        />
       </el-col>
       <el-col :span="12">
-        <el-card shadow="hover">
-          <template #header>
-            <span class="card-title">最新叶绿素浓度 (CHL)</span>
-          </template>
-          <el-table :data="dashboard.latestChlData" size="small" stripe>
-            <el-table-column prop="locationName" label="观测点" />
-            <el-table-column prop="value" label="浓度值">
-              <template #default="{ row }">{{ row.value }} {{ row.unit }}</template>
-            </el-table-column>
-            <el-table-column prop="forecastDate" label="预报日期" />
-          </el-table>
-        </el-card>
+        <LatestDataTable
+          title="最新叶绿素浓度 (CHL)"
+          dataType="CHL"
+          :data="data.latestChlData"
+          :loading="loading.dashboard"
+        />
       </el-col>
     </el-row>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { getDashboard } from '../../api/forecast'
+import { ref, reactive, onMounted } from 'vue'
+import { getDashboard, getDashboardTrend, getTodayAlerts, getMapGrid } from '../../api/forecast'
+import { SST_MAP_COLORS, CHL_CONC_COLORS } from '../../utils/chart-config'
+import StatCards from './StatCards.vue'
+import TrendCard from './TrendCard.vue'
+import DashboardMap from './DashboardMap.vue'
+import AlertPanel from './AlertPanel.vue'
+import LatestDataTable from './LatestDataTable.vue'
 
-const dashboard = ref({
+const data = ref({
   modelCount: 0,
   runningModelCount: 0,
   todayRecordCount: 0,
+  alertCount: 0,
   latestSstData: [],
   latestChlData: []
 })
 
-onMounted(async () => {
+const sstTrend = ref([])
+const chlTrend = ref([])
+const alerts = ref([])
+const mapGridData = ref([])
+const mapType = ref('SST')
+
+const loading = reactive({
+  dashboard: false,
+  trendSst: false,
+  trendChl: false,
+  alerts: false,
+  map: false
+})
+
+const mapColorRanges = ref(SST_MAP_COLORS)
+const mapLegendLabels = ref(SST_MAP_COLORS.map(r => r.label))
+const mapLegendTitle = ref('SST 温度 (°C)')
+
+async function fetchDashboard() {
+  loading.dashboard = true
   try {
     const res = await getDashboard()
-    dashboard.value = res.data
-  } catch (e) {
-    // ignored
+    data.value = res.data
+  } finally {
+    loading.dashboard = false
   }
+}
+
+async function fetchTrend(dataType) {
+  const key = dataType === 'SST' ? 'trendSst' : 'trendChl'
+  loading[key] = true
+  try {
+    const res = await getDashboardTrend(dataType, 7)
+    if (dataType === 'SST') sstTrend.value = res.data
+    else chlTrend.value = res.data
+  } finally {
+    loading[key] = false
+  }
+}
+
+async function fetchAlerts() {
+  loading.alerts = true
+  try {
+    const res = await getTodayAlerts()
+    alerts.value = res.data
+  } finally {
+    loading.alerts = false
+  }
+}
+
+async function fetchMapData() {
+  loading.map = true
+  try {
+    const colorRanges = mapType.value === 'SST' ? SST_MAP_COLORS : CHL_CONC_COLORS
+    const res = await getMapGrid({
+      dataType: mapType.value,
+      forecastDate: new Date().toISOString().slice(0, 10),
+      precision: 0.05,
+      minLon: 121.33, maxLon: 125.58,
+      minLat: 26.92, maxLat: 32.67
+    })
+    mapGridData.value = (res.data || []).map(r => ({ lat: r.gridLat, lon: r.gridLon, value: r.value }))
+    mapColorRanges.value = colorRanges
+    mapLegendLabels.value = colorRanges.map(r => r.label)
+    mapLegendTitle.value = mapType.value === 'SST' ? 'SST 温度 (°C)' : 'CHL 浓度 (mg/m³)'
+  } finally {
+    loading.map = false
+  }
+}
+
+function onMapTypeChange(type) {
+  mapType.value = type
+  fetchMapData()
+}
+
+function onMapCellClick() {
+  const route = mapType.value === 'SST' ? '/app/forecast/sst' : '/app/forecast/chl'
+  window.location.hash = '#' + route
+}
+
+onMounted(() => {
+  fetchDashboard()
+  fetchTrend('SST')
+  fetchTrend('CHL')
+  fetchAlerts()
+  fetchMapData()
 })
 </script>
 
@@ -106,45 +180,5 @@ onMounted(async () => {
   margin-bottom: 20px;
   color: #1a3a5c;
   font-size: 20px;
-}
-
-.stat-card {
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-.stat-card:hover {
-  transform: translateY(-2px);
-}
-
-.stat-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.stat-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1a3a5c;
-}
-
-.stat-label {
-  color: #8899aa;
-  font-size: 14px;
-  margin-top: 4px;
-}
-
-.card-title {
-  font-weight: 600;
-  color: #1a3a5c;
 }
 </style>
