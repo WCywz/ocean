@@ -19,6 +19,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -144,6 +145,34 @@ public class ForecastRecordServiceImpl implements ForecastRecordService {
     @Override
     public List<Map<String, Object>> getSeaAreas() {
         return seaAreaConfig.getSeaAreas();
+    }
+
+    @Override
+    public List<Map<String, Object>> getDashboardTrend(String dataType, Integer days) {
+        if (days == null) days = 7;
+        List<Map<String, Object>> rows = forecastRecordMapper.selectDashboardTrend(dataType, days);
+        // Group by locationName, build {locationName, dataPoints: [{date, value}]}
+        Map<String, List<Map<String, Object>>> grouped = rows.stream()
+                .collect(Collectors.groupingBy(
+                        row -> (String) row.get("locationName"),
+                        Collectors.toList()
+                ));
+        return grouped.entrySet().stream().map(entry -> {
+            Map<String, Object> m = new HashMap<>();
+            m.put("locationName", entry.getKey());
+            m.put("dataPoints", entry.getValue().stream().map(r -> {
+                Map<String, Object> dp = new HashMap<>();
+                dp.put("date", r.get("forecastDate").toString());
+                dp.put("value", r.get("value"));
+                return dp;
+            }).collect(Collectors.toList()));
+            return m;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Map<String, Object>> getTodayAlerts() {
+        return forecastRecordMapper.selectTodayAlerts();
     }
 
     private ForecastVO toVO(ForecastRecord record) {

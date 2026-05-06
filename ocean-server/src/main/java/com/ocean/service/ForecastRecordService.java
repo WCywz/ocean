@@ -21,6 +21,12 @@ public interface ForecastRecordService {
     /** 获取仪表盘数据 */
     DashboardVO getDashboard();
 
+    /** 仪表盘趋势数据 — top N 观测点最近天数日均值 */
+    List<Map<String, Object>> getDashboardTrend(String dataType, Integer days);
+
+    /** 今日阈值告警详情 */
+    List<Map<String, Object>> getTodayAlerts();
+
     /** 获取各观测点SST历史趋势数据 */
     List<Map<String, Object>> getSstTrend(BigDecimal lon, BigDecimal lat);
 
