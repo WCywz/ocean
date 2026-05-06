@@ -1,6 +1,6 @@
 // ocean-web/src/utils/__tests__/chart-config.test.js
 import { describe, it, expect } from 'vitest'
-import { SST_COLORS, CHL_COLORS, OCEAN_CHART_COLORS, buildBaseOption, buildTooltipFormatter, buildSeriesData, SST_MAP_COLORS, CHL_CONC_COLORS, CHL_PROB_COLORS, getMapColor } from '../chart-config'
+import { SST_COLORS, CHL_COLORS, OCEAN_CHART_COLORS, buildBaseOption, buildTooltipFormatter, buildSeriesData, SST_MAP_COLORS, CHL_CONC_COLORS, CHL_PROB_COLORS, getMapColor, buildHeatGradient } from '../chart-config'
 
 describe('chart-config', () => {
   it('SST_COLORS has 10 warm-spectrum colors', () => {
@@ -145,6 +145,28 @@ describe('chart-config', () => {
 
     it('getMapColor returns fallback for undefined value', () => {
       expect(getMapColor(null, SST_MAP_COLORS)).toBe('#999')
+    })
+  })
+
+  describe('buildHeatGradient', () => {
+    it('converts SST color ranges to leaflet.heat gradient object', () => {
+      const gradient = buildHeatGradient(SST_MAP_COLORS)
+      expect(gradient).toBeTypeOf('object')
+      expect(Object.keys(gradient)).toHaveLength(5)
+      expect(gradient['0']).toBe('#1A5276')
+      expect(gradient['1']).toBe('#E74C3C')
+    })
+
+    it('normalizes gradient keys between 0 and 1', () => {
+      const gradient = buildHeatGradient(SST_MAP_COLORS)
+      const keys = Object.keys(gradient).map(Number)
+      expect(Math.min(...keys)).toBeGreaterThanOrEqual(0)
+      expect(Math.max(...keys)).toBeLessThanOrEqual(1)
+    })
+
+    it('handles empty ranges gracefully', () => {
+      const gradient = buildHeatGradient([])
+      expect(gradient).toEqual({ '0': '#999', '1': '#999' })
     })
   })
 })

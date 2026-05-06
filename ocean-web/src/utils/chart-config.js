@@ -148,3 +148,19 @@ export function getMapColor(value, colorRanges) {
   }
   return '#999'
 }
+
+/**
+ * Convert color range config to leaflet.heat gradient object.
+ * Keys are 0.0–1.0 normalized positions, values are hex colors.
+ */
+export function buildHeatGradient(colorRanges) {
+  if (!colorRanges.length) {
+    return { 0: '#999', 1: '#999' }
+  }
+  const gradient = {}
+  const n = colorRanges.length
+  colorRanges.forEach((range, i) => {
+    gradient[i / (n - 1)] = range.color
+  })
+  return gradient
+}
