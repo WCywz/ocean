@@ -39,3 +39,13 @@ export function getPointTrend(params) {
 export function getSeaAreas() {
   return request({ url: '/forecast/sea-areas', method: 'get' })
 }
+
+/** 获取仪表盘趋势数据 (top 5 观测点 sparkline) */
+export function getDashboardTrend(dataType = 'SST', days = 7) {
+  return request({ url: '/forecast/trend/dashboard', method: 'get', params: { dataType, days } })
+}
+
+/** 获取今日阈值告警 */
+export function getTodayAlerts() {
+  return request({ url: '/forecast/alerts', method: 'get' })
+}

@@ -1,6 +1,6 @@
 <template>
   <div class="ocean-map-wrapper">
-    <div v-loading="loading" class="ocean-map-container" ref="mapContainer"></div>
+    <div v-loading="loading" class="ocean-map-container" ref="mapContainer" :style="{ height: height }"></div>
 
     <!-- Legend overlay -->
     <div class="map-legend" v-if="legendLabels.length">
@@ -32,7 +32,8 @@ const props = defineProps({
   legendTitle: { type: String, default: '' },
   loading: { type: Boolean, default: false },
   center: { type: Array, default: () => [29.8, 123.5] },
-  zoom: { type: Number, default: 7 }
+  zoom: { type: Number, default: 7 },
+  height: { type: String, default: '450px' }
 })
 
 const emit = defineEmits(['cellClick', 'bboxChange'])
@@ -186,7 +187,6 @@ onUnmounted(() => {
 }
 .ocean-map-container {
   width: 100%;
-  height: 450px;
   border-radius: 8px;
   overflow: hidden;
 }
