@@ -1,14 +1,12 @@
 <template>
-  <el-card shadow="hover" class="dashboard-map-card">
-    <template #header>
-      <div class="card-header">
-        <span class="card-title">数据覆盖分布</span>
-        <el-radio-group :model-value="activeType" size="small" @change="$emit('typeChange', $event)">
-          <el-radio-button value="SST">SST</el-radio-button>
-          <el-radio-button value="CHL">CHL</el-radio-button>
-        </el-radio-group>
-      </div>
-    </template>
+  <div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <h3 class="editorial-section-heading" style="margin: 0;">数据覆盖分布</h3>
+      <el-radio-group :model-value="activeType" size="small" @change="$emit('typeChange', $event)">
+        <el-radio-button value="SST">SST</el-radio-button>
+        <el-radio-button value="CHL">CHL</el-radio-button>
+      </el-radio-group>
+    </div>
     <OceanMap
       :gridData="gridData"
       :colorRanges="colorRanges"
@@ -20,7 +18,7 @@
       :zoom="zoom"
       @cellClick="(pos) => $emit('cellClick', pos)"
     />
-  </el-card>
+  </div>
 </template>
 
 <script setup>
@@ -43,7 +41,5 @@ const zoom = 7
 </script>
 
 <style scoped>
-.dashboard-map-card { height: 100%; }
-.card-header { display: flex; justify-content: space-between; align-items: center; }
-.card-title { font-weight: 600; color: #1a3a5c; }
+/* uses editorial-section-heading from editorial.css */
 </style>
