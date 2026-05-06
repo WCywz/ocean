@@ -74,6 +74,8 @@ public class ForecastRecordServiceImpl implements ForecastRecordService {
         ));
         // 今日预报记录数
         vo.setTodayRecordCount(forecastRecordMapper.countTodayRecords());
+        // 今日告警数
+        vo.setAlertCount(forecastRecordMapper.countTodayAlerts());
         // 最新SST和CHL数据
         vo.setLatestSstData(forecastRecordMapper.selectLatestSstByLocation());
         vo.setLatestChlData(forecastRecordMapper.selectLatestChlByLocation());

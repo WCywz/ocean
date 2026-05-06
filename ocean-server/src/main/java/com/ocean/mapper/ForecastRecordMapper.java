@@ -44,6 +44,14 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
     Long countTodayRecords();
 
     /**
+     * 统计今日超出阈值的告警记录数 (SST>28°C 或 CHL>5 mg/m³)
+     */
+    @Select("SELECT COUNT(*) FROM forecast_record " +
+            "WHERE forecast_date = CURDATE() " +
+            "AND ((data_type = 'SST' AND value > 28) OR (data_type = 'CHL' AND value > 5))")
+    Long countTodayAlerts();
+
+    /**
      * 查询所有去重的经纬度及观测点名称
      */
     @Select("SELECT DISTINCT longitude, latitude, location_name AS locationName " +
