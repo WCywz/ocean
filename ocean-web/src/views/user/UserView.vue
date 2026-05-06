@@ -1,116 +1,110 @@
 <template>
-  <div class="user-page">
-    <!-- 搜索栏 -->
-    <el-card shadow="never" class="search-card">
-      <el-form :inline="true" :model="query" size="default">
-        <el-form-item label="用户名">
-          <el-input v-model="query.username" placeholder="请输入" clearable style="width: 180px" />
-        </el-form-item>
-        <el-form-item label="角色">
-          <el-select v-model="query.role" placeholder="全部" clearable style="width: 130px">
-            <el-option label="管理员" value="ADMIN" />
-            <el-option label="普通用户" value="USER" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px">
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+  <div>
+    <h1 class="editorial-page-title">用户管理</h1>
+    <p class="editorial-page-subtitle">User Management · 共 {{ total }} 条记录</p>
 
-    <!-- 操作栏 -->
-    <el-card shadow="never" style="margin-top: 16px;">
-      <div style="margin-bottom: 16px;">
-        <el-button type="primary" @click="handleAdd">
-          <el-icon><Plus /></el-icon> 新增用户
-        </el-button>
-      </div>
+    <!-- Filter bar -->
+    <div class="editorial-filter-bar">
+      <input v-model="query.username" class="editorial-search" placeholder="用户名" style="width: 160px;" />
+      <select v-model="query.role" class="editorial-select" style="width: 140px;">
+        <option value="">全部角色</option>
+        <option value="ADMIN">管理员</option>
+        <option value="USER">普通用户</option>
+      </select>
+      <select v-model="query.status" class="editorial-select" style="width: 120px;">
+        <option :value="null">全部状态</option>
+        <option :value="1">启用</option>
+        <option :value="0">禁用</option>
+      </select>
+      <button class="editorial-btn-outline" @click="handleSearch">查询</button>
+      <button class="editorial-btn-outline" @click="handleReset">重置</button>
+      <span style="flex: 1;"></span>
+      <button class="editorial-btn-outline" @click="handleAdd">+ 新增用户</button>
+    </div>
 
-      <el-table :data="tableData" v-loading="loading" stripe border>
-        <el-table-column prop="id" label="ID" width="80" align="center" />
-        <el-table-column prop="username" label="用户名" min-width="120" />
-        <el-table-column prop="realName" label="真实姓名" min-width="120" />
-        <el-table-column prop="role" label="角色" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.role === 'ADMIN' ? 'danger' : 'success'" size="small">
-              {{ row.role === 'ADMIN' ? '管理员' : '普通用户' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="90" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
-              {{ row.status === 1 ? '启用' : '禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" min-width="170" />
-        <el-table-column label="操作" width="180" fixed="right" align="center">
-          <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+    <!-- Table -->
+    <table class="editorial-table" v-loading="loading">
+      <thead>
+        <tr>
+          <td>用户名</td>
+          <td>真实姓名</td>
+          <td>角色</td>
+          <td>状态</td>
+          <td>创建时间</td>
+          <td style="text-align: right;">操作</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in tableData" :key="row.id">
+          <td>{{ row.username }}</td>
+          <td>{{ row.realName }}</td>
+          <td><span class="editorial-tag">{{ row.role === 'ADMIN' ? 'ADMIN' : 'USER' }}</span></td>
+          <td>{{ row.status === 1 ? '启用' : '禁用' }}</td>
+          <td class="text-muted">{{ row.createTime }}</td>
+          <td style="text-align: right;">
+            <a class="editorial-link" @click="handleEdit(row)">编辑</a>
+            <a class="editorial-link editorial-link--muted" style="margin-left: 12px;" @click="handleDelete(row)">删除</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-      <div style="margin-top: 16px; text-align: right;">
-        <el-pagination
-          v-model:current-page="query.pageNum"
-          v-model:page-size="query.pageSize"
-          :page-sizes="[10, 20, 50]"
-          :total="total"
-          layout="total, sizes, prev, pager, next"
-          @size-change="loadData"
-          @current-change="loadData"
-        />
-      </div>
-    </el-card>
+    <!-- Pagination -->
+    <div class="editorial-pagination">
+      <span>共 {{ total }} 条</span>
+      <select v-model="query.pageSize" class="editorial-select" style="width: 80px;" @change="loadData">
+        <option :value="10">10</option>
+        <option :value="20">20</option>
+        <option :value="50">50</option>
+      </select>
+      <a class="editorial-link" @click="prevPage">&larr;</a>
+      <span class="editorial-pagination__page editorial-pagination__page--active">{{ query.pageNum }}</span>
+      <a class="editorial-link" @click="nextPage">&rarr;</a>
+    </div>
 
-    <!-- 新增/编辑对话框 -->
+    <!-- Dialog -->
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
-      width="500px"
+      width="480px"
       :close-on-click-modal="false"
     >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名" />
-        </el-form-item>
-        <el-form-item label="密码" :prop="isEdit ? '' : 'password'">
-          <el-input
-            v-model="form.password"
-            type="password"
-            :placeholder="isEdit ? '留空则不修改密码' : '请输入密码'"
-            show-password
-          />
-        </el-form-item>
-        <el-form-item label="真实姓名" prop="realName">
-          <el-input v-model="form.realName" placeholder="请输入真实姓名" />
-        </el-form-item>
-        <el-form-item label="角色" prop="role">
-          <el-select v-model="form.role" placeholder="请选择角色" style="width: 100%">
-            <el-option label="管理员" value="ADMIN" />
-            <el-option label="普通用户" value="USER" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态" prop="status">
-          <el-select v-model="form.status" placeholder="请选择状态" style="width: 100%">
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
-          </el-select>
-        </el-form-item>
-      </el-form>
+      <div style="margin-bottom: 18px;">
+        <label class="editorial-form-label">用户名</label>
+        <input v-model="form.username" class="editorial-input" placeholder="请输入用户名" />
+      </div>
+      <div style="margin-bottom: 18px;">
+        <label class="editorial-form-label">密码</label>
+        <input
+          v-model="form.password"
+          class="editorial-input"
+          type="password"
+          :placeholder="isEdit ? '留空则不修改密码' : '请输入密码'"
+        />
+      </div>
+      <div style="margin-bottom: 18px;">
+        <label class="editorial-form-label">真实姓名</label>
+        <input v-model="form.realName" class="editorial-input" placeholder="请输入真实姓名" />
+      </div>
+      <div style="margin-bottom: 18px;">
+        <label class="editorial-form-label">角色</label>
+        <select v-model="form.role" class="editorial-select">
+          <option value="ADMIN">管理员</option>
+          <option value="USER">普通用户</option>
+        </select>
+      </div>
+      <div style="margin-bottom: 18px;">
+        <label class="editorial-form-label">状态</label>
+        <select v-model="form.status" class="editorial-select">
+          <option :value="1">启用</option>
+          <option :value="0">禁用</option>
+        </select>
+      </div>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">确定</el-button>
+        <button class="editorial-btn-outline" @click="dialogVisible = false">取消</button>
+        <button class="editorial-btn" style="padding: 8px 24px; margin-left: 12px;" :disabled="submitLoading" @click="handleSubmit">
+          {{ submitLoading ? '...' : '确定' }}
+        </button>
       </template>
     </el-dialog>
   </div>
@@ -132,15 +126,7 @@ const dialogTitle = ref('新增用户')
 const isEdit = ref(false)
 const editId = ref(null)
 const submitLoading = ref(false)
-const formRef = ref(null)
 const form = reactive({ username: '', password: '', realName: '', role: 'USER', status: 1 })
-
-const rules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  role: [{ required: true, message: '请选择角色', trigger: 'change' }],
-  status: [{ required: true, message: '请选择状态', trigger: 'change' }]
-}
 
 onMounted(() => { loadData() })
 
@@ -192,18 +178,23 @@ function handleEdit(row) {
 }
 
 async function handleSubmit() {
-  const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
-
+  if (!form.username || !form.realName) {
+    ElMessage.warning('请填写用户名和真实姓名')
+    return
+  }
   submitLoading.value = true
   try {
     const data = { ...form }
     if (isEdit.value) {
-      // 密码为空时不传
       if (!data.password) delete data.password
       await updateUser(editId.value, data)
       ElMessage.success('用户更新成功')
     } else {
+      if (!data.password) {
+        ElMessage.warning('请输入密码')
+        submitLoading.value = false
+        return
+      }
       await addUser(data)
       ElMessage.success('用户创建成功')
     }
@@ -225,10 +216,19 @@ function handleDelete(row) {
     loadData()
   }).catch(() => {})
 }
+
+function prevPage() {
+  if (query.pageNum > 1) {
+    query.pageNum--
+    loadData()
+  }
+}
+function nextPage() {
+  query.pageNum++
+  loadData()
+}
 </script>
 
 <style scoped>
-.search-card {
-  background: #fff;
-}
+/* uses editorial classes from editorial.css */
 </style>
