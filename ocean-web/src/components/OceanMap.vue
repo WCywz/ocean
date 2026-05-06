@@ -20,10 +20,11 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import L from 'leaflet'
+import 'leaflet.heat'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet-draw'
 import 'leaflet-draw/dist/leaflet.draw.css'
-import { getMapColor } from '../utils/chart-config'
+import { buildHeatGradient } from '../utils/chart-config'
 
 const props = defineProps({
   gridData: { type: Array, default: () => [] },
@@ -40,7 +41,7 @@ const emit = defineEmits(['cellClick', 'bboxChange'])
 
 const mapContainer = ref(null)
 let map = null
-let canvasLayer = null
+let heatLayer = null
 let drawControl = null
 let drawnItems = null
 
@@ -49,12 +50,10 @@ const legendColors = computed(() => props.colorRanges.map(r => r.color))
 function drawGrid() {
   if (!map || !props.gridData.length) return
 
-  // Remove old layer
-  if (canvasLayer) {
-    map.removeLayer(canvasLayer)
+  if (heatLayer) {
+    map.removeLayer(heatLayer)
+    heatLayer = null
   }
-
-  canvasLayer = L.layerGroup()
 
   const bounds = map.getBounds()
   const south = bounds.getSouth()
@@ -62,41 +61,41 @@ function drawGrid() {
   const west = bounds.getWest()
   const east = bounds.getEast()
 
-  // Filter points within current viewport (with small padding)
   const visible = props.gridData.filter(p =>
     p.lat >= south && p.lat <= north && p.lon >= west && p.lon <= east
   )
 
   if (!visible.length) return
 
-  // Group by color for efficient rendering
-  const byColor = {}
-  visible.forEach(p => {
-    const color = getMapColor(p.value, props.colorRanges)
-    if (!byColor[color]) byColor[color] = []
-    byColor[color].push(p)
+  const heatData = visible.map(p => [p.lat, p.lon, p.value ?? 0])
+
+  heatLayer = L.heatLayer(heatData, {
+    radius: 15,
+    blur: 10,
+    maxZoom: 10,
+    gradient: buildHeatGradient(props.colorRanges)
   })
 
-  Object.entries(byColor).forEach(([color, points]) => {
-    const circles = points.map(p => {
-      const latlng = L.latLng(p.lat, p.lon)
-      const marker = L.circleMarker(latlng, {
-        radius: 4,
-        fillColor: color,
-        color: color,
-        weight: 1,
-        opacity: 0.8,
-        fillOpacity: 0.7
-      })
-      marker.on('click', () => {
-        emit('cellClick', { lat: p.lat, lon: p.lon, value: p.value })
-      })
-      return marker
-    })
-    canvasLayer.addLayer(L.layerGroup(circles))
+  heatLayer.on('click', (e) => {
+    const clickLat = e.latlng.lat
+    const clickLng = e.latlng.lng
+    let nearest = null
+    let minDist = Infinity
+    for (const p of props.gridData) {
+      const dlat = p.lat - clickLat
+      const dlng = p.lon - clickLng
+      const dist = dlat * dlat + dlng * dlng
+      if (dist < minDist) {
+        minDist = dist
+        nearest = p
+      }
+    }
+    if (nearest) {
+      emit('cellClick', { lat: nearest.lat, lon: nearest.lon, value: nearest.value })
+    }
   })
 
-  canvasLayer.addTo(map)
+  heatLayer.addTo(map)
 }
 
 function onMoveEnd() {
@@ -184,6 +183,7 @@ onUnmounted(() => {
 .ocean-map-wrapper {
   position: relative;
   width: 100%;
+  overflow: hidden;
 }
 .ocean-map-container {
   width: 100%;
