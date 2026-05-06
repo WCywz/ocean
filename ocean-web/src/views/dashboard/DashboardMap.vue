@@ -3,7 +3,7 @@
     <template #header>
       <div class="card-header">
         <span class="card-title">数据覆盖分布</span>
-        <el-radio-group v-model="activeType" size="small" @change="$emit('typeChange', activeType)">
+        <el-radio-group :model-value="activeType" size="small" @change="$emit('typeChange', $event)">
           <el-radio-button value="SST">SST</el-radio-button>
           <el-radio-button value="CHL">CHL</el-radio-button>
         </el-radio-group>
