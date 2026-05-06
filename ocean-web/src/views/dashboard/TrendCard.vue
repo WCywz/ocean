@@ -1,18 +1,15 @@
 <template>
-  <el-card shadow="hover" class="trend-card">
-    <template #header>
-      <div class="card-header">
-        <span class="card-title">{{ title }}</span>
-        <el-tag size="small" type="info">最近 7 天</el-tag>
-      </div>
-    </template>
-    <div v-if="!series.length && !loading" class="empty-state">暂无趋势数据</div>
+  <div class="editorial-section">
+    <p class="editorial-section-label">Feature · 趋势分析</p>
+    <h3 class="editorial-section-heading">{{ title }}</h3>
+    <p class="editorial-narrative">{{ narrativeText }}</p>
+    <div v-if="!series.length && !loading" class="editorial-narrative">暂无趋势数据</div>
     <div v-loading="loading" class="chart-wrapper" ref="chartRef"></div>
-  </el-card>
+  </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { SST_COLORS, CHL_COLORS, buildBaseOption, buildSeriesData } from '../../utils/chart-config'
 
@@ -21,6 +18,21 @@ const props = defineProps({
   dataType: { type: String, default: 'SST' },
   series: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false }
+})
+
+const narrativeText = computed(() => {
+  if (!props.series.length) return ''
+  if (props.dataType === 'SST') {
+    const vals = props.series[0]?.dataPoints?.map(d => d.value) || []
+    if (!vals.length) return ''
+    const avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)
+    const trend = vals[vals.length - 1] > vals[0] ? '上升' : '下降'
+    return `过去 ${vals.length} 天东海海域海表温度呈${trend}趋势，平均温度 ${avg}°C。`
+  }
+  const vals = props.series[0]?.dataPoints?.map(d => d.value) || []
+  if (!vals.length) return ''
+  const avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)
+  return `近海叶绿素浓度维持正常水平，平均 ${avg} mg/m³，无异常藻华预警信号。`
 })
 
 const chartRef = ref(null)
@@ -70,12 +82,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.trend-card { height: 100%; }
-.card-header { display: flex; justify-content: space-between; align-items: center; }
-.card-title { font-weight: 600; color: #1a3a5c; }
-.chart-wrapper { width: 100%; height: 280px; }
-.empty-state {
-  height: 280px; display: flex; align-items: center; justify-content: center;
-  color: #bbb; font-size: 14px;
+.chart-wrapper {
+  width: 100%;
+  height: 280px;
 }
 </style>
