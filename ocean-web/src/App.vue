@@ -6,6 +6,8 @@
 </script>
 
 <style>
+@import './styles/editorial.css';
+
 * {
   margin: 0;
   padding: 0;
@@ -13,6 +15,8 @@
 }
 html, body, #app {
   height: 100%;
-  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 </style>
