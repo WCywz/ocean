@@ -33,7 +33,7 @@
       <p class="editorial-section-label">Interactive</p>
       <h3 class="editorial-section-heading">预报栅格地图</h3>
       <div style="display: flex; gap: 40px;">
-        <div style="flex: 2;">
+        <div style="flex: 2; min-width: 0;">
           <DashboardMap
             :gridData="mapGridData"
             :colorRanges="mapColorRanges"
