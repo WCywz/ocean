@@ -1,119 +1,88 @@
 <template>
-  <div class="model-page">
-    <!-- 搜索栏 -->
-    <el-card shadow="never" class="search-card">
-      <el-form :inline="true" :model="query" size="default">
-        <el-form-item label="模型类型">
-          <el-select v-model="query.modelType" placeholder="全部" clearable style="width: 150px">
-            <el-option label="海表温度 (SST)" value="SST" />
-            <el-option label="叶绿素浓度 (CHL)" value="CHL" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="关键词">
-          <el-input v-model="query.keyword" placeholder="模型名称" clearable style="width: 200px" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
+  <div>
+    <h1 class="editorial-page-title">预报模型管理</h1>
+    <p class="editorial-page-subtitle">Model Management · 共 {{ total }} 条记录</p>
 
-    <el-card shadow="never" style="margin-top: 16px;">
-      <div style="margin-bottom: 16px;">
-        <el-button type="primary" @click="handleAdd">
-          <el-icon><Plus /></el-icon> 新增模型
-        </el-button>
+    <div class="editorial-filter-bar">
+      <select v-model="query.modelType" class="editorial-select" style="width: 160px;">
+        <option value="">全部类型</option>
+        <option value="SST">海表温度 (SST)</option>
+        <option value="CHL">叶绿素浓度 (CHL)</option>
+      </select>
+      <input v-model="query.keyword" class="editorial-search" placeholder="模型名称" style="width: 180px;" />
+      <button class="editorial-btn-outline" @click="handleSearch">查询</button>
+      <button class="editorial-btn-outline" @click="handleReset">重置</button>
+      <span style="flex: 1;"></span>
+      <button class="editorial-btn-outline" @click="handleAdd">+ 新增模型</button>
+    </div>
+
+    <table class="editorial-table" v-loading="loading">
+      <thead>
+        <tr>
+          <td>模型名称</td>
+          <td>类型</td>
+          <td>运行周期</td>
+          <td>状态</td>
+          <td>最近运行</td>
+          <td style="text-align: right;">操作</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in tableData" :key="row.id">
+          <td>{{ row.modelName }}</td>
+          <td><span class="editorial-tag">{{ row.modelType === 'SST' ? 'SST' : 'CHL' }}</span></td>
+          <td>{{ row.cronExpression }}</td>
+          <td>{{ statusMap[row.status] }}</td>
+          <td class="text-muted">{{ row.lastRunTime || '-' }}</td>
+          <td style="text-align: right;">
+            <a v-if="row.status !== 'RUNNING'" class="editorial-link" @click="handleToggle(row, 'RUNNING')">启动</a>
+            <a v-else class="editorial-link" @click="handleToggle(row, 'STOPPED')">停止</a>
+            <a class="editorial-link" style="margin-left: 12px;" @click="handleEdit(row)">编辑</a>
+            <a class="editorial-link editorial-link--muted" style="margin-left: 12px;" @click="handleDelete(row)">删除</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="editorial-pagination">
+      <span>共 {{ total }} 条</span>
+      <select v-model="query.pageSize" class="editorial-select" style="width: 80px;" @change="loadData">
+        <option :value="10">10</option>
+        <option :value="20">20</option>
+        <option :value="50">50</option>
+      </select>
+      <a class="editorial-link" @click="prevPage">&larr;</a>
+      <span class="editorial-pagination__page editorial-pagination__page--active">{{ query.pageNum }}</span>
+      <a class="editorial-link" @click="nextPage">&rarr;</a>
+    </div>
+
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px" :close-on-click-modal="false">
+      <div style="margin-bottom: 18px;">
+        <label class="editorial-form-label">模型名称</label>
+        <input v-model="form.modelName" class="editorial-input" placeholder="请输入模型名称" />
       </div>
-
-      <el-table :data="tableData" v-loading="loading" stripe border>
-        <el-table-column prop="id" label="ID" width="70" align="center" />
-        <el-table-column prop="modelName" label="模型名称" min-width="180" />
-        <el-table-column prop="modelType" label="类型" width="140" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.modelType === 'SST' ? 'primary' : 'success'" size="small">
-              {{ row.modelType === 'SST' ? '海表温度' : '叶绿素浓度' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="cronExpression" label="运行周期" width="140" />
-        <el-table-column prop="status" label="状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag
-              :type="row.status === 'RUNNING' ? 'success' : row.status === 'ERROR' ? 'danger' : 'info'"
-              size="small"
-            >
-              {{ statusMap[row.status] }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="lastRunTime" label="最近运行时间" min-width="170" />
-        <el-table-column label="操作" width="260" fixed="right" align="center">
-          <template #default="{ row }">
-            <el-button
-              v-if="row.status !== 'RUNNING'"
-              type="success" link size="small"
-              @click="handleToggle(row, 'RUNNING')"
-            >启动</el-button>
-            <el-button
-              v-else
-              type="warning" link size="small"
-              @click="handleToggle(row, 'STOPPED')"
-            >停止</el-button>
-            <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <div style="margin-top: 16px; text-align: right;">
-        <el-pagination
-          v-model:current-page="query.pageNum"
-          v-model:page-size="query.pageSize"
-          :page-sizes="[10, 20, 50]"
-          :total="total"
-          layout="total, sizes, prev, pager, next"
-          @size-change="loadData"
-          @current-change="loadData"
-        />
+      <div style="margin-bottom: 18px;">
+        <label class="editorial-form-label">模型类型</label>
+        <select v-model="form.modelType" class="editorial-select">
+          <option value="SST">海表温度 (SST)</option>
+          <option value="CHL">叶绿素浓度 (CHL)</option>
+        </select>
       </div>
-    </el-card>
-
-    <!-- 新增/编辑对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="560px"
-      :close-on-click-modal="false"
-    >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="模型名称" prop="modelName">
-          <el-input v-model="form.modelName" placeholder="请输入模型名称" />
-        </el-form-item>
-        <el-form-item label="模型类型" prop="modelType">
-          <el-select v-model="form.modelType" placeholder="请选择模型类型" style="width: 100%">
-            <el-option label="海表温度 (SST)" value="SST" />
-            <el-option label="叶绿素浓度 (CHL)" value="CHL" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="运行周期" prop="cronExpression">
-          <el-input v-model="form.cronExpression" placeholder="Cron表达式，如: 0 0 6 * * ?" />
-        </el-form-item>
-        <el-form-item label="参数配置" prop="paramsConfig">
-          <el-input
-            v-model="form.paramsConfig"
-            type="textarea"
-            :rows="4"
-            placeholder='JSON格式，如: {"algorithm":"ROMS","resolution":"0.1deg"}'
-          />
-        </el-form-item>
-        <el-form-item label="模型描述" prop="description">
-          <el-input v-model="form.description" type="textarea" :rows="2" placeholder="请输入模型描述" />
-        </el-form-item>
-      </el-form>
+      <div style="margin-bottom: 18px;">
+        <label class="editorial-form-label">运行周期 (Cron)</label>
+        <input v-model="form.cronExpression" class="editorial-input" placeholder="如: 0 0 6 * * ?" />
+      </div>
+      <div style="margin-bottom: 18px;">
+        <label class="editorial-form-label">参数配置 (JSON)</label>
+        <textarea v-model="form.paramsConfig" class="editorial-input" rows="3" placeholder='{"algorithm":"ROMS"}' style="resize: vertical;"></textarea>
+      </div>
+      <div style="margin-bottom: 18px;">
+        <label class="editorial-form-label">模型描述</label>
+        <input v-model="form.description" class="editorial-input" placeholder="请输入模型描述" />
+      </div>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitLoading" @click="handleSubmit">确定</el-button>
+        <button class="editorial-btn-outline" @click="dialogVisible = false">取消</button>
+        <button class="editorial-btn" style="padding: 8px 24px; margin-left: 12px;" :disabled="submitLoading" @click="handleSubmit">确定</button>
       </template>
     </el-dialog>
   </div>
@@ -136,13 +105,7 @@ const dialogTitle = ref('新增模型')
 const isEdit = ref(false)
 const editId = ref(null)
 const submitLoading = ref(false)
-const formRef = ref(null)
 const form = reactive({ modelName: '', modelType: 'SST', cronExpression: '', paramsConfig: '', description: '' })
-
-const rules = {
-  modelName: [{ required: true, message: '请输入模型名称', trigger: 'blur' }],
-  modelType: [{ required: true, message: '请选择模型类型', trigger: 'change' }]
-}
 
 onMounted(() => { loadData() })
 
@@ -193,9 +156,7 @@ function handleEdit(row) {
 }
 
 async function handleSubmit() {
-  const valid = await formRef.value.validate().catch(() => false)
-  if (!valid) return
-
+  if (!form.modelName) { ElMessage.warning('请输入模型名称'); return }
   submitLoading.value = true
   try {
     if (isEdit.value) {
@@ -207,9 +168,7 @@ async function handleSubmit() {
     }
     dialogVisible.value = false
     loadData()
-  } finally {
-    submitLoading.value = false
-  }
+  } finally { submitLoading.value = false }
 }
 
 function handleDelete(row) {
@@ -228,5 +187,12 @@ async function handleToggle(row, status) {
   await toggleModelStatus(row.id, status)
   ElMessage.success(status === 'RUNNING' ? '模型已启动' : '模型已停止')
   loadData()
+}
+
+function prevPage() {
+  if (query.pageNum > 1) { query.pageNum--; loadData() }
+}
+function nextPage() {
+  query.pageNum++; loadData()
 }
 </script>
