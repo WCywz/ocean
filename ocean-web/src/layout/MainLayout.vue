@@ -1,86 +1,71 @@
 <template>
-  <el-container class="main-container">
-    <!-- 侧边栏 -->
-    <el-aside :width="isCollapse ? '64px' : '220px'" class="sidebar">
-      <div class="logo" @click="$router.push('/dashboard')">
-        <el-icon :size="28" color="#409EFF"><Ship /></el-icon>
-        <span v-show="!isCollapse" class="logo-text">海洋预报系统</span>
-      </div>
+  <div class="app-shell">
+    <!-- Top navigation bar -->
+    <nav class="editorial-nav">
+      <router-link to="/app/dashboard" class="editorial-nav__brand">
+        海洋预报系统
+      </router-link>
 
-      <el-menu
-        :default-active="activeMenu"
-        :collapse="isCollapse"
-        :collapse-transition="false"
-        background-color="#001529"
-        text-color="#ffffffb3"
-        active-text-color="#409EFF"
-        router
-      >
-        <el-menu-item index="/app/dashboard">
-          <el-icon><DataBoard /></el-icon>
-          <template #title>首页仪表盘</template>
-        </el-menu-item>
+      <div class="editorial-nav__items">
+        <router-link
+          to="/app/dashboard"
+          class="editorial-nav__item"
+          :class="{ 'editorial-nav__item--active': isActive('/app/dashboard') }"
+        >仪表盘</router-link>
 
-        <el-sub-menu index="/app/forecast">
-          <template #title>
-            <el-icon><TrendCharts /></el-icon>
-            <span>预报数据可视化</span>
-          </template>
-          <el-menu-item index="/app/forecast/sst">
-            <template #title>海表温度预测</template>
-          </el-menu-item>
-          <el-menu-item index="/app/forecast/chl">
-            <template #title>叶绿素预测</template>
-          </el-menu-item>
-          <el-menu-item index="/app/forecast/history">
-            <template #title>历史预报记录</template>
-          </el-menu-item>
-        </el-sub-menu>
+        <!-- Forecast dropdown -->
+        <div
+          class="editorial-nav__item"
+          :class="{ 'editorial-nav__item--active': isActive('/app/forecast') }"
+          @mouseenter="showForecastMenu = true"
+          @mouseleave="showForecastMenu = false"
+          style="position: relative;"
+        >
+          预报
+          <div
+            v-show="showForecastMenu"
+            class="forecast-dropdown"
+            @mouseenter="showForecastMenu = true"
+            @mouseleave="showForecastMenu = false"
+          >
+            <router-link to="/app/forecast/sst" class="forecast-dropdown__item">海表温度预测</router-link>
+            <router-link to="/app/forecast/chl" class="forecast-dropdown__item">叶绿素预测</router-link>
+            <router-link to="/app/forecast/history" class="forecast-dropdown__item">历史预报记录</router-link>
+          </div>
+        </div>
 
-        <el-menu-item index="/app/ocean-data">
-          <el-icon><Watermelon /></el-icon>
-          <template #title>海洋观测数据</template>
-        </el-menu-item>
+        <router-link
+          to="/app/ocean-data"
+          class="editorial-nav__item"
+          :class="{ 'editorial-nav__item--active': isActive('/app/ocean-data') }"
+        >观测</router-link>
 
         <template v-if="isAdmin">
-          <el-menu-item index="/app/model">
-            <el-icon><Setting /></el-icon>
-            <template #title>预报模型管理</template>
-          </el-menu-item>
-
-          <el-menu-item index="/app/user">
-            <el-icon><UserFilled /></el-icon>
-            <template #title>用户管理</template>
-          </el-menu-item>
+          <router-link
+            to="/app/model"
+            class="editorial-nav__item"
+            :class="{ 'editorial-nav__item--active': isActive('/app/model') }"
+          >模型</router-link>
+          <router-link
+            to="/app/user"
+            class="editorial-nav__item"
+            :class="{ 'editorial-nav__item--active': isActive('/app/user') }"
+          >用户</router-link>
         </template>
-      </el-menu>
-    </el-aside>
+      </div>
 
-    <!-- 右侧主体 -->
-    <el-container>
-      <!-- 顶栏 -->
-      <el-header class="topbar">
-        <div class="topbar-left">
-          <el-icon class="collapse-btn" @click="isCollapse = !isCollapse" :size="20">
-            <Fold v-if="!isCollapse" />
-            <Expand v-else />
-          </el-icon>
-        </div>
-        <div class="topbar-right">
-          <el-tag :type="isAdmin ? 'danger' : 'success'" size="small">
-            {{ isAdmin ? '管理员' : '普通用户' }}
-          </el-tag>
-          <span class="username">{{ userInfo?.realName || userInfo?.username }}</span>
-          <el-button type="danger" text @click="handleLogout">退出登录</el-button>
-        </div>
-      </el-header>
+      <span class="editorial-nav__spacer"></span>
 
-      <!-- 内容区 -->
-      <el-main>
-        <router-view />
-      </el-main>
-    </el-container>
-  </el-container>
+      <span v-if="isAdmin" class="editorial-tag" style="margin-right: 12px;">ADMIN</span>
+      <span class="editorial-nav__user">{{ userInfo?.realName || userInfo?.username }}</span>
+      <a class="editorial-link" style="margin-left: 16px;" @click="handleLogout">退出</a>
+    </nav>
+
+    <!-- Content area -->
+    <main class="editorial-content">
+      <router-view />
+    </main>
+  </div>
 </template>
 
 <script setup>
@@ -93,14 +78,13 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const isCollapse = ref(false)
+const showForecastMenu = ref(false)
 const userInfo = computed(() => userStore.userInfo)
 const isAdmin = computed(() => userStore.isAdmin())
-const activeMenu = computed(() => {
-  const path = route.path
-  if (path.startsWith('/app/forecast')) return '/app/forecast'
-  return path
-})
+
+function isActive(basePath) {
+  return route.path.startsWith(basePath)
+}
 
 function handleLogout() {
   ElMessageBox.confirm('确定要退出登录吗？', '提示', { type: 'warning' })
@@ -113,58 +97,33 @@ function handleLogout() {
 </script>
 
 <style scoped>
-.main-container {
-  height: 100vh;
-}
-
-.sidebar {
-  background-color: #001529;
-  overflow: hidden;
-  transition: width 0.3s;
-}
-
-.logo {
-  height: 60px;
+.app-shell {
+  min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  cursor: pointer;
-  border-bottom: 1px solid #ffffff1a;
+  flex-direction: column;
 }
 
-.logo-text {
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  white-space: nowrap;
+.forecast-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-divider-strong);
+  min-width: 140px;
+  z-index: 200;
+  padding: 8px 0;
 }
-
-.topbar {
-  background: #fff;
-  border-bottom: 1px solid #e8e8e8;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 20px;
+.forecast-dropdown__item {
+  display: block;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--color-text);
+  text-decoration: none;
+  text-transform: none;
+  letter-spacing: 0;
+  transition: background 0.15s;
 }
-
-.collapse-btn {
-  cursor: pointer;
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.username {
-  color: #333;
-  font-weight: 500;
-}
-
-.el-main {
-  background: #f0f2f5;
+.forecast-dropdown__item:hover {
+  background: var(--color-surface);
 }
 </style>
