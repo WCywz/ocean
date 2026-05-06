@@ -154,8 +154,11 @@ export function getMapColor(value, colorRanges) {
  * Keys are 0.0–1.0 normalized positions, values are hex colors.
  */
 export function buildHeatGradient(colorRanges) {
-  if (!colorRanges.length) {
+  if (!colorRanges || !colorRanges.length) {
     return { 0: '#999', 1: '#999' }
+  }
+  if (colorRanges.length === 1) {
+    return { 0: colorRanges[0].color, 1: colorRanges[0].color }
   }
   const gradient = {}
   const n = colorRanges.length

@@ -164,6 +164,11 @@ describe('chart-config', () => {
       expect(Math.max(...keys)).toBeLessThanOrEqual(1)
     })
 
+    it('handles a single-element range without NaN keys', () => {
+      const gradient = buildHeatGradient([{ color: '#FF0000' }])
+      expect(gradient).toEqual({ '0': '#FF0000', '1': '#FF0000' })
+    })
+
     it('handles empty ranges gracefully', () => {
       const gradient = buildHeatGradient([])
       expect(gradient).toEqual({ '0': '#999', '1': '#999' })
