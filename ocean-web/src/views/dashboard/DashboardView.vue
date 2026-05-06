@@ -1,6 +1,7 @@
 <template>
-  <div class="dashboard">
-    <h2 class="page-title">系统仪表盘</h2>
+  <div>
+    <h1 class="editorial-page-title">系统仪表盘</h1>
+    <p class="editorial-page-subtitle">System Dashboard · {{ todayStr }}</p>
 
     <StatCards
       :modelCount="data.modelCount"
@@ -9,66 +10,70 @@
       :alertCount="data.alertCount"
     />
 
-    <el-row :gutter="20" style="margin-bottom: 20px;">
-      <el-col :span="12">
+    <div style="display: flex; gap: 40px;">
+      <div style="flex: 1;">
         <TrendCard
-          title="海表温度趋势 (SST)"
+          title="海表温度 SST"
           dataType="SST"
           :series="sstTrend"
           :loading="loading.trendSst"
         />
-      </el-col>
-      <el-col :span="12">
+      </div>
+      <div style="flex: 1;">
         <TrendCard
-          title="叶绿素浓度趋势 (CHL)"
+          title="叶绿素浓度 CHL"
           dataType="CHL"
           :series="chlTrend"
           :loading="loading.trendChl"
         />
-      </el-col>
-    </el-row>
+      </div>
+    </div>
 
-    <el-row :gutter="20" style="margin-bottom: 20px;">
-      <el-col :span="16">
-        <DashboardMap
-          :gridData="mapGridData"
-          :colorRanges="mapColorRanges"
-          :legendLabels="mapLegendLabels"
-          :legendTitle="mapLegendTitle"
-          :loading="loading.map"
-          :activeType="mapType"
-          @typeChange="onMapTypeChange"
-          @cellClick="onMapCellClick"
-        />
-      </el-col>
-      <el-col :span="8">
-        <AlertPanel :alerts="alerts" :loading="loading.alerts" />
-      </el-col>
-    </el-row>
+    <div class="editorial-section">
+      <p class="editorial-section-label">Interactive</p>
+      <h3 class="editorial-section-heading">预报栅格地图</h3>
+      <div style="display: flex; gap: 40px;">
+        <div style="flex: 2;">
+          <DashboardMap
+            :gridData="mapGridData"
+            :colorRanges="mapColorRanges"
+            :legendLabels="mapLegendLabels"
+            :legendTitle="mapLegendTitle"
+            :loading="loading.map"
+            :activeType="mapType"
+            @typeChange="onMapTypeChange"
+            @cellClick="onMapCellClick"
+          />
+        </div>
+        <div style="flex: 1;">
+          <AlertPanel :alerts="alerts" :loading="loading.alerts" />
+        </div>
+      </div>
+    </div>
 
-    <el-row :gutter="20">
-      <el-col :span="12">
+    <div style="display: flex; gap: 40px;">
+      <div style="flex: 1;">
         <LatestDataTable
           title="最新海表温度 (SST)"
           dataType="SST"
           :data="data.latestSstData"
           :loading="loading.dashboard"
         />
-      </el-col>
-      <el-col :span="12">
+      </div>
+      <div style="flex: 1;">
         <LatestDataTable
           title="最新叶绿素浓度 (CHL)"
           dataType="CHL"
           :data="data.latestChlData"
           :loading="loading.dashboard"
         />
-      </el-col>
-    </el-row>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { getDashboard, getDashboardTrend, getTodayAlerts, getMapGrid } from '../../api/forecast'
 import { SST_MAP_COLORS, CHL_CONC_COLORS } from '../../utils/chart-config'
 import StatCards from './StatCards.vue'
@@ -98,6 +103,12 @@ const loading = reactive({
   trendChl: false,
   alerts: false,
   map: false
+})
+
+const todayStr = computed(() => {
+  const d = new Date()
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 })
 
 const mapColorRanges = ref(SST_MAP_COLORS)
@@ -176,9 +187,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-title {
-  margin-bottom: 20px;
-  color: #1a3a5c;
-  font-size: 20px;
-}
+/* uses editorial CSS classes from editorial.css */
 </style>
