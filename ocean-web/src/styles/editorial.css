@@ -1,0 +1,340 @@
+/* ===== Editorial Design Tokens ===== */
+
+/* --- Typography --- */
+:root {
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+
+  --color-bg: #ffffff;
+  --color-surface: #fafafa;
+  --color-text: #2c3e50;
+  --color-text-secondary: #aaa;
+  --color-text-muted: #bbb;
+  --color-divider: #f0f0f0;
+  --color-divider-strong: #eee;
+  --color-border: #d0d0d0;
+  --color-border-light: #e8e8e8;
+  --color-alert: #c0392b;
+}
+
+/* --- Global resets --- */
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Editorial nav bar --- */
+.editorial-nav {
+  display: flex;
+  align-items: center;
+  height: 52px;
+  padding: 0 36px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-divider-strong);
+  gap: 32px;
+}
+.editorial-nav__brand {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  color: var(--color-text);
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.editorial-nav__items {
+  display: flex;
+  gap: 2px;
+}
+.editorial-nav__item {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: color 0.15s;
+  white-space: nowrap;
+}
+.editorial-nav__item:hover {
+  color: var(--color-text);
+}
+.editorial-nav__item--active {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.editorial-nav__spacer {
+  flex: 1;
+}
+.editorial-nav__user {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* --- Editorial page titles --- */
+.editorial-page-title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--color-text);
+  margin: 0 0 4px 0;
+  letter-spacing: -0.01em;
+}
+.editorial-page-subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin: 0 0 36px 0;
+}
+
+/* --- Editorial stats row --- */
+.editorial-stats {
+  display: flex;
+  gap: 48px;
+  padding-bottom: 32px;
+  margin-bottom: 36px;
+  border-bottom: 1px solid var(--color-divider);
+}
+.editorial-stat__value {
+  font-family: var(--font-serif);
+  font-size: 42px;
+  color: var(--color-text);
+  line-height: 1;
+}
+.editorial-stat__label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-left: 8px;
+}
+.editorial-stat--alert .editorial-stat__value,
+.editorial-stat--alert .editorial-stat__label {
+  color: var(--color-alert);
+}
+
+/* --- Editorial section label --- */
+.editorial-section-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+/* --- Editorial section divider --- */
+.editorial-section {
+  padding-bottom: 32px;
+  margin-bottom: 36px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+/* --- Editorial section heading --- */
+.editorial-section-heading {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--color-text);
+  margin: 0 0 8px 0;
+}
+
+/* --- Editorial narrative text --- */
+.editorial-narrative {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+  margin: 0 0 14px 0;
+}
+
+/* --- Editorial table --- */
+.editorial-table {
+  width: 100%;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+.editorial-table thead td {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-divider-strong);
+  font-weight: 400;
+}
+.editorial-table tbody td {
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+  color: var(--color-text);
+}
+.editorial-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.editorial-table .text-muted {
+  color: var(--color-text-muted);
+}
+
+/* --- Editorial input (underline style) --- */
+.editorial-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 10px 0;
+  font-size: 14px;
+  color: var(--color-text);
+  outline: none;
+  font-family: var(--font-sans);
+  background: transparent;
+  transition: border-color 0.2s;
+}
+.editorial-input:focus {
+  border-bottom-color: var(--color-text);
+}
+.editorial-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* --- Editorial select (underline style) --- */
+.editorial-select {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 10px 0;
+  font-size: 14px;
+  color: var(--color-text);
+  outline: none;
+  font-family: var(--font-sans);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* --- Editorial button: primary (solid dark) --- */
+.editorial-btn {
+  padding: 10px 0;
+  background: var(--color-text);
+  color: #fff;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  text-align: center;
+  transition: opacity 0.2s;
+}
+.editorial-btn:hover {
+  opacity: 0.85;
+}
+.editorial-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* --- Editorial button: outline --- */
+.editorial-btn-outline {
+  padding: 7px 18px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: border-color 0.2s;
+}
+.editorial-btn-outline:hover {
+  border-color: var(--color-text);
+}
+
+/* --- Editorial text link --- */
+.editorial-link {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.editorial-link:hover {
+  color: var(--color-text);
+}
+.editorial-link--muted {
+  color: #ddd;
+}
+
+/* --- Editorial form label --- */
+.editorial-form-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* --- Editorial pagination --- */
+.editorial-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 16px;
+}
+.editorial-pagination__page {
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.editorial-pagination__page--active {
+  color: var(--color-text);
+  border-bottom: 2px solid var(--color-text);
+}
+
+/* --- Editorial tag (monospace text) --- */
+.editorial-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text);
+}
+
+/* --- Editorial search input --- */
+.editorial-search {
+  padding: 7px 12px;
+  border: 1px solid var(--color-border-light);
+  font-size: 12px;
+  color: var(--color-text);
+  outline: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  width: 180px;
+}
+.editorial-search:focus {
+  border-color: var(--color-border);
+}
+.editorial-search::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* --- Editorial filter bar --- */
+.editorial-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+/* --- Editorarial content area --- */
+.editorial-content {
+  padding: 36px 40px;
+}
+
+/* --- Remove Element Plus card shadows globally --- */
+.el-card {
+  box-shadow: none !important;
+  border: 1px solid var(--color-divider-strong) !important;
+  border-radius: 0 !important;
+}
