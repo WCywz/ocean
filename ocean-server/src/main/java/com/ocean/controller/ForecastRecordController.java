@@ -98,6 +98,26 @@ public class ForecastRecordController {
     }
 
     /**
+     * 仪表盘趋势数据
+     */
+    @GetMapping("/trend/dashboard")
+    public Result<List<Map<String, Object>>> getDashboardTrend(
+            @RequestParam(defaultValue = "SST") String dataType,
+            @RequestParam(defaultValue = "7") Integer days) {
+        List<Map<String, Object>> data = forecastRecordService.getDashboardTrend(dataType, days);
+        return Result.success(data);
+    }
+
+    /**
+     * 今日阈值告警
+     */
+    @GetMapping("/alerts")
+    public Result<List<Map<String, Object>>> getTodayAlerts() {
+        List<Map<String, Object>> data = forecastRecordService.getTodayAlerts();
+        return Result.success(data);
+    }
+
+    /**
      * 获取预设海域配置
      */
     @GetMapping("/sea-areas")
