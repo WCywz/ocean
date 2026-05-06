@@ -117,4 +117,37 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
                                                @Param("lat") BigDecimal lat,
                                                @Param("dateStart") String dateStart,
                                                @Param("dateEnd") String dateEnd);
+
+    /**
+     * 仪表盘趋势 — 查 top 5 观测点在最近 N 天的日均值
+     */
+    @Select("SELECT fr.location_name AS locationName, fr.forecast_date AS forecastDate, AVG(fr.value) AS value " +
+            "FROM forecast_record fr " +
+            "INNER JOIN ( " +
+            "  SELECT location_name, COUNT(*) AS cnt " +
+            "  FROM forecast_record " +
+            "  WHERE data_type = #{dataType} AND forecast_date >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY) " +
+            "  GROUP BY location_name " +
+            "  ORDER BY cnt DESC " +
+            "  LIMIT 5 " +
+            ") top ON fr.location_name = top.location_name " +
+            "WHERE fr.data_type = #{dataType} " +
+            "  AND fr.forecast_date >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY) " +
+            "GROUP BY fr.location_name, fr.forecast_date " +
+            "ORDER BY fr.location_name, fr.forecast_date")
+    List<Map<String, Object>> selectDashboardTrend(@Param("dataType") String dataType,
+                                                   @Param("days") Integer days);
+
+    /**
+     * 今日阈值告警详情 (SST>28°C 或 CHL>5 mg/m³)，按值降序，最多 20 条
+     */
+    @Select("SELECT location_name AS locationName, data_type AS dataType, " +
+            "       value, forecast_date AS forecastDate, " +
+            "       CASE WHEN data_type = 'SST' THEN 28 ELSE 5 END AS threshold " +
+            "FROM forecast_record " +
+            "WHERE forecast_date = CURDATE() " +
+            "  AND ((data_type = 'SST' AND value > 28) OR (data_type = 'CHL' AND value > 5)) " +
+            "ORDER BY value DESC " +
+            "LIMIT 20")
+    List<Map<String, Object>> selectTodayAlerts();
 }
