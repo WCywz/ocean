@@ -1,62 +1,56 @@
 <template>
-  <div class="history-page">
-    <h2 class="page-title">历史预报记录</h2>
+  <div>
+    <h1 class="editorial-page-title">历史预报记录</h1>
+    <p class="editorial-page-subtitle">Forecast History · 共 {{ tableTotal }} 条记录</p>
 
-    <el-card shadow="hover">
-      <el-form :inline="true" :model="tableQuery" size="default" style="margin-bottom: 16px;">
-        <el-form-item label="数据类型">
-          <el-select v-model="tableQuery.dataType" placeholder="全部" clearable style="width: 150px">
-            <el-option label="海表温度" value="SST" />
-            <el-option label="叶绿素浓度" value="CHL" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="预报日期">
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-            style="width: 280px"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+    <div class="editorial-filter-bar">
+      <select v-model="tableQuery.dataType" class="editorial-select" style="width: 150px;">
+        <option value="">全部类型</option>
+        <option value="SST">海表温度</option>
+        <option value="CHL">叶绿素浓度</option>
+      </select>
+      <el-date-picker
+        v-model="dateRange"
+        type="daterange" range-separator="至"
+        start-placeholder="开始日期" end-placeholder="结束日期"
+        value-format="YYYY-MM-DD"
+        style="width: 280px"
+      />
+      <button class="editorial-btn-outline" @click="handleSearch">查询</button>
+      <button class="editorial-btn-outline" @click="handleReset">重置</button>
+    </div>
 
-      <el-table :data="tableData" v-loading="tableLoading" stripe border size="small">
-        <el-table-column prop="id" label="ID" width="70" align="center" />
-        <el-table-column prop="modelName" label="模型名称" min-width="180" />
-        <el-table-column prop="dataType" label="数据类型" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.dataType === 'SST' ? 'primary' : 'success'" size="small">
-              {{ row.dataType === 'SST' ? '海表温度' : '叶绿素浓度' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="forecastDate" label="预报日期" width="120" align="center" />
-        <el-table-column prop="value" label="数值" width="100" align="center" />
-        <el-table-column prop="unit" label="单位" width="80" align="center" />
-        <el-table-column prop="longitude" label="经度" width="110" align="center" />
-        <el-table-column prop="latitude" label="纬度" width="110" align="center" />
-        <el-table-column prop="createTime" label="创建时间" min-width="170" />
-      </el-table>
+    <table class="editorial-table" v-loading="tableLoading">
+      <thead>
+        <tr>
+          <td>模型名称</td><td>数据类型</td><td>预报日期</td><td>数值</td><td>单位</td><td>经度</td><td>纬度</td><td>创建时间</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="row in tableData" :key="row.id">
+          <td>{{ row.modelName }}</td>
+          <td><span class="editorial-tag">{{ row.dataType }}</span></td>
+          <td>{{ row.forecastDate }}</td>
+          <td>{{ row.value }}</td>
+          <td>{{ row.unit }}</td>
+          <td>{{ row.longitude }}</td>
+          <td>{{ row.latitude }}</td>
+          <td class="text-muted">{{ row.createTime }}</td>
+        </tr>
+      </tbody>
+    </table>
 
-      <div style="margin-top: 16px; text-align: right;">
-        <el-pagination
-          v-model:current-page="tableQuery.pageNum"
-          v-model:page-size="tableQuery.pageSize"
-          :page-sizes="[10, 20, 50]"
-          :total="tableTotal"
-          layout="total, sizes, prev, pager, next"
-          @size-change="loadTableData"
-          @current-change="loadTableData"
-        />
-      </div>
-    </el-card>
+    <div class="editorial-pagination">
+      <span>共 {{ tableTotal }} 条</span>
+      <select v-model="tableQuery.pageSize" class="editorial-select" style="width: 80px;" @change="loadTableData">
+        <option :value="10">10</option>
+        <option :value="20">20</option>
+        <option :value="50">50</option>
+      </select>
+      <a class="editorial-link" @click="tableQuery.pageNum--; loadTableData()">&larr;</a>
+      <span class="editorial-pagination__page editorial-pagination__page--active">{{ tableQuery.pageNum }}</span>
+      <a class="editorial-link" @click="tableQuery.pageNum++; loadTableData()">&rarr;</a>
+    </div>
   </div>
 </template>
 
@@ -100,5 +94,5 @@ onMounted(() => { loadTableData() })
 </script>
 
 <style scoped>
-.page-title { margin-bottom: 20px; color: #1a3a5c; font-size: 22px; }
+/* uses editorial classes from editorial.css */
 </style>

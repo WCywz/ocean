@@ -1,34 +1,26 @@
 <template>
-  <div class="sst-page">
-    <h2 class="page-title">海表温度预测</h2>
+  <div>
+    <h1 class="editorial-page-title">海表温度预测</h1>
+    <p class="editorial-page-subtitle">Sea Surface Temperature Forecast</p>
 
     <!-- Filter bar -->
-    <el-card shadow="hover" class="filter-card">
-      <div class="filter-bar">
-        <span class="filter-label">数据筛选</span>
-        <el-date-picker
-          v-model="filterDate"
-          type="date"
-          placeholder="选择预报日期"
-          value-format="YYYY-MM-DD"
-          style="width: 180px"
-        />
+    <div class="editorial-section" style="padding-bottom: 20px; margin-bottom: 20px;">
+      <div class="editorial-filter-bar">
+        <span class="editorial-form-label" style="margin: 0 8px 0 0;">数据筛选</span>
+        <el-date-picker v-model="filterDate" type="date" placeholder="选择预报日期" value-format="YYYY-MM-DD" style="width: 180px" />
         <el-select v-model="seaArea" placeholder="海域筛选" style="width: 160px" @change="onSeaAreaChange">
-          <el-option
-            v-for="area in seaAreas"
-            :key="area.name"
-            :label="area.name"
-            :value="area"
-          />
+          <el-option v-for="area in seaAreas" :key="area.name" :label="area.name" :value="area" />
         </el-select>
-        <el-button type="primary" @click="handleSearch">查询</el-button>
-        <el-button @click="handleReset">重置</el-button>
-        <span class="filter-hint">也可在地图上拖拽框选海域</span>
+        <button class="editorial-btn-outline" @click="handleSearch">查询</button>
+        <button class="editorial-btn-outline" @click="handleReset">重置</button>
+        <span style="font-size: 12px; color: var(--color-text-muted); margin-left: auto;">也可在地图上拖拽框选海域</span>
       </div>
-    </el-card>
+    </div>
 
     <!-- Map -->
-    <el-card shadow="hover" class="map-card">
+    <div class="editorial-section">
+      <p class="editorial-section-label">Interactive</p>
+      <h3 class="editorial-section-heading">预报栅格地图</h3>
       <OceanMap
         :grid-data="gridData"
         :color-ranges="SST_MAP_COLORS"
@@ -38,18 +30,17 @@
         @cell-click="onMapCellClick"
         @bbox-change="onBboxChange"
       />
-    </el-card>
+    </div>
 
-    <!-- Trend chart -->
-    <el-card shadow="hover" class="trend-card">
-      <template #header>
-        <div class="trend-header">
-          <span class="trend-title">温度变化趋势</span>
-          <span v-if="selectedPoint" class="trend-subtitle">
-            当前选中: ({{ selectedPoint.lon.toFixed(2) }}, {{ selectedPoint.lat.toFixed(2) }})
-          </span>
-        </div>
-      </template>
+    <!-- Trend -->
+    <div class="editorial-section" style="border-bottom: none;">
+      <p class="editorial-section-label">Feature · 趋势分析</p>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <h3 class="editorial-section-heading" style="margin: 0;">温度变化趋势</h3>
+        <span v-if="selectedPoint" style="font-size: 13px; color: var(--color-text-muted);">
+          当前选中: ({{ selectedPoint.lon.toFixed(2) }}, {{ selectedPoint.lat.toFixed(2) }})
+        </span>
+      </div>
       <TrendChart
         :series-data="trendSeries"
         :x-axis-data="trendDates"
@@ -58,7 +49,7 @@
         :loading="trendLoading"
         :colors="SST_COLORS"
       />
-    </el-card>
+    </div>
   </div>
 </template>
 
@@ -177,15 +168,5 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.sst-page { padding: 0; }
-.page-title { margin-bottom: 20px; color: #1a3a5c; font-size: 22px; }
-.filter-card { margin-bottom: 16px; }
-.filter-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.filter-label { font-weight: 600; color: #1a3a5c; }
-.filter-hint { font-size: 12px; color: #999; margin-left: auto; }
-.map-card { margin-bottom: 16px; }
-.trend-card { margin-bottom: 16px; }
-.trend-header { display: flex; align-items: center; justify-content: space-between; }
-.trend-title { font-weight: 600; color: #1a3a5c; font-size: 16px; }
-.trend-subtitle { font-size: 13px; color: #409EFF; }
+/* uses editorial classes from editorial.css */
 </style>
