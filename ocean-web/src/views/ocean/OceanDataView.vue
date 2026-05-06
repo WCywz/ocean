@@ -1,94 +1,77 @@
 <template>
-  <div class="ocean-data-page">
-    <h2 class="page-title">海洋观测数据</h2>
+  <div>
+    <h1 class="editorial-page-title">海洋观测数据</h1>
+    <p class="editorial-page-subtitle">Ocean Observation Data</p>
 
-    <!-- 叶绿素时间序列图表 -->
-    <el-card shadow="hover" class="chart-card">
-      <template #header>
-        <div class="chart-header">
-          <span class="chart-title">叶绿素浓度时间序列 (Chl-a Time Series)</span>
-          <div class="chart-header-right">
-            <el-select
-              v-model="chlLocations"
-              placeholder="筛选观测点（默认全部）"
-              multiple
-              collapse-tags
-              collapse-tags-tooltip
-              filterable
-              size="small"
-              style="width: 300px"
-              @change="renderChlTimeSeries"
-            >
-              <el-option
-                v-for="loc in locationOptions"
-                :key="loc.key"
-                :label="loc.label"
-                :value="loc.key"
-              />
-            </el-select>
-            <el-date-picker
-              v-model="dateRange"
-              type="daterange"
-              range-separator="至"
-              start-placeholder="开始"
-              end-placeholder="结束"
-              value-format="YYYY-MM-DD"
-              size="small"
-              style="width: 260px"
-              @change="onDateRangeChange"
-            />
-            <el-button size="small" text @click="openFullscreen">
-              <el-icon><FullScreen /></el-icon>
-            </el-button>
-          </div>
+    <!-- Chl time series chart -->
+    <div class="editorial-section">
+      <p class="editorial-section-label">Feature · 时间序列</p>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <h3 class="editorial-section-heading" style="margin: 0;">叶绿素浓度时间序列</h3>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <el-select
+            v-model="chlLocations"
+            placeholder="筛选观测点"
+            multiple collapse-tags collapse-tags-tooltip filterable
+            size="small" style="width: 280px"
+            @change="renderChlTimeSeries"
+          >
+            <el-option v-for="loc in locationOptions" :key="loc.key" :label="loc.label" :value="loc.key" />
+          </el-select>
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange" range-separator="至"
+            start-placeholder="开始" end-placeholder="结束"
+            value-format="YYYY-MM-DD" size="small" style="width: 260px"
+            @change="onDateRangeChange"
+          />
+          <el-button size="small" text @click="openFullscreen">
+            <el-icon><FullScreen /></el-icon>
+          </el-button>
         </div>
-      </template>
-      <div v-loading="chartLoading" class="chart-container" ref="timeSeriesChartRef">
-        <div v-if="chartEmpty" class="chart-empty">暂无符合条件的观测数据</div>
       </div>
-    </el-card>
+      <div v-loading="chartLoading" class="chart-container" ref="timeSeriesChartRef">
+        <div v-if="chartEmpty" style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-muted); font-size: 13px;">暂无符合条件的观测数据</div>
+      </div>
+    </div>
 
-    <!-- Fullscreen chart modal -->
-    <el-dialog
-      v-model="fullscreenVisible"
-      title="叶绿素浓度时间序列 (Chl-a Time Series)"
-      fullscreen
-      :close-on-click-modal="false"
-      @opened="onFullscreenOpened"
-      @close="onFullscreenClosed"
-    >
-      <div ref="fullscreenChartRef" class="chart-container" style="height: calc(100vh - 100px);"></div>
+    <!-- Fullscreen modal unchanged -->
+    <el-dialog v-model="fullscreenVisible" title="叶绿素浓度时间序列" fullscreen :close-on-click-modal="false" @opened="onFullscreenOpened" @close="onFullscreenClosed">
+      <div ref="fullscreenChartRef" style="height: calc(100vh - 100px);"></div>
     </el-dialog>
 
-    <!-- 观测数据记录表格 -->
-    <el-card shadow="hover" style="margin-top: 20px;">
-      <template #header>
-        <div class="chart-header">
-          <span class="chart-title">观测数据记录</span>
-          <el-button size="small" @click="loadTableData">刷新</el-button>
-        </div>
-      </template>
-      <el-table :data="tableData" v-loading="tableLoading" size="small" stripe max-height="420">
-        <el-table-column prop="time" label="日期" width="120" align="center" />
-        <el-table-column prop="lat" label="纬度" width="100" align="center" />
-        <el-table-column prop="lon" label="经度" width="100" align="center" />
-        <el-table-column prop="depth" label="深度(m)" width="90" align="center" />
-        <el-table-column prop="chl" label="叶绿素" width="100" align="center" />
-      </el-table>
-
-      <div style="margin-top: 16px; text-align: right;">
-        <el-pagination
-          v-model:current-page="tableQuery.pageNum"
-          v-model:page-size="tableQuery.pageSize"
-          :page-sizes="[10, 20, 50]"
-          :total="tableTotal"
-          small
-          layout="total, sizes, prev, pager, next"
-          @size-change="loadTableData"
-          @current-change="loadTableData"
-        />
-      </div>
-    </el-card>
+    <!-- Data table -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 class="editorial-section-heading" style="margin: 0;">观测数据记录</h3>
+      <button class="editorial-btn-outline" @click="loadTableData">刷新</button>
+    </div>
+    <table class="editorial-table" v-loading="tableLoading">
+      <thead>
+        <tr>
+          <td>日期</td><td>纬度</td><td>经度</td><td>深度(m)</td><td>叶绿素</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(row, idx) in tableData" :key="idx">
+          <td>{{ row.time }}</td>
+          <td>{{ row.lat }}</td>
+          <td>{{ row.lon }}</td>
+          <td>{{ row.depth }}</td>
+          <td>{{ row.chl }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="editorial-pagination">
+      <span>共 {{ tableTotal }} 条</span>
+      <select v-model="tableQuery.pageSize" class="editorial-select" style="width: 80px;" @change="loadTableData">
+        <option :value="10">10</option>
+        <option :value="20">20</option>
+        <option :value="50">50</option>
+      </select>
+      <a class="editorial-link" @click="tableQuery.pageNum--; loadTableData()">&larr;</a>
+      <span class="editorial-pagination__page editorial-pagination__page--active">{{ tableQuery.pageNum }}</span>
+      <a class="editorial-link" @click="tableQuery.pageNum++; loadTableData()">&rarr;</a>
+    </div>
   </div>
 </template>
 
@@ -259,39 +242,8 @@ async function loadTableData() {
 </script>
 
 <style scoped>
-.page-title {
-  margin-bottom: 24px;
-  color: #1a3a5c;
-  font-size: 22px;
-}
-.chart-card {
-  background: #fff;
-}
-.chart-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.chart-header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.chart-title {
-  font-weight: 600;
-  color: #1a3a5c;
-  font-size: 16px;
-}
 .chart-container {
   width: 100%;
   height: 400px;
-}
-.chart-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: #999;
-  font-size: 14px;
 }
 </style>
