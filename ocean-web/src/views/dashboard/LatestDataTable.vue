@@ -1,16 +1,27 @@
 <template>
-  <el-card shadow="hover" class="data-table-card">
-    <template #header>
-      <span class="card-title">{{ title }}</span>
-    </template>
-    <el-table :data="data" size="small" stripe v-loading="loading" empty-text="暂无数据" max-height="280">
-      <el-table-column prop="locationName" label="观测点" />
-      <el-table-column prop="value" :label="valueLabel">
-        <template #default="{ row }">{{ row.value }} {{ unit }}</template>
-      </el-table-column>
-      <el-table-column prop="forecastDate" label="预报日期" />
-    </el-table>
-  </el-card>
+  <div>
+    <p class="editorial-section-label">数据附录</p>
+    <table class="editorial-table">
+      <thead>
+        <tr>
+          <td>观测点</td>
+          <td>{{ valueLabel }}</td>
+          <td>预报日期</td>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(row, idx) in data" :key="idx">
+          <td>{{ row.locationName }}</td>
+          <td>{{ row.value }} {{ unit }}</td>
+          <td class="text-muted">{{ row.forecastDate }}</td>
+        </tr>
+        <tr v-if="!data.length && !loading">
+          <td colspan="3" class="text-muted" style="text-align: center;">暂无数据</td>
+        </tr>
+      </tbody>
+    </table>
+    <div v-loading="loading" style="min-height: 120px;" v-if="loading"></div>
+  </div>
 </template>
 
 <script setup>
@@ -28,6 +39,5 @@ const valueLabel = computed(() => props.dataType === 'SST' ? '温度值' : '浓�
 </script>
 
 <style scoped>
-.data-table-card { height: 100%; }
-.card-title { font-weight: 600; color: #1a3a5c; }
+/* uses editorial-table from editorial.css */
 </style>
