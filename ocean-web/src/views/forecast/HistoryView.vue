@@ -47,7 +47,7 @@
         <option :value="20">20</option>
         <option :value="50">50</option>
       </select>
-      <a class="editorial-link" @click="tableQuery.pageNum--; loadTableData()">&larr;</a>
+      <a class="editorial-link" @click="tableQuery.pageNum > 1 && (tableQuery.pageNum--, loadTableData())">&larr;</a>
       <span class="editorial-pagination__page editorial-pagination__page--active">{{ tableQuery.pageNum }}</span>
       <a class="editorial-link" @click="tableQuery.pageNum++; loadTableData()">&rarr;</a>
     </div>
