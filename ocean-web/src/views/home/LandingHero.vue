@@ -401,6 +401,7 @@ function initScrollAnimation() {
 
 .hero-progress__fill {
   width: 100%;
+  height: 100%;
   background: #ebfc72;
   border-radius: 1px;
   transform-origin: top center;
