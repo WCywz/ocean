@@ -3,20 +3,26 @@
     <h1 class="editorial-page-title">系统仪表盘</h1>
     <p class="editorial-page-subtitle">System Dashboard · {{ todayStr }}</p>
 
-    <StatCards
-      :modelCount="data.modelCount"
-      :runningModelCount="data.runningModelCount"
-      :todayRecordCount="data.todayRecordCount"
-      :alertCount="data.alertCount"
-    />
+    <!-- Row 1: Stat Cards -->
+    <div class="dashboard-row" @click="goModel">
+      <StatCards
+        :modelCount="data.modelCount"
+        :runningModelCount="data.runningModelCount"
+        :todayRecordCount="data.todayRecordCount"
+        :alertCount="data.alertCount"
+        @navigate="goModel"
+      />
+    </div>
 
-    <div style="display: flex; gap: 40px;">
+    <!-- Row 2: Trend Charts -->
+    <div class="dashboard-row" style="display: flex; gap: 40px;">
       <div style="flex: 1;">
         <TrendCard
           title="海表温度 SST"
           dataType="SST"
           :series="sstTrend"
           :loading="loading.trendSst"
+          @navigate="goSst"
         />
       </div>
       <div style="flex: 1;">
@@ -25,47 +31,30 @@
           dataType="CHL"
           :series="chlTrend"
           :loading="loading.trendChl"
+          @navigate="goChl"
         />
       </div>
     </div>
 
-    <div class="editorial-section">
-      <p class="editorial-section-label">Interactive</p>
-      <h3 class="editorial-section-heading">预报栅格地图</h3>
-      <div style="display: flex; gap: 40px;">
-        <div style="flex: 2; min-width: 0;">
-          <DashboardMap
-            :gridData="mapGridData"
-            :colorRanges="mapColorRanges"
-            :legendLabels="mapLegendLabels"
-            :legendTitle="mapLegendTitle"
-            :loading="loading.map"
-            :activeType="mapType"
-            @typeChange="onMapTypeChange"
-            @cellClick="onMapCellClick"
-          />
-        </div>
-        <div style="flex: 1;">
-          <AlertPanel :alerts="alerts" :loading="loading.alerts" />
-        </div>
-      </div>
-    </div>
-
-    <div style="display: flex; gap: 40px;">
+    <!-- Row 3: Alerts + Data Tables -->
+    <div class="dashboard-row dashboard-row--last" style="display: flex; gap: 40px;">
       <div style="flex: 1;">
+        <AlertPanel :alerts="alerts" :loading="loading.alerts" />
+      </div>
+      <div style="flex: 2; display: flex; flex-direction: column; gap: 24px;">
         <LatestDataTable
           title="最新海表温度 (SST)"
           dataType="SST"
           :data="data.latestSstData"
           :loading="loading.dashboard"
+          @navigate="goOceanData"
         />
-      </div>
-      <div style="flex: 1;">
         <LatestDataTable
           title="最新叶绿素浓度 (CHL)"
           dataType="CHL"
           :data="data.latestChlData"
           :loading="loading.dashboard"
+          @navigate="goOceanData"
         />
       </div>
     </div>
@@ -74,13 +63,14 @@
 
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
-import { getDashboard, getDashboardTrend, getTodayAlerts, getMapGrid } from '../../api/forecast'
-import { SST_MAP_COLORS, CHL_CONC_COLORS } from '../../utils/chart-config'
+import { useRouter } from 'vue-router'
+import { getDashboard, getDashboardTrend, getTodayAlerts } from '../../api/forecast'
 import StatCards from './StatCards.vue'
 import TrendCard from './TrendCard.vue'
-import DashboardMap from './DashboardMap.vue'
 import AlertPanel from './AlertPanel.vue'
 import LatestDataTable from './LatestDataTable.vue'
+
+const router = useRouter()
 
 const data = ref({
   modelCount: 0,
@@ -94,15 +84,12 @@ const data = ref({
 const sstTrend = ref([])
 const chlTrend = ref([])
 const alerts = ref([])
-const mapGridData = ref([])
-const mapType = ref('SST')
 
 const loading = reactive({
   dashboard: false,
   trendSst: false,
   trendChl: false,
-  alerts: false,
-  map: false
+  alerts: false
 })
 
 const todayStr = computed(() => {
@@ -110,10 +97,6 @@ const todayStr = computed(() => {
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
 })
-
-const mapColorRanges = ref(SST_MAP_COLORS)
-const mapLegendLabels = ref(SST_MAP_COLORS.map(r => r.label))
-const mapLegendTitle = ref('SST 温度 (°C)')
 
 async function fetchDashboard() {
   loading.dashboard = true
@@ -147,45 +130,28 @@ async function fetchAlerts() {
   }
 }
 
-async function fetchMapData() {
-  loading.map = true
-  try {
-    const colorRanges = mapType.value === 'SST' ? SST_MAP_COLORS : CHL_CONC_COLORS
-    const res = await getMapGrid({
-      dataType: mapType.value,
-      forecastDate: new Date().toISOString().slice(0, 10),
-      precision: 0.05,
-      minLon: 121.33, maxLon: 125.58,
-      minLat: 26.92, maxLat: 32.67
-    })
-    mapGridData.value = (res.data || []).map(r => ({ lat: r.gridLat, lon: r.gridLon, value: r.value }))
-    mapColorRanges.value = colorRanges
-    mapLegendLabels.value = colorRanges.map(r => r.label)
-    mapLegendTitle.value = mapType.value === 'SST' ? 'SST 温度 (°C)' : 'CHL 浓度 (mg/m³)'
-  } finally {
-    loading.map = false
-  }
-}
-
-function onMapTypeChange(type) {
-  mapType.value = type
-  fetchMapData()
-}
-
-function onMapCellClick() {
-  const route = mapType.value === 'SST' ? '/app/forecast/sst' : '/app/forecast/chl'
-  window.location.hash = '#' + route
-}
+function goModel() { router.push('/app/model') }
+function goSst() { router.push('/app/forecast/sst') }
+function goChl() { router.push('/app/forecast/chl') }
+function goOceanData() { router.push('/app/ocean-data') }
 
 onMounted(() => {
   fetchDashboard()
   fetchTrend('SST')
   fetchTrend('CHL')
   fetchAlerts()
-  fetchMapData()
 })
 </script>
 
 <style scoped>
-/* uses editorial CSS classes from editorial.css */
+.dashboard-row {
+  padding-bottom: 28px;
+  margin-bottom: 32px;
+  border-bottom: 2px solid #e0e0e0;
+}
+.dashboard-row--last {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
 </style>
