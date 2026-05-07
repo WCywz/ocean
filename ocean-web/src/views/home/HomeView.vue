@@ -2,7 +2,7 @@
   <div class="landing">
     <LandingHeader @scroll-to-top="scrollToTop" />
     <main ref="mainRef" class="landing__main">
-      <LandingHero ref="heroRef" @scroll-to-login="scrollToLogin" />
+      <LandingHero ref="heroRef" :scroller="mainRef" @scroll-to-login="scrollToLogin" />
       <LandingLogin ref="loginRef" />
       <LandingFooter />
     </main>
