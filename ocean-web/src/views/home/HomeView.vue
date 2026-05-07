@@ -1,7 +1,7 @@
 <template>
   <div class="landing">
     <LandingHeader @scroll-to-top="scrollToTop" />
-    <main class="landing__main">
+    <main ref="mainRef" class="landing__main">
       <LandingHero ref="heroRef" @scroll-to-login="scrollToLogin" />
       <LandingLogin ref="loginRef" />
       <LandingFooter />
@@ -23,7 +23,9 @@ gsap.registerPlugin(ScrollTrigger)
 
 const heroRef = ref(null)
 const loginRef = ref(null)
+const mainRef = ref(null)
 let lenis = null
+let rafId = null
 
 function scrollToLogin() {
   if (loginRef.value) {
@@ -38,6 +40,8 @@ function scrollToTop() {
 
 onMounted(() => {
   lenis = new Lenis({
+    wrapper: mainRef.value,
+    content: mainRef.value,
     duration: 1.2,
     easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
     smoothWheel: true,
@@ -45,12 +49,12 @@ onMounted(() => {
 
   function raf(time) {
     lenis?.raf(time)
-    requestAnimationFrame(raf)
+    rafId = requestAnimationFrame(raf)
   }
-  requestAnimationFrame(raf)
+  rafId = requestAnimationFrame(raf)
 
   // Sync GSAP ScrollTrigger with Lenis
-  ScrollTrigger.scrollerProxy(window, {
+  ScrollTrigger.scrollerProxy(mainRef.value, {
     scrollTop(value) {
       if (arguments.length) {
         lenis?.scrollTo(value, { immediate: true })
@@ -67,8 +71,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (rafId) cancelAnimationFrame(rafId)
   lenis?.destroy()
-  ScrollTrigger.getAll().forEach((st) => st.kill())
 })
 </script>
 
