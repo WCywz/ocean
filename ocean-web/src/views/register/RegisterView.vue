@@ -31,7 +31,7 @@
         </button>
         <div style="text-align: center; margin-top: 20px;">
           <span style="color: var(--color-text-muted); font-size: 12px;">已有账号？</span>
-          <a class="editorial-link" style="color: var(--color-text);" @click="$router.push('/login')">去登录</a>
+          <a class="editorial-link" style="color: var(--color-text);" @click="$router.push('/')">去登录</a>
         </div>
         <div style="text-align: center; margin-top: 12px;">
           <a class="editorial-link" @click="$router.push('/')">返回首页</a>
@@ -84,7 +84,7 @@ async function handleRegister() {
       status: 1
     })
     ElMessage.success('注册成功，请登录')
-    router.push('/login')
+    router.push('/')
   } catch (e) {
     // error handled in interceptor
   } finally {

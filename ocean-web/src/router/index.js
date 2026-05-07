@@ -8,12 +8,6 @@ const routes = [
     meta: { title: '首页', noAuth: true }
   },
   {
-    path: '/login',
-    name: 'Login',
-    component: () => import('../views/login/LoginView.vue'),
-    meta: { title: '登录', noAuth: true }
-  },
-  {
     path: '/register',
     name: 'Register',
     component: () => import('../views/register/RegisterView.vue'),
@@ -69,6 +63,10 @@ const routes = [
     ]
   },
   {
+    path: '/login',
+    redirect: '/'
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }
@@ -79,13 +77,11 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫 - 权限拦截
 router.beforeEach((to, from, next) => {
   document.title = to.meta.title ? `海洋环境预报系统 - ${to.meta.title}` : '海洋环境预报系统'
 
   const token = localStorage.getItem('token')
 
-  // 无需认证的页面
   if (to.meta.noAuth) {
     if (token && (to.path === '/login' || to.path === '/register' || to.path === '/')) {
       next('/app/dashboard')
@@ -95,13 +91,11 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  // 未登录跳转首页
   if (!token) {
     next('/')
     return
   }
 
-  // 角色权限检查
   const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null')
   if (to.meta.role === 'ADMIN' && userInfo?.role !== 'ADMIN') {
     next('/app/dashboard')

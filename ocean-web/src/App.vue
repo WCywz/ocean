@@ -7,6 +7,7 @@
 
 <style>
 @import './styles/editorial.css';
+@import './styles/landing.css';
 
 * {
   margin: 0;
