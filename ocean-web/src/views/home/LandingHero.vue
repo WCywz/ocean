@@ -304,6 +304,7 @@ function initScrollAnimation() {
   object-fit: cover;
 }
 
+/* ===== Mask ===== */
 .hero-mask {
   position: absolute;
   inset: 0;
@@ -318,12 +319,14 @@ function initScrollAnimation() {
   height: 100%;
 }
 
+/* ===== Grid ===== */
 .hero-grid {
   position: absolute;
   inset: 0;
   z-index: 2;
   opacity: 0;
   pointer-events: none;
+  will-change: opacity;
 }
 
 .hero-grid__svg {
@@ -332,12 +335,14 @@ function initScrollAnimation() {
   height: 100%;
 }
 
+/* ===== Dots ===== */
 .hero-dots {
   position: absolute;
   inset: 0;
   z-index: 3;
   opacity: 0;
   pointer-events: none;
+  will-change: opacity;
 }
 
 .hero-dots__svg {
@@ -346,6 +351,7 @@ function initScrollAnimation() {
   height: 100%;
 }
 
+/* ===== Text slides ===== */
 .hero-slides {
   position: absolute;
   inset: 0;
@@ -361,6 +367,7 @@ function initScrollAnimation() {
   justify-content: center;
   width: 100%;
   text-align: center;
+  will-change: opacity;
   opacity: 0;
 }
 
@@ -369,6 +376,12 @@ function initScrollAnimation() {
 .hero-slide--3 { top: 55%; }
 .hero-slide--4 { top: 80%; }
 
+.hero-slide:first-child .hero-heading,
+.hero-slide:first-child .cta-button {
+  position: absolute;
+}
+
+/* ===== Progress bar ===== */
 .hero-progress {
   position: absolute;
   right: 8px;
@@ -392,5 +405,65 @@ function initScrollAnimation() {
   border-radius: 1px;
   transform-origin: top center;
   transform: scaleY(0);
+  will-change: transform;
+}
+
+/* ===== Mobile (max-width: 600px) ===== */
+@media (max-width: 600px) {
+  .landing-hero {
+    height: 300svh;
+  }
+
+  .hero-slide--1 {
+    top: 5%;
+  }
+
+  .hero-slide--2,
+  .hero-slide--3,
+  .hero-slide--4 {
+    top: auto;
+    bottom: 25%;
+    padding: 0 1.2rem;
+  }
+
+  .hero-slide--3 {
+    bottom: 15%;
+  }
+
+  .hero-slide--4 {
+    bottom: 5%;
+  }
+
+  .hero-slide:first-child .hero-heading {
+    bottom: 1.2rem;
+  }
+
+  .hero-progress {
+    right: 4px;
+    width: 1.5px;
+  }
+}
+
+/* ===== Desktop (min-width: 601px) ===== */
+@media (min-width: 601px) {
+  .hero-slide:first-child .hero-heading {
+    bottom: 1.6rem;
+    left: 1.6rem;
+  }
+
+  .hero-slide:nth-child(2),
+  .hero-slide:nth-child(4) {
+    align-items: flex-end;
+    padding-right: 8.2rem;
+    width: 39rem;
+    right: 0;
+  }
+
+  .hero-slide:nth-child(3) {
+    align-items: flex-start;
+    padding-left: 8.2rem;
+    width: 38rem;
+    left: 0;
+  }
 }
 </style>
