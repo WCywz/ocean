@@ -1,7 +1,10 @@
 <template>
-  <div class="editorial-section">
+  <div class="trend-card-wrapper" style="cursor: pointer;" @click.stop="$emit('navigate')">
     <p class="editorial-section-label">Feature · 趋势分析</p>
-    <h3 class="editorial-section-heading">{{ title }}</h3>
+    <h3 class="editorial-section-heading" style="display: flex; justify-content: space-between; align-items: baseline;">
+      <span>{{ title }}</span>
+      <span class="trend-nav-hint">{{ dataType === 'SST' ? 'SST 预测' : 'CHL 预测' }} →</span>
+    </h3>
     <p class="editorial-narrative">{{ narrativeText }}</p>
     <div v-if="!series.length && !loading" class="editorial-narrative">暂无趋势数据</div>
     <div v-loading="loading" class="chart-wrapper" ref="chartRef"></div>
@@ -19,6 +22,8 @@ const props = defineProps({
   series: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false }
 })
+
+defineEmits(['navigate'])
 
 const narrativeText = computed(() => {
   if (!props.series.length) return ''
@@ -85,5 +90,20 @@ onUnmounted(() => {
 .chart-wrapper {
   width: 100%;
   height: 280px;
+}
+
+.trend-nav-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 400;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+}
+
+.trend-card-wrapper {
+  transition: opacity 0.15s;
+}
+.trend-card-wrapper:hover {
+  opacity: 0.85;
 }
 </style>
