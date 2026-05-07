@@ -1,36 +1,31 @@
 <template>
   <section class="landing-hero" ref="heroRef">
-    <!-- Scroll container (pin target) -->
     <div class="landing-hero__wrapper" ref="wrapperRef">
-      <!-- Layer 0: Background images -->
-      <div class="landing-hero__bg">
-        <img
-          ref="bgImgARef"
-          class="landing-hero__bg-img landing-hero__bg-img--a"
-          src="https://images.unsplash.com/photo-1582967788606-a17106d5b57?w=1920&q=80"
-          alt="Ocean surface"
-        />
-        <img
-          ref="bgImgBRef"
-          class="landing-hero__bg-img landing-hero__bg-img--b"
-          src="https://images.unsplash.com/photo-1457365050282-c53d772ef8b2?w=1920&q=80"
-          alt="Ocean restoration"
-        />
-      </div>
+      <!-- Masked scene: contains bg images, grid, filter, hotspots -->
+      <div class="landing-hero__scene" ref="sceneRef">
+        <div class="landing-hero__bg">
+          <img
+            ref="bgImgARef"
+            class="landing-hero__bg-img landing-hero__bg-img--a"
+            src="https://images.unsplash.com/photo-1582967788606-a17106d5b57?w=1920&q=80"
+            alt="Ocean surface"
+          />
+          <img
+            ref="bgImgBRef"
+            class="landing-hero__bg-img landing-hero__bg-img--b"
+            src="https://images.unsplash.com/photo-1457365050282-c53d772ef8b2?w=1920&q=80"
+            alt="Ocean restoration"
+          />
+        </div>
 
-      <!-- Layer 1: SVG Mask container -->
-      <div class="landing-hero__mask" ref="maskRef">
-        <!-- Layer 2: Grid overlay -->
         <div class="landing-hero__grid" ref="gridRef">
           <svg viewBox="0 0 1080 748" fill="none" xmlns="http://www.w3.org/2000/svg" class="landing-hero__grid-svg">
             <path fill-rule="evenodd" clip-rule="evenodd" d="M582 83H830V0H914V83H997V249H1080V416H997V498H1080V582H997V665H831V748H747V665H665V748H498V665H250V748H166V665H0V498H83V333H0V166H83V83H332V0H582V83ZM167 747H249V665H167V747ZM499 747H581V665H499V747ZM582 747H664V665H582V747ZM748 747H830V665H748V747ZM1 664H83V582H1V664ZM84 664H166V582H84V664ZM167 664H249V582H167V664ZM250 664H332V582H250V664ZM333 664H415V582H333V664ZM416 664H498V582H416V664ZM499 664H581V582H499V664ZM582 664H664V582H582V664ZM665 664H747V582H665V664ZM748 664H830V582H748V664ZM831 664H913V582H831V664ZM914 664H996V582H914V664ZM1 581H83V499H1V581ZM84 581H166V499H84V581ZM167 581H249V499H167V581ZM250 581H332V499H250V581ZM333 581H415V499H333V581ZM416 581H498V499H416V581ZM499 581H581V499H499V581ZM582 581H664V499H582V581ZM665 581H747V499H665V581ZM748 581H830V499H748V581ZM831 581H913V499H831V581ZM914 581H996V499H914V581ZM997 581H1079V499H997V581ZM84 498H166V416H84V498ZM167 498H249V416H167V498ZM250 498H332V416H250V498ZM333 498H415V416H333V498ZM416 498H498V416H416V498ZM499 498H581V416H499V498ZM582 498H664V416H582V498ZM665 498H747V416H665V498ZM748 498H830V416H748V498ZM831 498H913V416H831V498ZM914 498H996V416H914V498ZM84 415H166V333H84V415ZM167 415H249V333H167V415ZM250 415H332V333H250V415ZM333 415H415V333H333V415ZM416 415H498V333H416V415ZM499 415H581V333H499V415ZM582 415H664V333H582V415ZM665 415H747V333H665V415ZM748 415H830V333H748V415ZM831 415H913V333H831V415ZM914 415H996V333H914V415ZM997 415H1079V333H997V415ZM1 332H83V250H1V332ZM84 332H166V250H84V332ZM167 332H249V250H167V332ZM250 332H332V250H250V332ZM333 332H415V250H333V332ZM416 332H498V250H416V332ZM499 332H581V250H499V332ZM582 332H664V250H582V332ZM665 332H747V250H665V332ZM748 332H830V250H748V332ZM831 332H913V250H831V332ZM914 332H996V250H914V332ZM997 332H1079V250H997V332ZM1 249H83V167H1V249ZM84 249H166V167H84V249ZM167 249H249V167H167V249ZM250 249H332V167H250V249ZM333 249H415V167H333V249ZM416 249H498V167H416V249ZM499 249H581V167H499V249ZM582 249H664V167H582V249ZM665 249H747V167H665V249ZM748 249H830V167H748V249ZM831 249H913V167H831V249ZM914 249H996V167H914V249ZM84 166H166V84H84V166ZM167 166H249V84H167V166ZM250 166H332V84H250V166ZM333 166H415V84H333V166ZM416 166H498V84H416V166ZM499 166H581V84H499V166ZM582 166H664V84H582V166ZM665 166H747V84H665V166ZM748 166H830V84H748V166ZM831 166H913V84H831V166ZM914 166H996V84H914V166ZM333 83H415V1H333V83ZM416 83H498V1H416V83ZM499 83H581V1H499V83ZM831 83H913V1H831V83Z" fill="color-mix(in srgb, currentColor 30%, transparent)"/>
           </svg>
         </div>
 
-        <!-- Layer 3: Desaturation filter -->
         <div class="landing-hero__filter" ref="filterRef"></div>
 
-        <!-- Layer 4: Hotspot indicators (decorative) -->
         <div class="landing-hero__hotspots">
           <svg viewBox="0 0 764 542" fill="none" xmlns="http://www.w3.org/2000/svg" class="landing-hero__hotspots-svg" ref="hotspotsSvgRef">
             <g class="hotspot-group">
@@ -51,10 +46,10 @@
         </div>
       </div>
 
-      <!-- Layer 5: Text slides -->
+      <!-- Text slides (above mask, not clipped) -->
       <div class="landing-hero__slides">
         <div class="landing-hero__slide" ref="slide1Ref">
-          <h2 class="hero-heading">Invasions move fast.<br/>Be faster.</h2>
+          <h2 class="hero-heading">海洋预报<br/>守护蔚蓝</h2>
           <a class="cta-button" @click="$emit('scrollToLogin')">探索系统</a>
         </div>
         <div class="landing-hero__slide" ref="slide2Ref">
@@ -90,9 +85,9 @@ const emit = defineEmits(['scrollToLogin'])
 
 const heroRef = ref(null)
 const wrapperRef = ref(null)
+const sceneRef = ref(null)
 const bgImgARef = ref(null)
 const bgImgBRef = ref(null)
-const maskRef = ref(null)
 const gridRef = ref(null)
 const filterRef = ref(null)
 const hotspotsSvgRef = ref(null)
@@ -106,6 +101,19 @@ const indicatorProgressRef = ref(null)
 let scrollTrigger = null
 
 onMounted(() => {
+  // Lock initial states before GSAP touches them
+  gsap.set(slide1Ref.value, { opacity: 0 })
+  gsap.set(slide2Ref.value, { opacity: 0 })
+  gsap.set(slide3Ref.value, { opacity: 0 })
+  gsap.set(slide4Ref.value, { opacity: 0 })
+  gsap.set(gridRef.value, { opacity: 0 })
+  gsap.set(filterRef.value, { opacity: 0 })
+  gsap.set(hotspotsSvgRef.value, { opacity: 0 })
+  gsap.set(sceneRef.value, { scale: 1 })
+  gsap.set(bgImgARef.value, { yPercent: 0 })
+  gsap.set(bgImgBRef.value, { yPercent: 0 })
+  gsap.set(wrapperRef.value, { opacity: 1 })
+
   const tl = gsap.timeline({
     scrollTrigger: {
       trigger: heroRef.value,
@@ -122,33 +130,33 @@ onMounted(() => {
     }
   })
 
-  // Phase 1 (0%–25%): Background parallax reverse + progress bar
+  // Phase 1 (0%–25%): Background parallax reverse + slide 1
   tl.to(bgImgARef.value, { yPercent: -10, ease: 'none' }, 0)
     .to(bgImgBRef.value, { yPercent: 5, ease: 'none' }, 0)
     .to(slide1Ref.value, { opacity: 1, ease: 'none' }, 0)
-    .to(slide1Ref.value, { opacity: 0, ease: 'none' }, 0.2)
+    .to(slide1Ref.value, { opacity: 0, ease: 'none' }, 0.22)
 
-  // Phase 2 (15%–35%): Mask scale
-  tl.to(maskRef.value, { scale: 0.92, ease: 'none' }, 0.15)
+  // Phase 2 (15%–35%): Mask scale + slide 2
+  tl.to(sceneRef.value, { scale: 0.92, ease: 'none' }, 0.15)
     .to(slide2Ref.value, { opacity: 1, ease: 'none' }, 0.18)
     .to(slide2Ref.value, { opacity: 0, ease: 'none' }, 0.35)
 
-  // Phase 3 (30%–55%): Desaturation + grid appear
+  // Phase 3 (30%–55%): Desaturation + grid appear + slide 3
   tl.to(filterRef.value, { opacity: 1, ease: 'none' }, 0.3)
     .to(gridRef.value, { opacity: 1, ease: 'none' }, 0.32)
     .to(hotspotsSvgRef.value, { opacity: 1, ease: 'none' }, 0.32)
     .to(slide3Ref.value, { opacity: 1, ease: 'none' }, 0.35)
     .to(slide3Ref.value, { opacity: 0, ease: 'none' }, 0.5)
 
-  // Phase 4 (48%–70%): Release — mask back, desaturation fades, grid fades
-  tl.to(maskRef.value, { scale: 1, ease: 'none' }, 0.48)
+  // Phase 4 (48%–70%): Release — mask back, desaturation fades, grid fades + slide 4
+  tl.to(sceneRef.value, { scale: 1, ease: 'none' }, 0.48)
     .to(filterRef.value, { opacity: 0, ease: 'none' }, 0.5)
     .to(gridRef.value, { opacity: 0, ease: 'none' }, 0.52)
     .to(hotspotsSvgRef.value, { opacity: 0, ease: 'none' }, 0.52)
     .to(slide4Ref.value, { opacity: 1, ease: 'none' }, 0.55)
     .to(slide4Ref.value, { opacity: 0, ease: 'none' }, 0.72)
 
-  // Phase 5 (70%–100%): Hero fade out, transition to login
+  // Phase 5 (70%–100%): Hero fade out
   tl.to(wrapperRef.value, { opacity: 0, ease: 'none' }, 0.75)
 
   scrollTrigger = tl.scrollTrigger
@@ -173,17 +181,44 @@ onUnmounted(() => {
   height: 100svh;
   position: sticky;
   top: 0;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 140 140'%3E%3Cpath fill='%23f4f3e8' d='M0 0h3.5v3.5H0z' opacity='.2'/%3E%3C/svg%3E");
-  background-position: 50%;
-  background-repeat: repeat;
-  background-size: 14rem;
-  pointer-events: none;
+  overflow: hidden;
+  background-color: var(--color-black);
+}
+
+/* Scene: masked container clips bg + overlays */
+.landing-hero__scene {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100svh;
+  inset: 0;
+  mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 1030 701'%3E%3Cpath fill='white' d='M347 0v21h60V0h43v21h44v21h121V21h31V0h117v21h59V0h107v21h59v62h21v42h21v36h-21v38h-21v96h21v14h21v46h-21v21h21v38h-21v50h21v79h-21v74h21v24h-21v20H886v-20h-41v20h-40v-20h-21v20h-42v20h-41v20H559v-20h-23v-20h-50v-20h-41v20H330v-20h-21v20h-52v20h-24v20h-47v-20h-21v20h-21v-20h-21v-20H40v-41H20v-62h20v-46H20v-58h20v-20H20v-20H0V240h20v-53H0v-62h20V63h20V42h41v21h83V42h21V21h85V0z'/%3E%3C/svg%3E");
+  -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 1030 701'%3E%3Cpath fill='white' d='M347 0v21h60V0h43v21h44v21h121V21h31V0h117v21h59V0h107v21h59v62h21v42h21v36h-21v38h-21v96h21v14h21v46h-21v21h21v38h-21v50h21v79h-21v74h21v24h-21v20H886v-20h-41v20h-40v-20h-21v20h-42v20h-41v20H559v-20h-23v-20h-50v-20h-41v20H330v-20h-21v20h-52v20h-24v20h-47v-20h-21v20h-21v-20h-21v-20H40v-41H20v-62h20v-46H20v-58h20v-20H20v-20H0V240h20v-53H0v-62h20V63h20V42h41v21h83V42h21V21h85V0z'/%3E%3C/svg%3E");
+  mask-position: center;
+  -webkit-mask-position: center;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  will-change: transform;
+}
+
+@media (max-width: 600px) {
+  .landing-hero__scene {
+    mask-size: 57.6rem 39.2rem;
+    -webkit-mask-size: 57.6rem 39.2rem;
+  }
+}
+
+@media (min-width: 601px) {
+  .landing-hero__scene {
+    mask-size: 103rem 70.1rem;
+    -webkit-mask-size: 103rem 70.1rem;
+  }
 }
 
 .landing-hero__bg {
   position: absolute;
   inset: 0;
-  z-index: -1;
 }
 
 .landing-hero__bg-img {
@@ -202,41 +237,9 @@ onUnmounted(() => {
   transform: scale(-1, 1);
 }
 
-/* SVG Mask container */
-.landing-hero__mask {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100svh;
-  inset: 0;
-  mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 1030 701'%3E%3Cpath fill='currentColor' d='M347 0v21h60V0h43v21h44v21h121V21h31V0h117v21h59V0h107v21h59v62h21v42h21v36h-21v38h-21v96h21v14h21v46h-21v21h21v38h-21v50h21v79h-21v74h21v24h-21v20H886v-20h-41v20h-40v-20h-21v20h-42v20h-41v20H559v-20h-23v-20h-50v-20h-41v20H330v-20h-21v20h-52v20h-24v20h-47v-20h-21v20h-21v-20h-21v-20H40v-41H20v-62h20v-46H20v-58h20v-20H20v-20H0V240h20v-53H0v-62h20V63h20V42h41v21h83V42h21V21h85V0z'/%3E%3C/svg%3E");
-  -webkit-mask-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 1030 701'%3E%3Cpath fill='currentColor' d='M347 0v21h60V0h43v21h44v21h121V21h31V0h117v21h59V0h107v21h59v62h21v42h21v36h-21v38h-21v96h21v14h21v46h-21v21h21v38h-21v50h21v79h-21v74h21v24h-21v20H886v-20h-41v20h-40v-20h-21v20h-42v20h-41v20H559v-20h-23v-20h-50v-20h-41v20H330v-20h-21v20h-52v20h-24v20h-47v-20h-21v20h-21v-20h-21v-20H40v-41H20v-62h20v-46H20v-58h20v-20H20v-20H0V240h20v-53H0v-62h20V63h20V42h41v21h83V42h21V21h85V0z'/%3E%3C/svg%3E");
-  mask-position: center;
-  -webkit-mask-position: center;
-  mask-repeat: no-repeat;
-  -webkit-mask-repeat: no-repeat;
-  will-change: transform;
-}
-
-@media (max-width: 600px) {
-  .landing-hero__mask {
-    mask-size: 57.6rem 39.2rem;
-    -webkit-mask-size: 57.6rem 39.2rem;
-  }
-}
-
-@media (min-width: 601px) {
-  .landing-hero__mask {
-    mask-size: 103rem 70.1rem;
-    -webkit-mask-size: 103rem 70.1rem;
-  }
-}
-
 /* Grid overlay */
 .landing-hero__grid {
   position: absolute;
-  opacity: 0;
   will-change: opacity;
 }
 
@@ -265,7 +268,6 @@ onUnmounted(() => {
   inset: 0;
   background: #b0b3b4;
   mix-blend-mode: color;
-  opacity: 0;
   will-change: opacity;
 }
 
@@ -277,7 +279,6 @@ onUnmounted(() => {
 
 .landing-hero__hotspots-svg {
   position: absolute;
-  opacity: 0;
 }
 
 @media (max-width: 600px) {
@@ -294,10 +295,11 @@ onUnmounted(() => {
   }
 }
 
-/* Text slides */
+/* Text slides — above mask, not clipped */
 .landing-hero__slides {
   position: absolute;
   inset: 0;
+  z-index: 5;
 }
 
 .landing-hero__slide {
@@ -308,7 +310,6 @@ onUnmounted(() => {
   flex-direction: column;
   height: 100svh;
   width: 100%;
-  opacity: 0;
   will-change: opacity;
   text-align: center;
 }
