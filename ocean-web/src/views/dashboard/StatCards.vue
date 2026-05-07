@@ -1,5 +1,5 @@
 <template>
-  <div class="editorial-stats" style="cursor: pointer;" @click="$emit('navigate')">
+  <div class="editorial-stats" style="cursor: pointer;" @click.stop="$emit('navigate')">
     <div v-for="card in cards" :key="card.label" class="editorial-stat" :class="{ 'editorial-stat--alert': card.isAlert }">
       <span class="editorial-stat__value">{{ card.value }}</span>
       <span class="editorial-stat__label">{{ card.label }}</span>
