@@ -1,6 +1,9 @@
 <template>
-  <div>
-    <p class="editorial-section-label">数据附录</p>
+  <div style="cursor: pointer;" @click.stop="$emit('navigate')">
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+      <p class="editorial-section-label">数据附录</p>
+      <span class="table-nav-hint">观测数据 →</span>
+    </div>
     <table class="editorial-table">
       <thead>
         <tr>
@@ -34,10 +37,16 @@ const props = defineProps({
   loading: { type: Boolean, default: false }
 })
 
+defineEmits(['navigate'])
+
 const unit = computed(() => props.dataType === 'SST' ? '°C' : 'mg/m³')
 const valueLabel = computed(() => props.dataType === 'SST' ? '温度值' : '浓度值')
 </script>
 
 <style scoped>
-/* uses editorial-table from editorial.css */
+.table-nav-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
 </style>
