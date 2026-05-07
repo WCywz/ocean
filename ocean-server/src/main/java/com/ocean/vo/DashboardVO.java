@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 仪表盘视图对象
+ * 首页仪表盘数据
  */
 @Data
 public class DashboardVO {
@@ -20,12 +20,12 @@ public class DashboardVO {
     /** 今日预报记录数 */
     private Long todayRecordCount;
 
-    /** 今日超出阈值的告警记录数 */
+    /** 今日告警数 */
     private Long alertCount;
 
-    /** 最新SST观测点数据 */
+    /** 各观测点最新SST数据 */
     private List<Map<String, Object>> latestSstData;
 
-    /** 最新CHL观测点数据 */
+    /** 各观测点最新CHL数据 */
     private List<Map<String, Object>> latestChlData;
 }
