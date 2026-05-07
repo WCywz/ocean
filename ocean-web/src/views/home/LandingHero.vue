@@ -218,7 +218,113 @@ function generateDots() {
 let scrollTl = null
 
 function initScrollAnimation() {
-  // Implemented in Task 3, tuned in Task 4
+  if (!heroRef.value) return
+
+  scrollTl = gsap.timeline({
+    scrollTrigger: {
+      trigger: heroRef.value,
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: true,
+      invalidateOnRefresh: true,
+    },
+  })
+
+  // Lock initial states (prevents flash of wrong state)
+  gsap.set(maskRef.value, { scale: 1.0 })
+  gsap.set(gridRef.value, { opacity: 0 })
+  gsap.set(dotsRef.value, { opacity: 0 })
+  gsap.set(slide1Ref.value, { opacity: 1 })
+  gsap.set(slide2Ref.value, { opacity: 0 })
+  gsap.set(slide3Ref.value, { opacity: 0 })
+  gsap.set(slide4Ref.value, { opacity: 0 })
+  gsap.set(progressFillRef.value, { scaleY: 0 })
+  gsap.set(heroRef.value, { opacity: 1 })
+
+  // Phase 1-4: Reverse parallax on background image (full scroll range)
+  scrollTl.to(bgRef.value, {
+    yPercent: -15,
+    ease: 'none',
+  }, 0)
+
+  // Phase 2 (25%-40%): Mask scales 1.0 -> 0.92 -- blocks erode inward
+  scrollTl.to(maskRef.value, {
+    scale: 0.92,
+    ease: 'none',
+  }, '25%')
+  // Phase 3 (40%-60%): Mask scales 0.92 -> 1.0 -- blocks retreat
+  scrollTl.to(maskRef.value, {
+    scale: 1.0,
+    ease: 'none',
+  }, '40%')
+
+  // Phase 2 (25%-40%): Grid + dots fade in
+  scrollTl.fromTo(gridRef.value,
+    { opacity: 0 },
+    { opacity: 1, ease: 'none' },
+    '25%'
+  )
+  scrollTl.fromTo(dotsRef.value,
+    { opacity: 0 },
+    { opacity: 1, ease: 'none' },
+    '25%'
+  )
+
+  // Phase 3 (40%-60%): Grid + dots fade out
+  scrollTl.to(gridRef.value, {
+    opacity: 0,
+    ease: 'none',
+  }, '40%')
+  scrollTl.to(dotsRef.value, {
+    opacity: 0,
+    ease: 'none',
+  }, '40%')
+
+  // Phase 1->2: Text slide 1 fades out, slide 2 fades in
+  scrollTl.to(slide1Ref.value, {
+    opacity: 0,
+    ease: 'none',
+  }, '15%')
+  scrollTl.fromTo(slide2Ref.value,
+    { opacity: 0 },
+    { opacity: 1, ease: 'none' },
+    '20%'
+  )
+
+  // Phase 2->3: Slide 2->3 crossfade
+  scrollTl.to(slide2Ref.value, {
+    opacity: 0,
+    ease: 'none',
+  }, '35%')
+  scrollTl.fromTo(slide3Ref.value,
+    { opacity: 0 },
+    { opacity: 1, ease: 'none' },
+    '38%'
+  )
+
+  // Phase 3->4: Slide 3->4 crossfade
+  scrollTl.to(slide3Ref.value, {
+    opacity: 0,
+    ease: 'none',
+  }, '52%')
+  scrollTl.fromTo(slide4Ref.value,
+    { opacity: 0 },
+    { opacity: 1, ease: 'none' },
+    '55%'
+  )
+
+  // Phase 4 (60%-100%): Hero fades out
+  scrollTl.to(heroRef.value, {
+    opacity: 0,
+    ease: 'none',
+  }, '60%')
+
+  // Progress bar: scaleY 0->1 over full scroll
+  scrollTl.fromTo(progressFillRef.value,
+    { scaleY: 0 },
+    { scaleY: 1, ease: 'none' },
+    0
+  )
 }
 </script>
 
@@ -300,6 +406,7 @@ function initScrollAnimation() {
   justify-content: center;
   width: 100%;
   text-align: center;
+  opacity: 0;
 }
 
 .hero-slide--1 { top: 5%; }
