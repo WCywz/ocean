@@ -151,11 +151,12 @@ function generateMaskBlocks() {
     blocks.push({ x, y, w, h })
   }
 
-  // Top edge blocks
+  // Top edge blocks (y near 0, varying heights reach downward)
   const topHeights = [30, 60, 25, 80, 40, 55, 20, 70, 35, 50, 45, 65, 28, 75, 38]
+  const topWidths  = [45, 87, 32, 110, 58, 73, 41, 95, 67, 54, 89, 36, 105, 62, 78]
   let tx = 0
   for (let i = 0; i < topHeights.length; i++) {
-    const w = 30 + Math.random() * 100
+    const w = topWidths[i]
     add(tx, 0, Math.min(w, S - tx), topHeights[i])
     tx += w
     if (tx >= S) break
@@ -163,9 +164,10 @@ function generateMaskBlocks() {
 
   // Bottom edge blocks
   const bottomHeights = [40, 55, 25, 70, 35, 60, 30, 80, 45, 50, 28, 65, 38, 72, 32]
+  const bottomWidths  = [52, 78, 41, 95, 63, 88, 37, 108, 56, 71, 44, 92, 59, 84, 48]
   let bx = 0
   for (let i = 0; i < bottomHeights.length; i++) {
-    const w = 30 + Math.random() * 100
+    const w = bottomWidths[i]
     const h = bottomHeights[i]
     add(bx, S - h, Math.min(w, S - bx), h)
     bx += w
@@ -173,20 +175,22 @@ function generateMaskBlocks() {
   }
 
   // Left edge blocks
-  const leftWidths = [25, 55, 35, 65, 20, 50, 40, 70, 30, 45, 28, 60, 38, 52, 32]
+  const leftWidths  = [25, 55, 35, 65, 20, 50, 40, 70, 30, 45, 28, 60, 38, 52, 32]
+  const leftHeights = [42, 68, 33, 85, 55, 72, 38, 91, 57, 64, 46, 77, 50, 62, 44]
   let ly = 80
   for (let i = 0; i < leftWidths.length; i++) {
-    const h = 30 + Math.random() * 60
+    const h = leftHeights[i]
     add(0, ly, leftWidths[i], Math.min(h, S - ly))
     ly += h
     if (ly >= S - 80) break
   }
 
   // Right edge blocks
-  const rightWidths = [35, 50, 22, 60, 40, 55, 28, 68, 32, 48, 25, 58, 38, 52, 30]
+  const rightWidths  = [35, 50, 22, 60, 40, 55, 28, 68, 32, 48, 25, 58, 38, 52, 30]
+  const rightHeights = [48, 72, 35, 88, 58, 75, 40, 95, 60, 67, 44, 80, 52, 65, 47]
   let ry = 80
   for (let i = 0; i < rightWidths.length; i++) {
-    const h = 30 + Math.random() * 60
+    const h = rightHeights[i]
     const w = rightWidths[i]
     add(S - w, ry, w, Math.min(h, S - ry))
     ry += h
@@ -209,15 +213,15 @@ function generateGridLines() {
 
 function generateDots() {
   const colors = ['#ebfc72', '#f1664d', '#00d399']
-  const dots = []
-  for (let i = 0; i < 7; i++) {
-    dots.push({
-      cx: 50 + Math.random() * 900,
-      cy: 50 + Math.random() * 900,
-      r: 2 + Math.random() * 4,
-      color: colors[i % colors.length],
-    })
-  }
+  const dots = [
+    { cx: 320, cy: 150, r: 4, color: '#ebfc72' },
+    { cx: 120, cy: 280, r: 3, color: '#f1664d' },
+    { cx: 680, cy: 420, r: 5, color: '#00d399' },
+    { cx: 450, cy: 580, r: 3, color: '#ebfc72' },
+    { cx: 780, cy: 720, r: 4, color: '#f1664d' },
+    { cx: 200, cy: 650, r: 2, color: '#00d399' },
+    { cx: 550, cy: 180, r: 3, color: '#ebfc72' },
+  ]
   indicatorDots.value = dots
 }
 
@@ -238,7 +242,7 @@ function initScrollAnimation() {
   })
 
   // Lock initial states
-  gsap.set(maskRef.value, { scale: 1.0 })
+  gsap.set(maskRef.value, { scale: 1.08 })
   gsap.set(gridRef.value, { opacity: 0 })
   gsap.set(dotsRef.value, { opacity: 0 })
   gsap.set(slide1Ref.value, { opacity: 1 })
@@ -253,7 +257,7 @@ function initScrollAnimation() {
   // Phase 2 (25%-40%): Mask scale 1.0 -> 0.92 (duration 0.15 = 15% of scroll)
   scrollTl.to(maskRef.value, { scale: 0.92, ease: 'none', duration: 0.15 }, 0.25)
   // Phase 3 (40%-60%): Mask scale 0.92 -> 1.0 (duration 0.20 = 20% of scroll)
-  scrollTl.to(maskRef.value, { scale: 1.0, ease: 'none', duration: 0.20 }, 0.40)
+  scrollTl.to(maskRef.value, { scale: 1.08, ease: 'none', duration: 0.20 }, 0.40)
 
   // Phase 2 (25%): Grid + dots appear (instant, duration 0)
   scrollTl.fromTo(gridRef.value, { opacity: 0 }, { opacity: 1, ease: 'none', duration: 0 }, 0.25)
