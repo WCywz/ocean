@@ -15,14 +15,16 @@
           <img src="/hero-v2/hero-v2-grid-overlay.svg" alt="" />
         </div>
 
+        <div class="hero-v2-dots" ref="dotsRef"></div>
+
         <div class="marker marker-1" ref="marker1Ref">
           <span class="marker-icon"></span>
-          <p class="marker-label">Anchor Field</p>
+          <p class="marker-label">Temp Prediction</p>
         </div>
 
         <div class="marker marker-2" ref="marker2Ref">
           <span class="marker-icon"></span>
-          <p class="marker-label">Drift Field</p>
+          <p class="marker-label">Chl Prediction</p>
         </div>
 
         <div class="hero-v2-content" ref="heroContentRef">
@@ -105,6 +107,7 @@ const marker1Ref = ref(null)
 const marker2Ref = ref(null)
 const heroContentRef = ref(null)
 const progressBarRef = ref(null)
+const dotsRef = ref(null)
 const landingLoginRef = ref(null)
 
 let lenis = null
@@ -119,6 +122,59 @@ function scrollToLogin() {
 
 function scrollToTop() {
   lenis?.scrollTo(0, { duration: 1.5 })
+}
+
+let dotsActive = false
+let dotsSpawnTimer = null
+
+function spawnDot() {
+  const container = dotsRef.value
+  if (!container) return
+  if (container.children.length >= 20) return
+
+  const dot = document.createElement('div')
+  dot.className = 'hero-v2-dot'
+  dot.classList.add(Math.random() > 0.5 ? 'hero-v2-dot--orange' : 'hero-v2-dot--green')
+  dot.style.left = (12 + Math.random() * 76) + '%'
+  dot.style.top = (25 + Math.random() * 50) + '%'
+
+  container.appendChild(dot)
+
+  const wanderDelay = 3000 + Math.random() * 1000
+  setTimeout(() => {
+    if (!dot.isConnected) return
+    const angle = Math.random() * Math.PI * 2
+    const dist = 8 + Math.random() * 22
+    dot.style.setProperty('--dx', Math.cos(angle) * dist + 'px')
+    dot.style.setProperty('--dy', Math.sin(angle) * dist + 'px')
+    dot.classList.add('hero-v2-dot--wander')
+  }, wanderDelay)
+
+  setTimeout(() => {
+    dot.remove()
+  }, wanderDelay + 2000)
+}
+
+function startDots() {
+  if (dotsActive) return
+  dotsActive = true
+  const el = dotsRef.value
+  if (el && el.offsetWidth > 0) {
+    el.style.height = el.offsetWidth + 'px'
+  }
+  for (let i = 0; i < 20; i++) {
+    setTimeout(() => spawnDot(), i * 120)
+  }
+  dotsSpawnTimer = setInterval(spawnDot, 400)
+}
+
+function stopDots() {
+  if (!dotsActive) return
+  dotsActive = false
+  clearInterval(dotsSpawnTimer)
+  dotsSpawnTimer = null
+  const c = dotsRef.value
+  if (c) c.innerHTML = ''
 }
 
 onMounted(() => {
@@ -256,6 +312,13 @@ onMounted(() => {
         opacity: heroGridOpacity,
       })
 
+      const showDots = dotsActive ? heroGridOpacity > 0.05 : heroGridOpacity > 0.3
+      if (showDots && !dotsActive) {
+        startDots()
+      } else if (!showDots && dotsActive) {
+        stopDots()
+      }
+
       let marker1Opacity
       if (self.progress <= 0.5) {
         marker1Opacity = 0
@@ -294,6 +357,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  stopDots()
   if (rafId) cancelAnimationFrame(rafId)
   rafId = null
   ScrollTrigger.getAll().forEach(t => t.kill())
@@ -468,18 +532,29 @@ onUnmounted(() => {
 }
 
 .marker.marker-1 .marker-icon,
-.marker.marker-1 .marker-icon::before,
+.marker.marker-1 .marker-icon::after,
 .marker.marker-1 .marker-label {
   background-color: var(--hv2-accent-1);
   color: var(--hv2-light);
 }
 
+.marker.marker-1 .marker-icon::after {
+  width: 14rem;
+  height: 14rem;
+}
+
 .marker.marker-2 .marker-icon,
-.marker.marker-2 .marker-icon::before,
+.marker.marker-2 .marker-icon::after,
 .marker.marker-2 .marker-label {
   background-color: var(--hv2-accent-2);
   color: var(--hv2-dark);
 }
+
+.marker.marker-2 .marker-icon::after {
+  width: 6rem;
+  height: 6rem;
+}
+
 
 @keyframes hero-v2-pulse {
   0% {
@@ -546,7 +621,7 @@ onUnmounted(() => {
   position: absolute;
   width: 100%;
   height: 100%;
-  background-color: var(--hv2-light);
+  background-color: #ebfc72;
   transform-origin: top;
   transform: scaleY(var(--hv2-progress));
   will-change: transform;
@@ -597,11 +672,12 @@ onUnmounted(() => {
   border-radius: 0.4rem;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 0.5rem), calc(100% - 0.5rem) 100%, 0 100%, 0 0);
   color: #13140e;
-  font-size: 0.8rem;
+  font-size: 1.15rem;
   font-weight: 400;
-  height: 3rem;
+  height: 3.6rem;
   line-height: 1.28;
-  padding: 0 3rem;
+  padding: 0 2rem;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   cursor: pointer;
   transition: clip-path 0.25s ease-out;
@@ -625,6 +701,7 @@ onUnmounted(() => {
   .hero-v2-grid-overlay {
     width: 100%;
   }
+
 
   .marker-1 {
     top: 52.5svh;
@@ -699,5 +776,57 @@ onUnmounted(() => {
   0% { opacity: 0; }
   50% { opacity: 1; }
   100% { opacity: 0; }
+}
+
+.hero-v2-dots {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 55vw;
+  height: 55vw;
+  max-width: 100vw;
+  max-height: 100vw;
+  pointer-events: none;
+  z-index: 4;
+  overflow: visible;
+}
+
+.hero-v2-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: hero-v2-dot-in 0.3s ease-out forwards;
+  transition: opacity 1.5s ease-out, transform 1.5s ease-out;
+}
+
+.hero-v2-dot--orange {
+  background-color: var(--hv2-accent-1);
+  box-shadow: 0 0 8px var(--hv2-accent-1);
+}
+
+.hero-v2-dot--green {
+  background-color: var(--hv2-accent-2);
+  box-shadow: 0 0 8px var(--hv2-accent-2);
+}
+
+.hero-v2-dot--wander {
+  opacity: 0;
+  transform: translate(var(--dx), var(--dy));
+}
+
+@keyframes hero-v2-dot-in {
+  to { opacity: 0.8; }
+}
+
+@media (max-width: 800px) {
+  .hero-v2-dots {
+    width: 100vw;
+    height: 100vw;
+    max-width: 100vw;
+    max-height: 100vw;
+  }
 }
 </style>
