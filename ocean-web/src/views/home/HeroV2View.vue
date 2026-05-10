@@ -1,7 +1,8 @@
 <template>
-  <LandingHeader @scroll-to-top="scrollToTop" />
+  <div class="hero-v2-page">
+    <LandingHeader @scroll-to-top="scrollToTop" />
 
-  <div ref="lenisWrapperRef" class="hero-v2-root">
+    <div ref="lenisWrapperRef" class="hero-v2-root">
     <div ref="containerRef">
       <section ref="heroSectionRef" class="hero-v2">
         <div class="hero-v2-img" ref="heroImgRef">
@@ -78,6 +79,7 @@
         <LandingFooter />
       </div>
     </div>
+  </div>
   </div>
 </template>
 
@@ -300,6 +302,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.hero-v2-page {
+  --color-creme: #f4f3e8;
+  --color-yellow: #ebfc72;
+  --color-grey-2: #404040;
+}
+
 .hero-v2-root {
   --hv2-light: #fff;
   --hv2-dark: #141414;
