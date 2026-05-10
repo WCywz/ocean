@@ -46,7 +46,6 @@ defineEmits(['scrollToTop'])
   border-radius: 0.4rem;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 0.6rem), calc(100% - 0.6rem) 100%, 0 100%, 0 0);
   color: #13140e;
-  font-family: 'JetBrains Mono', monospace;
   font-size: 0.8rem;
   font-weight: 300;
   height: 2.2rem;

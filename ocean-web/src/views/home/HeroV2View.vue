@@ -442,7 +442,6 @@ onUnmounted(() => {
 
 .marker .marker-label {
   text-transform: uppercase;
-  font-family: 'DM Mono';
   font-size: 0.7rem;
   font-weight: 500;
   padding: 0.25rem 0.5rem;
@@ -565,7 +564,6 @@ onUnmounted(() => {
   --color-purple: #c084fc;
   background: var(--color-black);
   color: var(--color-creme);
-  font-family: 'JetBrains Mono', monospace;
 }
 
 .hero-v2-login-area *,
@@ -599,12 +597,11 @@ onUnmounted(() => {
   border-radius: 0.4rem;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 0.5rem), calc(100% - 0.5rem) 100%, 0 100%, 0 0);
   color: #13140e;
-  font-family: 'JetBrains Mono', monospace;
   font-size: 0.8rem;
   font-weight: 400;
   height: 3rem;
   line-height: 1.28;
-  padding: 0 1.6rem;
+  padding: 0 3rem;
   text-transform: uppercase;
   cursor: pointer;
   transition: clip-path 0.25s ease-out;
@@ -663,7 +660,6 @@ onUnmounted(() => {
   border-radius: 0.4rem;
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.5rem), calc(100% - 1.5rem) 100%, 0 100%, 0 0);
   color: var(--color-black);
-  font-family: 'JetBrains Mono', monospace;
   font-size: 1.4rem;
   font-weight: 300;
   height: 4.5rem;
