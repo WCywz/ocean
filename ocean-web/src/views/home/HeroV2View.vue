@@ -600,11 +600,11 @@ onUnmounted(() => {
   clip-path: polygon(0 0, 100% 0, 100% calc(100% - 0.5rem), calc(100% - 0.5rem) 100%, 0 100%, 0 0);
   color: #13140e;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 400;
-  height: 2.8rem;
+  height: 3rem;
   line-height: 1.28;
-  padding: 0 0.35rem;
+  padding: 0 1rem;
   text-transform: uppercase;
   cursor: pointer;
   transition: clip-path 0.25s ease-out;
