@@ -604,7 +604,7 @@ onUnmounted(() => {
   font-weight: 400;
   height: 3rem;
   line-height: 1.28;
-  padding: 0 1rem;
+  padding: 0 1.6rem;
   text-transform: uppercase;
   cursor: pointer;
   transition: clip-path 0.25s ease-out;
