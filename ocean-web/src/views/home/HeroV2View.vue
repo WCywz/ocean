@@ -600,10 +600,11 @@ onUnmounted(() => {
   color: #13140e;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.85rem;
-  font-weight: 300;
-  height: 2.8rem;
+  font-weight: 400;
+  height: 3rem;
   line-height: 1.28;
-  padding: 0 1.6rem;
+  padding: 0 1rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
   transition: clip-path 0.25s ease-out;
