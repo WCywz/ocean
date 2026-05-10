@@ -56,7 +56,7 @@
             <div class="hero-v2-content-copy">
               <h2>Special Center</h2>
               <p>
-                The system converges toward abalanced focal region. Motion
+                The system converges toward a balanced focal region. Motion
                 decelerates as positional variance reaches equilibrium.
               </p>
             </div>
@@ -67,7 +67,7 @@
       </section>
 
       <section class="hero-v2-outro">
-        <p>The system has reached its final spetial state.</p>
+        <p>The system has reached its final spatial state.</p>
       </section>
     </div>
   </div>
@@ -93,7 +93,6 @@ const marker2Ref = ref(null)
 const heroContentRef = ref(null)
 const progressBarRef = ref(null)
 
-let st = null
 let lenis = null
 let rafId = null
 
@@ -135,16 +134,9 @@ onMounted(() => {
   const marker2 = marker2Ref.value
   const progressBar = progressBarRef.value
 
-  const heroContentHeight = heroContent.offsetHeight
-  const viewportHeight = window.innerHeight
-  const heroContentMovedDistance = heroContentHeight - viewportHeight
-
-  const heroImgHeight = heroImg.offsetHeight
-  const heroImgMovedDistance = heroImgHeight - viewportHeight
-
   const ease = (x) => x * x * (3 - 2 * x)
 
-  st = ScrollTrigger.create({
+  ScrollTrigger.create({
     trigger: heroSectionRef.value,
     scroller: lenisWrapperRef.value,
     start: 'top top',
@@ -153,6 +145,13 @@ onMounted(() => {
     pinSpacing: true,
     scrub: 1,
     onUpdate: (self) => {
+      const heroContentHeight = heroContent.offsetHeight
+      const viewportHeight = window.innerHeight
+      const heroContentMovedDistance = heroContentHeight - viewportHeight
+
+      const heroImgHeight = heroImg.offsetHeight
+      const heroImgMovedDistance = heroImgHeight - viewportHeight
+
       gsap.set(progressBar, {
         scaleX: self.progress,
         '--hv2-progress': self.progress,
@@ -270,8 +269,9 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  st?.kill()
   if (rafId) cancelAnimationFrame(rafId)
+  rafId = null
+  ScrollTrigger.getAll().forEach(t => t.kill())
   lenis?.destroy()
 })
 </script>
