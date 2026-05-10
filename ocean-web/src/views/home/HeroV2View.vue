@@ -593,23 +593,25 @@ onUnmounted(() => {
 .hero-v2-cta {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.6rem;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: var(--hv2-light);
-  font-family: 'DM Mono', monospace;
-  font-size: 0.8rem;
+  background: #ebfc72;
+  border: 0;
+  border-radius: 0.4rem;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 0.8rem), calc(100% - 0.8rem) 100%, 0 100%, 0 0);
+  color: #13140e;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 300;
+  height: 2.8rem;
+  line-height: 1.28;
+  padding: 0 1.6rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
   cursor: pointer;
-  transition: background 0.25s, border-color 0.25s;
+  transition: clip-path 0.25s ease-out;
   margin-top: 1.2rem;
 }
 
 .hero-v2-cta:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.6);
+  clip-path: polygon(0.8rem 0, 100% 0, 100% 100%, 100% 100%, 0 100%, 0 0.8rem);
 }
 
 @media (max-width: 800px) {
