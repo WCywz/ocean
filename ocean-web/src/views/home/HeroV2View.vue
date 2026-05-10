@@ -1,4 +1,6 @@
 <template>
+  <LandingHeader @scroll-to-top="scrollToTop" />
+
   <div ref="lenisWrapperRef" class="hero-v2-root">
     <div ref="containerRef">
       <section ref="heroSectionRef" class="hero-v2">
@@ -25,39 +27,40 @@
         <div class="hero-v2-content" ref="heroContentRef">
           <div class="hero-v2-content-block">
             <div class="hero-v2-content-copy">
-              <h1>Location Framework</h1>
+              <h1>海洋预报<br/>Ocean Forecasting System</h1>
+              <button class="hero-v2-cta" @click="scrollToLogin">探索系统</button>
             </div>
           </div>
           <div class="hero-v2-content-block">
             <div class="hero-v2-content-copy">
-              <h2>Coordinate Mapping</h2>
+              <h2>海洋环境监测</h2>
               <p>
-                Terrain data is interpreted through
-                directional vectors.
-                Movement responds to relative
-                position rather than absolute
-                distance.
+                实时追踪海表温度与叶绿素浓度变化，为海洋科学研究与环境保护提供精准预报数据。
+              </p>
+              <p>
+                Real-time tracking of sea surface temperature and chlorophyll concentration changes provides precise forecast data for marine scientific research and environmental protection.
               </p>
             </div>
           </div>
           <div class="hero-v2-content-block">
             <div class="hero-v2-content-copy">
-              <h2>Active Location</h2>
+              <h2>数据驱动决策</h2>
               <p>
-                Key points are indexed within the
-                field. Each location
-                functions as a reference for spatial
-                alignment and transition
-                login.
+                集成多种海洋预报模型，支持参数配置与状态监控，让数据成为科学决策的基础。
+              </p>
+              <p>
+                Integrating multiple marine forecasting models, supporting parameter configuration and status monitoring, to make data the foundation of scientific decision-making.
               </p>
             </div>
           </div>
           <div class="hero-v2-content-block">
             <div class="hero-v2-content-copy">
-              <h2>Special Center</h2>
+              <h2>生态修复</h2>
               <p>
-                The system converges toward a balanced focal region. Motion
-                decelerates as positional variance reaches equilibrium.
+                通过精准的海洋环境预报，助力生态保护与可持续发展，为海洋未来贡献力量。
+              </p>
+              <p>
+                Through accurate marine environmental forecasting, we contribute to ecological conservation and sustainable development, making a difference for the future of the oceans.
               </p>
             </div>
           </div>
@@ -69,6 +72,11 @@
       <section class="hero-v2-outro">
         <p>The system has reached its final spatial state.</p>
       </section>
+
+      <div class="landing">
+        <LandingLogin ref="landingLoginRef" />
+        <LandingFooter />
+      </div>
     </div>
   </div>
 </template>
@@ -78,6 +86,9 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
+import LandingHeader from './LandingHeader.vue'
+import LandingLogin from './LandingLogin.vue'
+import LandingFooter from './LandingFooter.vue'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -92,9 +103,21 @@ const marker1Ref = ref(null)
 const marker2Ref = ref(null)
 const heroContentRef = ref(null)
 const progressBarRef = ref(null)
+const landingLoginRef = ref(null)
 
 let lenis = null
 let rafId = null
+
+function scrollToLogin() {
+  if (landingLoginRef.value) {
+    const el = landingLoginRef.value.loginRef || landingLoginRef.value.$el
+    lenis?.scrollTo(el, { offset: 0, duration: 1.5 })
+  }
+}
+
+function scrollToTop() {
+  lenis?.scrollTo(0, { duration: 1.5 })
+}
 
 onMounted(() => {
   lenis = new Lenis({
@@ -520,6 +543,28 @@ onUnmounted(() => {
   transform-origin: top;
   transform: scaleY(var(--hv2-progress));
   will-change: transform;
+}
+
+.hero-v2-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.6rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--hv2-light);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: background 0.25s, border-color 0.25s;
+  margin-top: 1.2rem;
+}
+
+.hero-v2-cta:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 @media (max-width: 800px) {
