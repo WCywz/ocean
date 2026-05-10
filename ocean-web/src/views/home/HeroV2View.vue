@@ -73,7 +73,7 @@
         <p>The system has reached its final spatial state.</p>
       </section>
 
-      <div class="landing">
+      <div class="hero-v2-login-area">
         <LandingLogin ref="landingLoginRef" />
         <LandingFooter />
       </div>
@@ -545,9 +545,41 @@ onUnmounted(() => {
   will-change: transform;
 }
 
-.landing {
-  position: static;
-  overflow: visible;
+.hero-v2-login-area {
+  --color-black: #13140e;
+  --color-black-2: #181813;
+  --color-creme: #f4f3e8;
+  --color-grey: #595a51;
+  --color-grey-2: #404040;
+  --color-yellow: #ebfc72;
+  --color-red: #f1664d;
+  --color-green: #00d399;
+  --color-purple: #c084fc;
+  background: var(--color-black);
+  color: var(--color-creme);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.hero-v2-login-area *,
+.hero-v2-login-area *::before,
+.hero-v2-login-area *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.hero-v2-login-area a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.hero-v2-login-area button {
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
 }
 
 .hero-v2-cta {
@@ -612,4 +644,53 @@ onUnmounted(() => {
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+
+.hero-v2-login-area .cta-button {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-yellow);
+  border-radius: 0.4rem;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.5rem), calc(100% - 1.5rem) 100%, 0 100%, 0 0);
+  color: var(--color-black);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.4rem;
+  font-weight: 300;
+  height: 4.5rem;
+  line-height: 1.28;
+  padding: 0 2rem;
+  text-transform: uppercase;
+  transition: clip-path 0.25s ease-out;
+}
+
+.hero-v2-login-area .cta-button:hover {
+  clip-path: polygon(1.5rem 0, 100% 0, 100% 100%, 100% 100%, 0 100%, 0 1.5rem);
+}
+
+.hero-v2-login-area .text-link {
+  color: var(--color-yellow);
+  position: relative;
+}
+
+.hero-v2-login-area .text-link::after {
+  background: currentColor;
+  content: '';
+  height: 1px;
+  position: absolute;
+  inset: auto auto 0 0;
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 0.5s cubic-bezier(1, 0, 0, 1);
+  width: 100%;
+}
+
+.hero-v2-login-area .text-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+@keyframes hero-v2-flash {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
 </style>
