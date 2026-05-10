@@ -591,6 +591,7 @@ onUnmounted(() => {
 }
 
 .hero-v2-cta {
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   background: #ebfc72;
