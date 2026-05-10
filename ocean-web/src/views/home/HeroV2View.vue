@@ -545,6 +545,11 @@ onUnmounted(() => {
   will-change: transform;
 }
 
+.landing {
+  position: static;
+  overflow: visible;
+}
+
 .hero-v2-cta {
   display: inline-flex;
   align-items: center;
