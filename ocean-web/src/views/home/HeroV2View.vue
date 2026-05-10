@@ -596,22 +596,21 @@ onUnmounted(() => {
   background: #ebfc72;
   border: 0;
   border-radius: 0.4rem;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 0.6rem), calc(100% - 0.6rem) 100%, 0 100%, 0 0);
   color: #13140e;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.75rem;
   font-weight: 400;
   height: 2.8rem;
   line-height: 1.28;
-  padding: 0 0.4rem;
+  padding: 0 0.5rem;
   text-transform: uppercase;
   cursor: pointer;
-  transition: clip-path 0.25s ease-out;
+  transition: border-radius 0.25s ease-out;
   margin-top: 1.2rem;
 }
 
 .hero-v2-cta:hover {
-  clip-path: polygon(0.6rem 0, 100% 0, 100% 100%, 100% 100%, 0 100%, 0 0.6rem);
+  border-radius: 1rem;
 }
 
 @media (max-width: 800px) {
