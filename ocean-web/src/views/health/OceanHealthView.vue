@@ -104,22 +104,28 @@ const assessments = ref([])
 
 const levelText = { good: '优良', fine: '良好', warn: '中等', bad: '较差' }
 
-const bannerLevel = computed(() => {
-  if (!assessments.value.length) return 'fine'
-  const order = ['good', 'fine', 'warn', 'bad']
-  return assessments.value.reduce((worst, a) => {
-    return order.indexOf(a.overall.level) > order.indexOf(worst) ? a.overall.level : worst
-  }, 'good')
-})
-
-const bannerIcon = computed(() => {
-  const icons = { good: '&#9989;', fine: '&#9989;', warn: '&#9888;&#65039;', bad: '&#128308;' }
-  return icons[bannerLevel.value]
-})
-
 const bannerText = computed(() => {
   if (!assessments.value.length) return '加载中...'
   return buildOverallSummary(assessments.value)
+})
+
+const statusColor = computed(() => {
+  if (!assessments.value.length) return '#22c55e'
+  const order = ['good', 'fine', 'warn', 'bad']
+  const worst = assessments.value.reduce((w, a) => {
+    return order.indexOf(a.overall.level) > order.indexOf(w) ? a.overall.level : w
+  }, 'good')
+  const colors = { good: '#22c55e', fine: '#22c55e', warn: '#f59e0b', bad: '#ef4444' }
+  return colors[worst]
+})
+
+const statusLabel = computed(() => {
+  if (!assessments.value.length) return '--'
+  const order = ['good', 'fine', 'warn', 'bad']
+  const worst = assessments.value.reduce((w, a) => {
+    return order.indexOf(a.overall.level) > order.indexOf(w) ? a.overall.level : w
+  }, 'good')
+  return levelText[worst]
 })
 
 function trendSymbol(trend) {
@@ -132,10 +138,6 @@ function trendText(trend) {
   if (trend === 'rising') return '上升'
   if (trend === 'falling') return '下降'
   return '平稳'
-}
-
-function tagClass(level) {
-  return `health-tag health-tag--${level}`
 }
 
 function fmtTemp(val) {
