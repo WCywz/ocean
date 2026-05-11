@@ -40,6 +40,12 @@
           :class="{ 'editorial-nav__item--active': isActive('/app/ocean-data') }"
         >观测</router-link>
 
+        <router-link
+          to="/app/ocean-health"
+          class="editorial-nav__item"
+          :class="{ 'editorial-nav__item--active': isActive('/app/ocean-health') }"
+        >健康</router-link>
+
         <template v-if="isAdmin">
           <router-link
             to="/app/model"

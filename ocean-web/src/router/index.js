@@ -59,6 +59,12 @@ const routes = [
         name: 'OceanData',
         component: () => import('../views/ocean/OceanDataView.vue'),
         meta: { title: '海洋观测数据' }
+      },
+      {
+        path: 'ocean-health',
+        name: 'OceanHealth',
+        component: () => import('../views/health/OceanHealthView.vue'),
+        meta: { title: '海洋健康指数' }
       }
     ]
   },
