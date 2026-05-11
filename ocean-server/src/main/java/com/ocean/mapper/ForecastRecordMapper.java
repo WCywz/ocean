@@ -150,4 +150,92 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
             "ORDER BY value DESC " +
             "LIMIT 20")
     List<Map<String, Object>> selectTodayAlerts();
+
+    /**
+     * 分区健康查询 — SST 统计（均值、极值、趋势方向）
+     */
+    @Select("<script>" +
+        "SELECT AVG(value) AS avgVal, MAX(value) AS maxVal, " +
+        "  CASE WHEN AVG(CASE WHEN forecast_date = #{forecastDate} THEN value END) > " +
+        "            AVG(CASE WHEN forecast_date &lt; #{forecastDate} THEN value END) " +
+        "       THEN 'rising' ELSE 'falling' END AS trend " +
+        "FROM forecast_record " +
+        "WHERE data_type = 'SST' " +
+        "  AND forecast_date &lt;= #{forecastDate} " +
+        "  AND longitude &gt;= #{minLon} AND longitude &lt;= #{maxLon} " +
+        "  AND latitude &gt;= #{minLat} AND latitude &lt;= #{maxLat} " +
+        "</script>")
+    Map<String, Object> selectZoneSstStats(@Param("minLon") BigDecimal minLon,
+                                           @Param("maxLon") BigDecimal maxLon,
+                                           @Param("minLat") BigDecimal minLat,
+                                           @Param("maxLat") BigDecimal maxLat,
+                                           @Param("forecastDate") String forecastDate);
+
+    /**
+     * 分区健康查询 — Chl 统计（均值、极值、趋势方向）
+     */
+    @Select("<script>" +
+        "SELECT AVG(value) AS avgVal, MAX(value) AS maxVal, " +
+        "  CASE WHEN AVG(CASE WHEN forecast_date = #{forecastDate} THEN value END) > " +
+        "            AVG(CASE WHEN forecast_date &lt; #{forecastDate} THEN value END) " +
+        "       THEN 'rising' ELSE 'falling' END AS trend " +
+        "FROM forecast_record " +
+        "WHERE data_type = 'CHL' " +
+        "  AND forecast_date &lt;= #{forecastDate} " +
+        "  AND longitude &gt;= #{minLon} AND longitude &lt;= #{maxLon} " +
+        "  AND latitude &gt;= #{minLat} AND latitude &lt;= #{maxLat} " +
+        "</script>")
+    Map<String, Object> selectZoneChlStats(@Param("minLon") BigDecimal minLon,
+                                           @Param("maxLon") BigDecimal maxLon,
+                                           @Param("minLat") BigDecimal minLat,
+                                           @Param("maxLat") BigDecimal maxLat,
+                                           @Param("forecastDate") String forecastDate);
+
+    /**
+     * 查询 SST 常年同期基准值（过去所有年份同月均值）
+     */
+    @Select("<script>" +
+        "SELECT AVG(value) AS baseline " +
+        "FROM forecast_record " +
+        "WHERE data_type = 'SST' " +
+        "  AND MONTH(forecast_date) = MONTH(#{forecastDate}) " +
+        "  AND YEAR(forecast_date) &lt; YEAR(#{forecastDate}) " +
+        "  AND longitude &gt;= #{minLon} AND longitude &lt;= #{maxLon} " +
+        "  AND latitude &gt;= #{minLat} AND latitude &lt;= #{maxLat} " +
+        "</script>")
+    Map<String, Object> selectSstBaseline(@Param("minLon") BigDecimal minLon,
+                                          @Param("maxLon") BigDecimal maxLon,
+                                          @Param("minLat") BigDecimal minLat,
+                                          @Param("maxLat") BigDecimal maxLat,
+                                          @Param("forecastDate") String forecastDate);
+
+    /**
+     * 统计连续高温天数（热浪检测）— SST 高于基准超过 2°C 且连续天数
+     */
+    @Select("<script>" +
+        "SELECT MIN(forecast_date) AS heatStart, COUNT(*) AS heatDays " +
+        "FROM forecast_record " +
+        "WHERE data_type = 'SST' " +
+        "  AND value &gt; #{baseline} + 2 " +
+        "  AND forecast_date &lt;= #{forecastDate} " +
+        "  AND forecast_date &gt;= DATE_SUB(#{forecastDate}, INTERVAL 30 DAY) " +
+        "  AND longitude &gt;= #{minLon} AND longitude &lt;= #{maxLon} " +
+        "  AND latitude &gt;= #{minLat} AND latitude &lt;= #{maxLat} " +
+        "  AND NOT EXISTS ( " +
+        "    SELECT 1 FROM forecast_record fr2 " +
+        "    WHERE fr2.data_type = 'SST' " +
+        "      AND fr2.forecast_date = DATE_SUB(forecast_record.forecast_date, INTERVAL 1 DAY) " +
+        "      AND fr2.value &lt;= #{baseline} + 2 " +
+        "      AND fr2.longitude &gt;= #{minLon} AND fr2.longitude &lt;= #{maxLon} " +
+        "      AND fr2.latitude &gt;= #{minLat} AND fr2.latitude &lt;= #{maxLat} " +
+        "  )" +
+        "GROUP BY forecast_date " +
+        "ORDER BY heatDays DESC LIMIT 1" +
+        "</script>")
+    Map<String, Object> selectHeatwaveDays(@Param("minLon") BigDecimal minLon,
+                                           @Param("maxLon") BigDecimal maxLon,
+                                           @Param("minLat") BigDecimal minLat,
+                                           @Param("maxLat") BigDecimal maxLat,
+                                           @Param("forecastDate") String forecastDate,
+                                           @Param("baseline") Double baseline);
 }
