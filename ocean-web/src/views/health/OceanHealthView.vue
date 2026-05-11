@@ -21,53 +21,61 @@
       </span>
     </div>
 
-    <!-- zone card grid -->
+    <p class="editorial-section-label">区域健康评估 &middot; 东海</p>
+
     <div v-loading="loading" class="health-grid">
       <template v-if="assessments.length">
         <div
           v-for="zone in assessments"
           :key="zone.id"
           :class="['health-card', { 'health-card--active': selectedId === zone.id, 'health-card--dimmed': selectedId && selectedId !== zone.id }]"
+          :style="{ borderLeftColor: zone.overall.color }"
           @click="selectZone(zone.id)"
         >
           <div class="health-card__label">{{ zone.label }}</div>
           <div class="health-card__body">
-            <div class="health-card__badge" :style="{ background: zone.overall.color }">{{ zone.overall.label }}</div>
-            <div class="health-card__info">
-              <div class="health-card__level">{{ levelText[zone.overall.level] }}</div>
-              <div class="health-card__hint">{{ primaryConcern(zone) }}</div>
-            </div>
+            <span class="health-card__level" :class="{ 'health-card__level--warn': zone.overall.level === 'warn', 'health-card__level--bad': zone.overall.level === 'bad' }">{{ levelText[zone.overall.level] }}</span>
+            <span class="health-card__hint">&ensp;&middot;&ensp;{{ primaryConcern(zone) }}</span>
           </div>
           <div class="health-card__tags">
-            <span :class="tagClass(zone.sst.level)">SST {{ trendSymbol(zone.sst.trend) }}</span>
-            <span :class="tagClass(zone.chl.level)">Chl {{ trendSymbol(zone.chl.trend) }}</span>
-            <span :class="tagClass(zone.heatwave.level)">热浪 {{ zone.heatwave.active ? '有' : '无' }}</span>
+            <span>SST {{ trendSymbol(zone.sst.trend) }}</span>
+            <span>Chl {{ trendSymbol(zone.chl.trend) }}</span>
+            <span>热浪 {{ zone.heatwave.active ? '有' : '无' }}</span>
           </div>
 
-          <!-- expand detail -->
-          <div v-if="selectedId === zone.id" class="health-card__detail">
+          <div v-if="selectedId === zone.id" class="health-card__detail" :style="{ borderColor: zone.overall.color }">
+            <span class="editorial-section-label">Detail &middot; {{ zone.label }}</span>
             <p class="health-card__interpretation">{{ buildInterpretation(zone) }}</p>
-            <table class="health-card__table">
-              <tr>
-                <td>SST 当前值</td>
-                <td>{{ fmtTemp(zone.sst.value) }}（{{ fmtAnomaly(zone.sst.anomaly) }}）</td>
-                <td><span class="level-tag" :style="{ background: zone.sst.color }">{{ zone.sst.label }}</span></td>
-              </tr>
-              <tr>
-                <td>SST 趋势</td>
-                <td>{{ trendText(zone.sst.trend) }}</td>
-                <td><span class="level-tag" :style="{ background: zone.sst.level === 'bad' || zone.sst.level === 'warn' ? '#ef4444' : '#22c55e' }">{{ zone.sst.level === 'bad' || zone.sst.level === 'warn' ? '关注' : '正常' }}</span></td>
-              </tr>
-              <tr>
-                <td>Chl 浓度</td>
-                <td>{{ zone.chl.value.toFixed(1) }} mg/m³</td>
-                <td><span class="level-tag" :style="{ background: zone.chl.color }">{{ zone.chl.label }}</span></td>
-              </tr>
-              <tr>
-                <td>海洋热浪</td>
-                <td>{{ zone.heatwave.active ? '已持续 ' + zone.heatwave.days + ' 天' : '未见异常' }}</td>
-                <td><span class="level-tag" :style="{ background: zone.heatwave.color }">{{ zone.heatwave.label }}</span></td>
-              </tr>
+            <table class="editorial-table health-detail-table">
+              <thead>
+                <tr>
+                  <td>指标</td>
+                  <td>当前值</td>
+                  <td>等级</td>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>SST</td>
+                  <td>{{ fmtTemp(zone.sst.value) }}（{{ fmtAnomaly(zone.sst.anomaly) }}）</td>
+                  <td><span class="level-badge" :style="{ background: zone.sst.color }">{{ zone.sst.label }}</span></td>
+                </tr>
+                <tr>
+                  <td>SST 趋势</td>
+                  <td>{{ trendText(zone.sst.trend) }}</td>
+                  <td class="text-muted">{{ zone.sst.level === 'bad' || zone.sst.level === 'warn' ? '关注' : '正常' }}</td>
+                </tr>
+                <tr>
+                  <td>Chl 浓度</td>
+                  <td>{{ zone.chl.value.toFixed(1) }} mg/m³</td>
+                  <td><span class="level-badge" :style="{ background: zone.chl.color }">{{ zone.chl.label }}</span></td>
+                </tr>
+                <tr>
+                  <td>海洋热浪</td>
+                  <td>{{ zone.heatwave.active ? '已持续 ' + zone.heatwave.days + ' 天' : '未见异常' }}</td>
+                  <td><span class="level-badge" :style="{ background: zone.heatwave.color }">{{ zone.heatwave.label }}</span></td>
+                </tr>
+              </tbody>
             </table>
             <div class="health-card__advice">
               <strong>建议：</strong>
