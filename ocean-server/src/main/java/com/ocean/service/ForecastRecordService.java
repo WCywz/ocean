@@ -3,6 +3,7 @@ package com.ocean.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.ocean.dto.ForecastQueryDTO;
 import com.ocean.dto.MapGridQueryDTO;
+import com.ocean.dto.ZoneHealthQueryDTO;
 import com.ocean.vo.DashboardVO;
 import com.ocean.vo.ForecastVO;
 
@@ -44,4 +45,7 @@ public interface ForecastRecordService {
 
     /** 预设海域配置 */
     List<Map<String, Object>> getSeaAreas();
+
+    /** 分区健康指数查询 */
+    Map<String, Object> getZoneHealth(ZoneHealthQueryDTO dto);
 }

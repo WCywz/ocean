@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.ocean.common.Result;
 import com.ocean.dto.ForecastQueryDTO;
 import com.ocean.dto.MapGridQueryDTO;
+import com.ocean.dto.ZoneHealthQueryDTO;
 import com.ocean.service.ForecastRecordService;
 import com.ocean.vo.DashboardVO;
 import com.ocean.vo.ForecastVO;
@@ -123,6 +124,15 @@ public class ForecastRecordController {
     @GetMapping("/sea-areas")
     public Result<List<Map<String, Object>>> getSeaAreas() {
         List<Map<String, Object>> data = forecastRecordService.getSeaAreas();
+        return Result.success(data);
+    }
+
+    /**
+     * 分区健康指数
+     */
+    @GetMapping("/zone-health")
+    public Result<Map<String, Object>> getZoneHealth(@Validated ZoneHealthQueryDTO dto) {
+        Map<String, Object> data = forecastRecordService.getZoneHealth(dto);
         return Result.success(data);
     }
 }
