@@ -4,7 +4,7 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: () => import('../views/home/HomeView.vue'),
+    component: () => import('../views/home/HeroV2View.vue'),
     meta: { title: '首页', noAuth: true }
   },
   {
