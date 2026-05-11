@@ -1,22 +1,24 @@
 <template>
   <div class="ocean-health">
-    <!-- summary banner -->
-    <div :class="['health-banner', `health-banner--${bannerLevel}`]">
-      <span class="health-banner__icon" v-html="bannerIcon"></span>
-      <span class="health-banner__text">{{ bannerText }}</span>
-      <span class="health-banner__date">基于 {{ forecastDate }} 预报数据</span>
-    </div>
+    <h1 class="editorial-page-title">海洋健康指数</h1>
+    <p class="editorial-page-subtitle">Ocean Health Index</p>
 
-    <!-- date picker -->
-    <div class="health-toolbar">
-      <el-date-picker
-        v-model="forecastDate"
-        type="date"
-        placeholder="选择日期"
-        format="YYYY-MM-DD"
-        value-format="YYYY-MM-DD"
-        @change="fetchData"
-      />
+    <div class="health-status-bar" :style="{ borderLeftColor: statusColor }">
+      <span class="health-status-bar__level">{{ statusLabel }}</span>
+      <span class="health-status-bar__dot">&middot;</span>
+      <span class="health-status-bar__desc">{{ bannerText }}</span>
+      <span class="health-status-bar__date" @click.stop>
+        <el-date-picker
+          v-model="forecastDate"
+          type="date"
+          placeholder="选择日期"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+          @change="fetchData"
+          :teleported="false"
+          popper-class="health-date-popper"
+        />
+      </span>
     </div>
 
     <!-- zone card grid -->
