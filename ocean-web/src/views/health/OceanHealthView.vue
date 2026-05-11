@@ -178,7 +178,7 @@ async function fetchData() {
       forecastDate: forecastDate.value
     })
     rawData.value = res.data
-    assessments.value = (res.data.zones || []).map(buildZoneAssessment)
+    assessments.value = (res.data && res.data.zones || []).map(buildZoneAssessment)
   } catch (e) {
     console.error('Failed to fetch zone health data', e)
   } finally {

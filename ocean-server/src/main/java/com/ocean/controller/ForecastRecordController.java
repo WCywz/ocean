@@ -127,9 +127,6 @@ public class ForecastRecordController {
         return Result.success(data);
     }
 
-    /**
-     * 分区健康指数
-     */
     @GetMapping("/zone-health")
     public Result<Map<String, Object>> getZoneHealth(@Validated ZoneHealthQueryDTO dto) {
         Map<String, Object> data = forecastRecordService.getZoneHealth(dto);

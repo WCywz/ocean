@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ocean.config.SeaAreaConfig;
 import com.ocean.dto.ForecastQueryDTO;
 import com.ocean.dto.MapGridQueryDTO;
-import com.ocean.dto.ZoneHealthQueryDTO;
 import com.ocean.entity.ForecastModel;
 import com.ocean.entity.ForecastRecord;
 import com.ocean.mapper.ForecastModelMapper;
@@ -14,6 +13,7 @@ import com.ocean.mapper.ForecastRecordMapper;
 import com.ocean.service.ForecastRecordService;
 import com.ocean.vo.DashboardVO;
 import com.ocean.vo.ForecastVO;
+import com.ocean.dto.ZoneHealthQueryDTO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
@@ -178,47 +178,46 @@ public class ForecastRecordServiceImpl implements ForecastRecordService {
         return forecastRecordMapper.selectTodayAlerts();
     }
 
+    private static final BigDecimal ONE_DEG = new BigDecimal("1.0");
+    private static final BigDecimal OFFSHORE_WIDTH = new BigDecimal("5.0");
+    private static final BigDecimal LAT_EXTENT = new BigDecimal("3.0");
+    private static final double HEATWAVE_THRESHOLD = 2.0;
+    private static final int HEATWAVE_MIN_DAYS = 5;
+
     @Override
     public Map<String, Object> getZoneHealth(ZoneHealthQueryDTO dto) {
-        BigDecimal centerLon = dto.getCenterLon();
-        BigDecimal centerLat = dto.getCenterLat();
-        BigDecimal coastLon = dto.getCoastLon();
+        BigDecimal centerLon = requireNonNull(dto.getCenterLon(), "centerLon");
+        BigDecimal centerLat = requireNonNull(dto.getCenterLat(), "centerLat");
+        BigDecimal coastLon = requireNonNull(dto.getCoastLon(), "coastLon");
         String forecastDate = dto.getForecastDate();
+        if (forecastDate == null || forecastDate.isEmpty()) {
+            throw new IllegalArgumentException("forecastDate is required");
+        }
 
-        // 方位划分 — 北/南, 离岸距离 — 近岸/过渡/远海
-        String[][] zoneDefs = {
-            {"nearshore-north", "近岸北", coastLon.toString(), centerLon.toString(), centerLat.toString(), "maxLat"},
-            {"nearshore-south", "近岸南", coastLon.toString(), centerLon.toString(), "minLat", centerLat.toString()},
-            {"transition-north", "过渡带北", centerLon.toString(), centerLon.add(new java.math.BigDecimal("1.0")).toString(), centerLat.toString(), "maxLat"},
-            {"transition-south", "过渡带南", centerLon.toString(), centerLon.add(new java.math.BigDecimal("1.0")).toString(), "minLat", centerLat.toString()},
-            {"offshore-north", "远海北", centerLon.add(new java.math.BigDecimal("1.0")).toString(), centerLon.add(new java.math.BigDecimal("5.0")).toString(), centerLat.toString(), "maxLat"},
-            {"offshore-south", "远海南", centerLon.add(new java.math.BigDecimal("1.0")).toString(), centerLon.add(new java.math.BigDecimal("5.0")).toString(), "minLat", centerLat.toString()},
+        BigDecimal[][] zoneDefs = {
+            {coastLon, centerLon,                     centerLat,         centerLat.add(LAT_EXTENT)},
+            {coastLon, centerLon,                     centerLat.subtract(LAT_EXTENT), centerLat},
+            {centerLon, centerLon.add(ONE_DEG),       centerLat,         centerLat.add(LAT_EXTENT)},
+            {centerLon, centerLon.add(ONE_DEG),       centerLat.subtract(LAT_EXTENT), centerLat},
+            {centerLon.add(ONE_DEG), centerLon.add(OFFSHORE_WIDTH), centerLat, centerLat.add(LAT_EXTENT)},
+            {centerLon.add(ONE_DEG), centerLon.add(OFFSHORE_WIDTH), centerLat.subtract(LAT_EXTENT), centerLat}
+        };
+
+        String[][] zoneLabels = {
+            {"nearshore-north", "近岸北"}, {"nearshore-south", "近岸南"},
+            {"transition-north", "过渡带北"}, {"transition-south", "过渡带南"},
+            {"offshore-north", "远海北"}, {"offshore-south", "远海南"}
         };
 
         List<Map<String, Object>> zones = new ArrayList<>();
-        for (String[] def : zoneDefs) {
-            BigDecimal minLon = new BigDecimal(def[2]);
-            BigDecimal maxLon = new BigDecimal(def[3]);
-            BigDecimal minLat;
-            BigDecimal maxLat;
-            if (def[4].equals("minLat")) {
-                minLat = centerLat.subtract(new BigDecimal("3.0"));
-                maxLat = new BigDecimal(def[5]);
-            } else if (def[5].equals("maxLat")) {
-                minLat = new BigDecimal(def[4]);
-                maxLat = centerLat.add(new BigDecimal("3.0"));
-            } else {
-                minLat = new BigDecimal(def[4]);
-                maxLat = new BigDecimal(def[5]);
-            }
+        for (int i = 0; i < zoneDefs.length; i++) {
+            BigDecimal[] def = zoneDefs[i];
+            BigDecimal minLon = def[0], maxLon = def[1], minLat = def[2], maxLat = def[3];
 
-            // 查询 SST 统计
             Map<String, Object> sstStats = forecastRecordMapper.selectZoneSstStats(
                 minLon, maxLon, minLat, maxLat, forecastDate);
-            // 查询 Chl 统计
             Map<String, Object> chlStats = forecastRecordMapper.selectZoneChlStats(
                 minLon, maxLon, minLat, maxLat, forecastDate);
-            // 查询 SST 基准值
             Map<String, Object> baseline = forecastRecordMapper.selectSstBaseline(
                 minLon, maxLon, minLat, maxLat, forecastDate);
 
@@ -228,17 +227,20 @@ public class ForecastRecordServiceImpl implements ForecastRecordService {
             Double sstBaseline = toDouble(baseline != null ? baseline.get("baseline") : null);
             Double anomaly = (sstAvg != null && sstBaseline != null) ? sstAvg - sstBaseline : 0.0;
 
-            // 热浪检测
             boolean heatActive = false;
             int heatDays = 0;
             if (sstBaseline != null) {
-                Map<String, Object> hw = forecastRecordMapper.selectHeatwaveDays(
-                    minLon, maxLon, minLat, maxLat, forecastDate, sstBaseline);
-                if (hw != null && hw.get("heatDays") != null) {
-                    long days = ((Number) hw.get("heatDays")).longValue();
-                    heatDays = (int) days;
-                    heatActive = heatDays >= 5;
+                List<Map<String, Object>> dailyAvgs = forecastRecordMapper.selectDailyAverages(
+                    minLon, maxLon, minLat, maxLat, forecastDate);
+                double threshold = sstBaseline + HEATWAVE_THRESHOLD;
+                int maxStreak = 0, currentStreak = 0;
+                for (Map<String, Object> day : dailyAvgs) {
+                    double dailyAvg = toDouble(day.get("dailyAvg"));
+                    if (dailyAvg > threshold) { currentStreak++; if (currentStreak > maxStreak) maxStreak = currentStreak; }
+                    else currentStreak = 0;
                 }
+                heatDays = maxStreak;
+                heatActive = maxStreak >= HEATWAVE_MIN_DAYS;
             }
 
             Double chlAvg = toDouble(chlStats != null ? chlStats.get("avgVal") : null);
@@ -261,8 +263,8 @@ public class ForecastRecordServiceImpl implements ForecastRecordService {
             hwMap.put("days", heatDays);
 
             Map<String, Object> zone = new LinkedHashMap<>();
-            zone.put("id", def[0]);
-            zone.put("label", def[1]);
+            zone.put("id", zoneLabels[i][0]);
+            zone.put("label", zoneLabels[i][1]);
             zone.put("sst", sstMap);
             zone.put("chl", chlMap);
             zone.put("heatwave", hwMap);
@@ -273,6 +275,11 @@ public class ForecastRecordServiceImpl implements ForecastRecordService {
         result.put("zoneName", "东海");
         result.put("zones", zones);
         return result;
+    }
+
+    private static BigDecimal requireNonNull(BigDecimal value, String name) {
+        if (value == null) throw new IllegalArgumentException(name + " is required");
+        return value;
     }
 
     private Double toDouble(Object val) {
