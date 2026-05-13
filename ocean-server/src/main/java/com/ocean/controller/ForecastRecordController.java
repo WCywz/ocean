@@ -110,11 +110,12 @@ public class ForecastRecordController {
     }
 
     /**
-     * 今日阈值告警
+     * 阈值告警
      */
     @GetMapping("/alerts")
-    public Result<List<Map<String, Object>>> getTodayAlerts() {
-        List<Map<String, Object>> data = forecastRecordService.getTodayAlerts();
+    public Result<List<Map<String, Object>>> getAlerts(
+            @RequestParam String forecastDate) {
+        List<Map<String, Object>> data = forecastRecordService.getAlerts(forecastDate);
         return Result.success(data);
     }
 
