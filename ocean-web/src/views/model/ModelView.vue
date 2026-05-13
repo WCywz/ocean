@@ -348,11 +348,14 @@ async function handleDeleteVersion(model, version) {
 }
 
 async function handleToggleVersion(model, version, status) {
-  await toggleVersionStatus(model.id, version.id, status)
-  ElMessage.success(status === 'RUNNING' ? '版本已启动' : '版本已停止')
-  const res = await getModelVersions(model.id)
-  currentVersions.value = res.data || []
-  loadRunningOverview()
+  try {
+    await toggleVersionStatus(model.id, version.id, status)
+    ElMessage.success(status === 'RUNNING' ? '版本已启动' : '版本已停止')
+    const res = await getModelVersions(model.id)
+    currentVersions.value = res.data || []
+    loadModels()
+    loadRunningOverview()
+  } catch { /* error handled by interceptor */ }
 }
 
 async function handleOverviewStop(v) {
