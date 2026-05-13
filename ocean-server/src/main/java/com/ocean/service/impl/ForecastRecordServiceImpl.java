@@ -174,8 +174,8 @@ public class ForecastRecordServiceImpl implements ForecastRecordService {
     }
 
     @Override
-    public List<Map<String, Object>> getTodayAlerts() {
-        return forecastRecordMapper.selectTodayAlerts();
+    public List<Map<String, Object>> getAlerts(String forecastDate) {
+        return forecastRecordMapper.selectAlertsByDate(forecastDate);
     }
 
     private static final BigDecimal ONE_DEG = new BigDecimal("1.0");
