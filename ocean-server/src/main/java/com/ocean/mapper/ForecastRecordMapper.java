@@ -143,7 +143,7 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
      * 阈值告警详情 (SST>28°C 或 CHL>5 mg/m³)，按值降序，最多 20 条
      */
     @Select("SELECT location_name AS locationName, data_type AS dataType, " +
-            "       value, forecast_date AS forecastDate, " +
+            "       value, longitude, latitude, forecast_date AS forecastDate, " +
             "       CASE WHEN data_type = 'SST' THEN 28 ELSE 5 END AS threshold " +
             "FROM forecast_record " +
             "WHERE forecast_date = #{forecastDate} " +
