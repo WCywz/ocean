@@ -21,7 +21,8 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import L from 'leaflet'
 import 'leaflet-draw'
-import { getMapColor } from '../utils/chart-config'
+import 'leaflet.heat'
+import { buildHeatGradient } from '../utils/chart-config'
 
 const props = defineProps({
   gridData: { type: Array, default: () => [] },
@@ -34,11 +35,11 @@ const props = defineProps({
   height: { type: String, default: '450px' }
 })
 
-const emit = defineEmits(['cellClick', 'bboxChange'])
+const emit = defineEmits(['bboxChange'])
 
 const mapContainer = ref(null)
 let map = null
-let canvasLayer = null
+let heatLayer = null
 let drawControl = null
 let drawnItems = null
 
@@ -47,54 +48,28 @@ const legendColors = computed(() => props.colorRanges.map(r => r.color))
 function drawGrid() {
   if (!map || !props.gridData.length) return
 
-  // Remove old layer
-  if (canvasLayer) {
-    map.removeLayer(canvasLayer)
+  if (heatLayer) {
+    map.removeLayer(heatLayer)
   }
 
-  canvasLayer = L.layerGroup()
-
   const bounds = map.getBounds()
-  const south = bounds.getSouth()
-  const north = bounds.getNorth()
-  const west = bounds.getWest()
-  const east = bounds.getEast()
-
-  // Filter points within current viewport (with small padding)
+  const pad = 0.01
   const visible = props.gridData.filter(p =>
-    p.lat >= south && p.lat <= north && p.lon >= west && p.lon <= east
+    p.lat >= bounds.getSouth() - pad &&
+    p.lat <= bounds.getNorth() + pad &&
+    p.lon >= bounds.getWest() - pad &&
+    p.lon <= bounds.getEast() + pad
   )
 
   if (!visible.length) return
 
-  // Group by color for efficient rendering
-  const byColor = {}
-  visible.forEach(p => {
-    const color = getMapColor(p.value, props.colorRanges)
-    if (!byColor[color]) byColor[color] = []
-    byColor[color].push(p)
-  })
-
-  Object.entries(byColor).forEach(([color, points]) => {
-    const circles = points.map(p => {
-      const latlng = L.latLng(p.lat, p.lon)
-      const marker = L.circleMarker(latlng, {
-        radius: 4,
-        fillColor: color,
-        color: color,
-        weight: 1,
-        opacity: 0.8,
-        fillOpacity: 0.7
-      })
-      marker.on('click', () => {
-        emit('cellClick', { lat: p.lat, lon: p.lon, value: p.value })
-      })
-      return marker
-    })
-    canvasLayer.addLayer(L.layerGroup(circles))
-  })
-
-  canvasLayer.addTo(map)
+  const data = visible.map(p => [p.lat, p.lon, p.value])
+  heatLayer = L.heatLayer(data, {
+    radius: 15,
+    blur: 10,
+    maxZoom: 10,
+    gradient: buildHeatGradient(props.colorRanges)
+  }).addTo(map)
 }
 
 function onMoveEnd() {
