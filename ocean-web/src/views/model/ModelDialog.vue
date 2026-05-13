@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" :title="isEdit ? '编辑模型' : '新增模型'" width="480px" :close-on-click-modal="false" @closed="handleClosed">
+  <el-dialog v-model="visible" :title="isEdit ? '编辑模型' : '新增模型'" width="480px" :close-on-click-modal="false">
     <div style="margin-bottom: 18px;">
       <label class="editorial-form-label">模型名称</label>
       <input v-model="form.modelName" class="editorial-input" placeholder="请输入模型名称" />
@@ -25,7 +25,7 @@
     </div>
     <template #footer>
       <button class="editorial-btn-outline" @click="visible = false">取消</button>
-      <button class="editorial-btn" style="padding: 8px 24px; margin-left: 12px;" :disabled="submitting" @click="handleSubmit">确定</button>
+      <button class="editorial-btn" style="padding: 8px 24px; margin-left: 12px;" @click="handleSubmit">确定</button>
     </template>
   </el-dialog>
 </template>
@@ -46,7 +46,6 @@ watch(() => props.modelValue, v => { visible.value = v })
 watch(visible, v => { emit('update:modelValue', v) })
 
 const isEdit = ref(false)
-const submitting = ref(false)
 const form = reactive({ modelName: '', modelType: 'SST', customType: '', description: '' })
 
 watch(visible, (v) => {
@@ -73,22 +72,15 @@ watch(visible, (v) => {
   }
 })
 
-function handleClosed() {
-  visible.value = false
-}
-
-async function handleSubmit() {
+function handleSubmit() {
   if (!form.modelName.trim()) { ElMessage.warning('请输入模型名称'); return }
   const modelType = form.modelType === '__custom__' ? form.customType.trim() : form.modelType
   if (!modelType) { ElMessage.warning('请输入模型类型'); return }
-  submitting.value = true
-  try {
-    emit('submit', {
-      id: props.model?.id,
-      modelName: form.modelName.trim(),
-      modelType,
-      description: form.description.trim()
-    })
-  } finally { submitting.value = false }
+  emit('submit', {
+    id: props.model?.id,
+    modelName: form.modelName.trim(),
+    modelType,
+    description: form.description.trim()
+  })
 }
 </script>
