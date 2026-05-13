@@ -29,18 +29,14 @@
 
     <div class="drilldown-links" v-if="alerts.length">
       <span class="drilldown-label">查看详情：</span>
-      <a class="drilldown-link" @click="goSst">海表温度预测地图 →</a>
-      <a class="drilldown-link" @click="goChl">叶绿素浓度预测地图 →</a>
+      <router-link to="/app/forecast/sst" class="drilldown-link">海表温度预测地图 →</router-link>
+      <router-link to="/app/forecast/chl" class="drilldown-link">叶绿素浓度预测地图 →</router-link>
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-
 const props = defineProps({
   alerts: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false }
@@ -71,8 +67,6 @@ const accentColor = computed(() => {
   return '#e67e22'
 })
 
-function goSst() { router.push('/app/forecast/sst') }
-function goChl() { router.push('/app/forecast/chl') }
 </script>
 
 <style scoped>
