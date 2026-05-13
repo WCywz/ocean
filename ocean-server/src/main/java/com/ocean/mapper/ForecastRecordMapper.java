@@ -140,17 +140,17 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
                                                    @Param("days") Integer days);
 
     /**
-     * 今日阈值告警详情 (SST>28°C 或 CHL>5 mg/m³)，按值降序，最多 20 条
+     * 阈值告警详情 (SST>28°C 或 CHL>5 mg/m³)，按值降序，最多 20 条
      */
     @Select("SELECT location_name AS locationName, data_type AS dataType, " +
             "       value, forecast_date AS forecastDate, " +
             "       CASE WHEN data_type = 'SST' THEN 28 ELSE 5 END AS threshold " +
             "FROM forecast_record " +
-            "WHERE forecast_date = '2026-01-01' " +
+            "WHERE forecast_date = #{forecastDate} " +
             "  AND ((data_type = 'SST' AND value > 28) OR (data_type = 'CHL' AND value > 5)) " +
             "ORDER BY value DESC " +
             "LIMIT 20")
-    List<Map<String, Object>> selectTodayAlerts();
+    List<Map<String, Object>> selectAlertsByDate(@Param("forecastDate") String forecastDate);
 
     // ---- 分区健康指数 queries ----
 
