@@ -95,7 +95,7 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getDashboard, getDashboardTrend, getTodayAlerts } from '../../api/forecast'
+import { getDashboard, getDashboardTrend, getAlerts } from '../../api/forecast'
 import { getZoneHealth } from '../../api/health'
 import { buildZoneAssessment, buildOverallSummary } from '../../utils/health-assessment'
 import StatCards from './StatCards.vue'
@@ -211,7 +211,7 @@ async function fetchTrend(dataType) {
 async function fetchAlerts() {
   loading.alerts = true
   try {
-    const res = await getTodayAlerts()
+    const res = await getAlerts('2026-01-01')
     alerts.value = res.data
   } finally {
     loading.alerts = false
