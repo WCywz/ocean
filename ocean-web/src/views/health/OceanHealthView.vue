@@ -21,6 +21,8 @@
       </span>
     </div>
 
+    <HealthAlertSection :alerts="alerts" :loading="alertsLoading" />
+
     <p class="editorial-section-label">区域健康评估 &middot; 东海</p>
 
     <div v-loading="loading" class="health-grid">
@@ -95,12 +97,16 @@
 import { ref, computed, onMounted } from 'vue'
 import { getZoneHealth } from '../../api/health'
 import { buildZoneAssessment, buildOverallSummary } from '../../utils/health-assessment'
+import { getAlerts } from '../../api/forecast'
+import HealthAlertSection from './HealthAlertSection.vue'
 
 const forecastDate = ref('2026-01-01')
 const loading = ref(false)
 const rawData = ref(null)
 const selectedIds = ref(new Set())
 const assessments = ref([])
+const alerts = ref([])
+const alertsLoading = ref(false)
 
 const levelText = { good: '优良', fine: '良好', warn: '中等', bad: '较差' }
 
@@ -205,10 +211,23 @@ async function fetchData() {
     rawData.value = res.data
     assessments.value = (res.data && res.data.zones || []).map(buildZoneAssessment)
     selectedIds.value = new Set(assessments.value.map(z => z.id))
+    fetchAlerts()
   } catch (e) {
     console.error('Failed to fetch zone health data', e)
   } finally {
     loading.value = false
+  }
+}
+
+async function fetchAlerts() {
+  alertsLoading.value = true
+  try {
+    const res = await getAlerts(forecastDate.value)
+    alerts.value = res.data || []
+  } catch (e) {
+    console.error('Failed to fetch alerts', e)
+  } finally {
+    alertsLoading.value = false
   }
 }
 
