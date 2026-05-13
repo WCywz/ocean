@@ -9,7 +9,7 @@
 <style scoped>
 .landing-footer {
   border-top: 1px solid var(--color-grey-2);
-  padding: 2rem 1.6rem;
+  padding: 4rem 1.6rem;
 }
 
 .landing-footer__content {

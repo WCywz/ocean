@@ -21,9 +21,9 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
     @Select("SELECT fr.location_name AS locationName, fr.value, fr.unit, fr.forecast_date AS forecastDate " +
             "FROM forecast_record fr " +
             "INNER JOIN (SELECT location_name, MAX(forecast_date) AS max_date FROM forecast_record " +
-            "WHERE data_type = 'SST' GROUP BY location_name) latest " +
+            "WHERE data_type = 'SST' AND forecast_date = '2026-01-01' GROUP BY location_name) latest " +
             "ON fr.location_name = latest.location_name AND fr.forecast_date = latest.max_date " +
-            "WHERE fr.data_type = 'SST'")
+            "WHERE fr.data_type = 'SST' AND fr.forecast_date = '2026-01-01'")
     List<Map<String, Object>> selectLatestSstByLocation();
 
     /**
@@ -32,22 +32,22 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
     @Select("SELECT fr.location_name AS locationName, fr.value, fr.unit, fr.forecast_date AS forecastDate " +
             "FROM forecast_record fr " +
             "INNER JOIN (SELECT location_name, MAX(forecast_date) AS max_date FROM forecast_record " +
-            "WHERE data_type = 'CHL' GROUP BY location_name) latest " +
+            "WHERE data_type = 'CHL' AND forecast_date = '2026-01-01' GROUP BY location_name) latest " +
             "ON fr.location_name = latest.location_name AND fr.forecast_date = latest.max_date " +
-            "WHERE fr.data_type = 'CHL'")
+            "WHERE fr.data_type = 'CHL' AND fr.forecast_date = '2026-01-01'")
     List<Map<String, Object>> selectLatestChlByLocation();
 
     /**
      * 统计今日预报记录数
      */
-    @Select("SELECT COUNT(*) FROM forecast_record WHERE forecast_date = CURDATE()")
+    @Select("SELECT COUNT(*) FROM forecast_record WHERE forecast_date = '2026-01-01'")
     Long countTodayRecords();
 
     /**
      * 统计今日超出阈值的告警记录数 (SST>28°C 或 CHL>5 mg/m³)
      */
     @Select("SELECT COUNT(*) FROM forecast_record " +
-            "WHERE forecast_date = CURDATE() " +
+            "WHERE forecast_date = '2026-01-01' " +
             "AND ((data_type = 'SST' AND value > 28) OR (data_type = 'CHL' AND value > 5))")
     Long countTodayAlerts();
 
@@ -60,12 +60,10 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
     List<Map<String, Object>> selectDistinctLocations();
 
     /**
-     * 网格聚合查询 — SST / CHL 浓度模式
+     * 原始点位查询 — SST / CHL 浓度模式（不做聚合，直接返回每条记录）
      */
     @Select("<script>" +
-        "SELECT ROUND(longitude, #{precision}) AS gridLon, " +
-        "       ROUND(latitude, #{precision}) AS gridLat, " +
-        "       AVG(value) AS value " +
+        "SELECT longitude, latitude, value " +
         "FROM forecast_record " +
         "WHERE data_type = #{dataType} " +
         "  AND forecast_date = #{forecastDate} " +
@@ -73,10 +71,9 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
         "  <if test='maxLon != null'> AND longitude &lt;= #{maxLon} </if>" +
         "  <if test='minLat != null'> AND latitude &gt;= #{minLat} </if>" +
         "  <if test='maxLat != null'> AND latitude &lt;= #{maxLat} </if>" +
-        "GROUP BY gridLon, gridLat " +
-        "ORDER BY gridLat, gridLon" +
+        "ORDER BY latitude, longitude" +
         "</script>")
-    List<Map<String, Object>> selectAggregatedGrid(MapGridQueryDTO dto);
+    List<Map<String, Object>> selectRawPoints(MapGridQueryDTO dto);
 
     /**
      * 网格聚合查询 — Chl 概率模式
@@ -117,22 +114,28 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
                                                @Param("dateEnd") String dateEnd);
 
     /**
-     * 仪表盘趋势 — 查 top 5 观测点在最近 N 天的日均值
+     * 仪表盘趋势 — 随机选 1 个观测点，查今天到未来 N 天的预测记录
      */
-    @Select("SELECT fr.location_name AS locationName, fr.forecast_date AS forecastDate, AVG(fr.value) AS value " +
+    @Select("SELECT fr.location_name AS locationName, " +
+            "       fr.forecast_date AS forecastDate, " +
+            "       fr.value, " +
+            "       fr.longitude, " +
+            "       fr.latitude " +
             "FROM forecast_record fr " +
-            "INNER JOIN ( " +
-            "  SELECT location_name, COUNT(*) AS cnt " +
+            "JOIN ( " +
+            "  SELECT location_name " +
             "  FROM forecast_record " +
-            "  WHERE data_type = #{dataType} AND forecast_date >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY) " +
+            "  WHERE data_type = #{dataType} " +
+            "    AND forecast_date >= '2026-01-01' " +
+            "    AND forecast_date <= DATE_ADD('2026-01-01', INTERVAL #{days} DAY) " +
             "  GROUP BY location_name " +
-            "  ORDER BY cnt DESC " +
-            "  LIMIT 5 " +
-            ") top ON fr.location_name = top.location_name " +
+            "  ORDER BY RAND() " +
+            "  LIMIT 1 " +
+            ") rand ON fr.location_name = rand.location_name " +
             "WHERE fr.data_type = #{dataType} " +
-            "  AND fr.forecast_date >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY) " +
-            "GROUP BY fr.location_name, fr.forecast_date " +
-            "ORDER BY fr.location_name, fr.forecast_date")
+            "  AND fr.forecast_date >= '2026-01-01' " +
+            "  AND fr.forecast_date <= DATE_ADD('2026-01-01', INTERVAL #{days} DAY) " +
+            "ORDER BY fr.forecast_date")
     List<Map<String, Object>> selectDashboardTrend(@Param("dataType") String dataType,
                                                    @Param("days") Integer days);
 
@@ -143,7 +146,7 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
             "       value, forecast_date AS forecastDate, " +
             "       CASE WHEN data_type = 'SST' THEN 28 ELSE 5 END AS threshold " +
             "FROM forecast_record " +
-            "WHERE forecast_date = CURDATE() " +
+            "WHERE forecast_date = '2026-01-01' " +
             "  AND ((data_type = 'SST' AND value > 28) OR (data_type = 'CHL' AND value > 5)) " +
             "ORDER BY value DESC " +
             "LIMIT 20")
@@ -159,9 +162,9 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
         "  AVG(CASE WHEN forecast_date = #{forecastDate} THEN value END) AS avgVal, " +
         "  MAX(CASE WHEN forecast_date = #{forecastDate} THEN value END) AS maxVal, " +
         "  CASE " +
-        "    WHEN AVG(CASE WHEN forecast_date = #{forecastDate} THEN value END) > " +
+        "    WHEN AVG(CASE WHEN forecast_date = #{forecastDate} THEN value END) &gt; " +
         "         AVG(CASE WHEN forecast_date &lt; #{forecastDate} THEN value END) THEN 'rising' " +
-        "    WHEN AVG(CASE WHEN forecast_date = #{forecastDate} THEN value END) < " +
+        "    WHEN AVG(CASE WHEN forecast_date = #{forecastDate} THEN value END) &lt; " +
         "         AVG(CASE WHEN forecast_date &lt; #{forecastDate} THEN value END) THEN 'falling' " +
         "    ELSE 'stable' END AS trend " +
         "FROM forecast_record " +
@@ -184,9 +187,9 @@ public interface ForecastRecordMapper extends BaseMapper<ForecastRecord> {
         "  AVG(CASE WHEN forecast_date = #{forecastDate} THEN value END) AS avgVal, " +
         "  MAX(CASE WHEN forecast_date = #{forecastDate} THEN value END) AS maxVal, " +
         "  CASE " +
-        "    WHEN AVG(CASE WHEN forecast_date = #{forecastDate} THEN value END) > " +
+        "    WHEN AVG(CASE WHEN forecast_date = #{forecastDate} THEN value END) &gt; " +
         "         AVG(CASE WHEN forecast_date &lt; #{forecastDate} THEN value END) THEN 'rising' " +
-        "    WHEN AVG(CASE WHEN forecast_date = #{forecastDate} THEN value END) < " +
+        "    WHEN AVG(CASE WHEN forecast_date = #{forecastDate} THEN value END) &lt; " +
         "         AVG(CASE WHEN forecast_date &lt; #{forecastDate} THEN value END) THEN 'falling' " +
         "    ELSE 'stable' END AS trend " +
         "FROM forecast_record " +

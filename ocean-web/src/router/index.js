@@ -8,6 +8,12 @@ const routes = [
     meta: { title: '首页', noAuth: true }
   },
   {
+    path: '/hero-v2',
+    name: 'HeroV2',
+    component: () => import('../views/home/HeroV2View.vue'),
+    meta: { title: 'Hero V2', noAuth: true }
+  },
+  {
     path: '/register',
     name: 'Register',
     component: () => import('../views/register/RegisterView.vue'),

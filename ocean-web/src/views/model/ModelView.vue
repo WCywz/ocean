@@ -3,6 +3,12 @@
     <h1 class="editorial-page-title">预报模型管理</h1>
     <p class="editorial-page-subtitle">Model Management · 共 {{ total }} 条记录</p>
 
+    <div class="page-status-bar" :style="{ borderLeftColor: pageStatusColor }">
+      <span class="page-status-bar__level">{{ pageStatusLabel }}</span>
+      <span class="page-status-bar__dot">&middot;</span>
+      <span class="page-status-bar__desc">{{ pageStatusDesc }}</span>
+    </div>
+
     <div class="editorial-filter-bar">
       <select v-model="query.modelType" class="editorial-select" style="width: 160px;">
         <option value="">全部类型</option>
@@ -29,7 +35,7 @@
       </thead>
       <tbody>
         <tr v-for="row in tableData" :key="row.id">
-          <td>{{ row.modelName }}</td>
+          <td :style="{ borderLeft: '3px solid ' + (row.status === 'RUNNING' ? '#22c55e' : '#ef4444') }">{{ row.modelName }}</td>
           <td><span class="editorial-tag">{{ row.modelType === 'SST' ? 'SST' : 'CHL' }}</span></td>
           <td>{{ row.cronExpression }}</td>
           <td>{{ statusMap[row.status] }}</td>
@@ -89,7 +95,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { getModelPage, addModel, updateModel, deleteModel, toggleModelStatus } from '../../api/model'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -106,6 +112,23 @@ const isEdit = ref(false)
 const editId = ref(null)
 const submitLoading = ref(false)
 const form = reactive({ modelName: '', modelType: 'SST', cronExpression: '', paramsConfig: '', description: '' })
+
+const pageStatusColor = computed(() => {
+  const allRunning = tableData.value.length > 0 && tableData.value.every(r => r.status === 'RUNNING')
+  if (!tableData.value.length) return '#22c55e'
+  return allRunning ? '#22c55e' : '#ef4444'
+})
+const pageStatusLabel = computed(() => {
+  const allRunning = tableData.value.length > 0 && tableData.value.every(r => r.status === 'RUNNING')
+  if (!tableData.value.length) return '--'
+  return allRunning ? '正常' : '注意'
+})
+const pageStatusDesc = computed(() => {
+  if (!tableData.value.length) return '暂无模型数据'
+  const stopped = tableData.value.filter(r => r.status !== 'RUNNING').length
+  if (stopped === 0) return '所有模型运行正常'
+  return `${stopped} 个模型已停止或异常`
+})
 
 onMounted(() => { loadData() })
 
@@ -196,3 +219,40 @@ function nextPage() {
   query.pageNum++; loadData()
 }
 </script>
+
+<style scoped>
+.page-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-left: 3px solid;
+  padding: 10px 14px;
+  background: #fafafa;
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+
+.page-status-bar__level {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.page-status-bar__dot {
+  color: var(--color-text-muted);
+}
+
+.page-status-bar__desc {
+  color: #666;
+  flex: 1;
+}
+
+.editorial-table {
+  border-collapse: separate;
+  border-spacing: 0 6px;
+}
+
+.editorial-table :deep(td) {
+  text-align: center;
+}
+</style>

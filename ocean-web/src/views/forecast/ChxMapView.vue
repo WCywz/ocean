@@ -86,11 +86,11 @@ const currentLegendLabels = computed(() =>
 )
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10)
+  return '2026-01-01'
 }
 
 function pastDate(days) {
-  const d = new Date()
+  const d = new Date('2026-01-01')
   d.setDate(d.getDate() - days)
   return d.toISOString().slice(0, 10)
 }

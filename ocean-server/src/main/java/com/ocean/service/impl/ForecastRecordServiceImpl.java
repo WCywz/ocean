@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,7 +68,6 @@ public class ForecastRecordServiceImpl implements ForecastRecordService {
     }
 
     @Override
-    @Cacheable(value = "dashboard", key = "'dashboard'", unless = "#result == null")
     public DashboardVO getDashboard() {
         DashboardVO vo = new DashboardVO();
         // 模型总数
@@ -136,7 +136,7 @@ public class ForecastRecordServiceImpl implements ForecastRecordService {
             }
             return forecastRecordMapper.selectProbabilityGrid(dto);
         }
-        return forecastRecordMapper.selectAggregatedGrid(dto);
+        return forecastRecordMapper.selectRawPoints(dto);
     }
 
     @Override
@@ -154,23 +154,23 @@ public class ForecastRecordServiceImpl implements ForecastRecordService {
     public List<Map<String, Object>> getDashboardTrend(String dataType, Integer days) {
         if (days == null) days = 7;
         List<Map<String, Object>> rows = forecastRecordMapper.selectDashboardTrend(dataType, days);
-        // Group by locationName, build {locationName, dataPoints: [{date, value}]}
-        Map<String, List<Map<String, Object>>> grouped = rows.stream()
-                .collect(Collectors.groupingBy(
-                        row -> (String) row.get("locationName"),
-                        Collectors.toList()
-                ));
-        return grouped.entrySet().stream().map(entry -> {
-            Map<String, Object> m = new HashMap<>();
-            m.put("locationName", entry.getKey());
-            m.put("dataPoints", entry.getValue().stream().map(r -> {
-                Map<String, Object> dp = new HashMap<>();
-                dp.put("date", r.get("forecastDate").toString());
-                dp.put("value", r.get("value"));
-                return dp;
-            }).collect(Collectors.toList()));
-            return m;
+        if (rows.isEmpty()) return Collections.emptyList();
+
+        Map<String, Object> first = rows.get(0);
+        Map<String, Object> result = new HashMap<>();
+        result.put("locationName", first.get("locationName"));
+        result.put("longitude", first.get("longitude"));
+        result.put("latitude", first.get("latitude"));
+
+        List<Map<String, Object>> dataPoints = rows.stream().map(r -> {
+            Map<String, Object> dp = new HashMap<>();
+            dp.put("date", r.get("forecastDate").toString());
+            dp.put("value", r.get("value"));
+            return dp;
         }).collect(Collectors.toList());
+        result.put("dataPoints", dataPoints);
+
+        return Collections.singletonList(result);
     }
 
     @Override

@@ -3,6 +3,12 @@
     <h1 class="editorial-page-title">用户管理</h1>
     <p class="editorial-page-subtitle">User Management · 共 {{ total }} 条记录</p>
 
+    <div class="page-status-bar" :style="{ borderLeftColor: pageStatusColor }">
+      <span class="page-status-bar__level">{{ pageStatusLabel }}</span>
+      <span class="page-status-bar__dot">&middot;</span>
+      <span class="page-status-bar__desc">{{ pageStatusDesc }}</span>
+    </div>
+
     <!-- Filter bar -->
     <div class="editorial-filter-bar">
       <input v-model="query.username" class="editorial-search" placeholder="用户名" style="width: 160px;" />
@@ -36,7 +42,7 @@
       </thead>
       <tbody>
         <tr v-for="row in tableData" :key="row.id">
-          <td>{{ row.username }}</td>
+          <td :style="{ borderLeft: '3px solid ' + (row.status === 1 ? '#22c55e' : '#ef4444') }">{{ row.username }}</td>
           <td>{{ row.realName }}</td>
           <td><span class="editorial-tag">{{ row.role === 'ADMIN' ? 'ADMIN' : 'USER' }}</span></td>
           <td>{{ row.status === 1 ? '启用' : '禁用' }}</td>
@@ -127,6 +133,20 @@ const isEdit = ref(false)
 const editId = ref(null)
 const submitLoading = ref(false)
 const form = reactive({ username: '', password: '', realName: '', role: 'USER', status: 1 })
+
+const pageStatusColor = computed(() => {
+  const hasDisabled = tableData.value.some(r => r.status === 0)
+  return hasDisabled ? '#ef4444' : '#22c55e'
+})
+const pageStatusLabel = computed(() => {
+  const hasDisabled = tableData.value.some(r => r.status === 0)
+  return hasDisabled ? '注意' : '正常'
+})
+const pageStatusDesc = computed(() => {
+  const hasDisabled = tableData.value.some(r => r.status === 0)
+  if (!tableData.value.length) return '暂无用户数据'
+  return hasDisabled ? '存在被禁用的用户' : '所有用户状态正常'
+})
 
 onMounted(() => { loadData() })
 
@@ -230,5 +250,39 @@ function nextPage() {
 </script>
 
 <style scoped>
-/* uses editorial classes from editorial.css */
+.page-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-left: 3px solid;
+  padding: 10px 14px;
+  background: #fafafa;
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+
+.page-status-bar__level {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.page-status-bar__dot {
+  color: var(--color-text-muted);
+}
+
+.page-status-bar__desc {
+  color: #666;
+  flex: 1;
+}
+
+.editorial-table {
+  border-collapse: separate;
+  border-spacing: 0 6px;
+}
+
+.editorial-table :deep(th),
+.editorial-table :deep(td) {
+  text-align: center;
+}
 </style>

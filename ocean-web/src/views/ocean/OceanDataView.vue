@@ -30,8 +30,10 @@
           </el-button>
         </div>
       </div>
-      <div v-loading="chartLoading" class="chart-container" ref="timeSeriesChartRef">
-        <div v-if="chartEmpty" style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--color-text-muted); font-size: 13px;">暂无符合条件的观测数据</div>
+      <div v-loading="chartLoading" style="display: flex; align-items: stretch; position: relative; width: 100%; height: 400px;">
+        <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: #666; padding: 0 8px; white-space: nowrap; flex-shrink: 0;">叶绿素浓度 (mg/m³)</div>
+        <div ref="timeSeriesChartRef" style="flex: 1; height: 100%; min-width: 0;"></div>
+        <div v-if="chartEmpty" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); font-size: 13px; pointer-events: none;">暂无符合条件的观测数据</div>
       </div>
     </div>
 
@@ -95,8 +97,8 @@ function toLocalDateStr(date) {
 const locationOptions = ref([])
 
 const dateRange = ref([
-  toLocalDateStr(new Date(Date.now() - 7 * 86400000)),
-  toLocalDateStr(new Date())
+  toLocalDateStr(new Date('2025-12-25')),
+  toLocalDateStr(new Date('2026-01-01'))
 ])
 
 // ---- chart ----
@@ -118,22 +120,27 @@ const tableData = ref([])
 const tableTotal = ref(0)
 const tableLoading = ref(false)
 
-onMounted(() => {
-  nextTick(async () => {
-    timeSeriesChart = echarts.init(timeSeriesChartRef.value)
+let isAlive = true
 
-    await loadLocationOptions()
-    chartLoading.value = true
-    await fetchAllChlData()
-    chartLoading.value = false
-    renderChlTimeSeries()
-    loadTableData()
+onMounted(async () => {
+  await nextTick()
+  if (!isAlive || !timeSeriesChartRef.value) return
+  timeSeriesChart = echarts.init(timeSeriesChartRef.value)
 
-    window.addEventListener('resize', handleResize)
-  })
+  await loadLocationOptions()
+  if (!isAlive) return
+  chartLoading.value = true
+  await fetchAllChlData()
+  if (!isAlive) return
+  chartLoading.value = false
+  renderChlTimeSeries()
+  loadTableData()
+
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
+  isAlive = false
   window.removeEventListener('resize', handleResize)
   timeSeriesChart?.dispose()
   fullscreenChart?.dispose()
@@ -188,7 +195,7 @@ function buildLocationMap(data) {
 }
 
 function renderChlTimeSeries() {
-  if (!timeSeriesChart) return
+  if (!timeSeriesChart || timeSeriesChart.isDisposed?.()) return
   if (!dateRange.value || dateRange.value.length !== 2) return
 
   const selectedKeys = chlLocations.value
@@ -205,7 +212,7 @@ function renderChlTimeSeries() {
   const base = buildBaseOption({
     legendData: Object.keys(seriesMap),
     xAxisData: allDates,
-    yAxisName: '叶绿素浓度 (mg/m³)',
+    yAxisName: '',
     yAxisUnit: 'mg/m³'
   })
   base.tooltip.formatter = buildTooltipFormatter('mg/m³', {})
@@ -242,8 +249,4 @@ async function loadTableData() {
 </script>
 
 <style scoped>
-.chart-container {
-  width: 100%;
-  height: 400px;
-}
 </style>

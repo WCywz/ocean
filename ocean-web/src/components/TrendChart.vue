@@ -1,11 +1,14 @@
 <template>
-  <div v-loading="loading" class="trend-chart-container" ref="chartRef">
-    <div v-if="empty" class="trend-chart-empty">暂无趋势数据</div>
+  <div style="display: flex; align-items: stretch; width: 100%; height: 300px;">
+    <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: #666; padding: 0 8px; white-space: nowrap; flex-shrink: 0;">{{ yAxisLabel }}</div>
+    <div v-loading="loading" style="flex: 1; height: 100%; min-width: 0; position: relative;" ref="chartRef">
+      <div v-show="empty" class="trend-chart-empty">点击地图上的网格以查看趋势</div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { buildBaseOption, buildTooltipFormatter } from '../utils/chart-config'
 
@@ -22,6 +25,8 @@ const chartRef = ref(null)
 const empty = ref(true)
 let chart = null
 
+const yAxisLabel = computed(() => props.yAxisName || '')
+
 function render() {
   if (!chart) return
   if (!props.seriesData.length || !props.xAxisData.length) {
@@ -35,9 +40,12 @@ function render() {
   const base = buildBaseOption({
     legendData,
     xAxisData: props.xAxisData,
-    yAxisName: props.yAxisName,
+    yAxisName: '',
     yAxisUnit: props.yAxisUnit
   })
+  base.dataZoom = [{ type: 'inside' }]
+  base.grid.left = 50
+  base.grid.bottom = 30
   base.tooltip.formatter = buildTooltipFormatter(props.yAxisUnit)
 
   const series = props.seriesData.map((s) => ({
@@ -71,16 +79,14 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.trend-chart-container {
-  width: 100%;
-  height: 300px;
-}
 .trend-chart-empty {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
   color: #999;
   font-size: 14px;
+  pointer-events: none;
 }
 </style>

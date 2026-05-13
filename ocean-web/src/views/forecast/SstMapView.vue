@@ -71,8 +71,7 @@ const customBbox = ref(null)
 const legendLabels = ['<16°C', '16-20°C', '20-24°C', '24-28°C', '>28°C']
 
 function todayStr() {
-  const d = new Date()
-  return d.toISOString().slice(0, 10)
+  return '2026-01-01'
 }
 
 function buildBboxParams() {

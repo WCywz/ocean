@@ -39,10 +39,10 @@ export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yA
       )
     },
     grid: {
-      left: 70,
+      left: 80,
       right: useRightLegend ? 180 : 50,
       top: 20,
-      bottom: useRightLegend ? 35 : 80
+      bottom: useRightLegend ? 55 : 80
     },
     dataZoom: useRightLegend
       ? [{ type: 'inside' }]
@@ -53,7 +53,18 @@ export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yA
     xAxis: {
       type: 'category',
       data: xAxisData,
-      axisLabel: { rotate: 25, fontSize: 11, color: '#666' },
+      axisLabel: {
+        rotate: 0,
+        fontSize: 11,
+        color: '#666',
+        formatter: (value) => {
+          if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            const parts = value.split('-')
+            return parts[0] + '\n' + parts[1] + '-' + parts[2]
+          }
+          return value
+        }
+      },
       axisLine: { lineStyle: { color: '#ccc' } },
       axisTick: { lineStyle: { color: '#ccc' } }
     },

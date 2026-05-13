@@ -3,7 +3,7 @@
     <h1 class="editorial-page-title">海洋健康指数</h1>
     <p class="editorial-page-subtitle">Ocean Health Index</p>
 
-    <div class="health-status-bar" :style="{ borderLeftColor: statusColor }">
+    <div class="health-status-bar" :style="{ borderLeftColor: statusColor }" @click="toggleAll">
       <span class="health-status-bar__level">{{ statusLabel }}</span>
       <span class="health-status-bar__dot">&middot;</span>
       <span class="health-status-bar__desc">{{ bannerText }}</span>
@@ -28,7 +28,7 @@
         <div
           v-for="zone in assessments"
           :key="zone.id"
-          :class="['health-card', { 'health-card--active': selectedId === zone.id, 'health-card--dimmed': selectedId && selectedId !== zone.id }]"
+          :class="['health-card', { 'health-card--active': selectedIds.has(zone.id), 'health-card--dimmed': selectedIds.size > 0 && !selectedIds.has(zone.id) }]"
           :style="{ borderLeftColor: zone.overall.color }"
           @click="selectZone(zone.id)"
         >
@@ -43,7 +43,7 @@
             <span>热浪 {{ zone.heatwave.active ? '有' : '无' }}</span>
           </div>
 
-          <div v-if="selectedId === zone.id" class="health-card__detail" :style="{ borderColor: zone.overall.color }">
+          <div v-if="selectedIds.has(zone.id)" class="health-card__detail" :style="{ borderColor: zone.overall.color }">
             <span class="editorial-section-label">Detail &middot; {{ zone.label }}</span>
             <p class="health-card__interpretation">{{ buildInterpretation(zone) }}</p>
             <table class="editorial-table health-detail-table">
@@ -99,7 +99,7 @@ import { buildZoneAssessment, buildOverallSummary } from '../../utils/health-ass
 const forecastDate = ref('2026-01-01')
 const loading = ref(false)
 const rawData = ref(null)
-const selectedId = ref(null)
+const selectedIds = ref(new Set())
 const assessments = ref([])
 
 const levelText = { good: '优良', fine: '良好', warn: '中等', bad: '较差' }
@@ -176,12 +176,25 @@ function buildInterpretation(zone) {
 }
 
 function selectZone(id) {
-  selectedId.value = selectedId.value === id ? null : id
+  const next = new Set(selectedIds.value)
+  if (next.has(id)) {
+    next.delete(id)
+  } else {
+    next.add(id)
+  }
+  selectedIds.value = next
+}
+
+function toggleAll() {
+  if (selectedIds.value.size === assessments.value.length) {
+    selectedIds.value = new Set()
+  } else {
+    selectedIds.value = new Set(assessments.value.map(z => z.id))
+  }
 }
 
 async function fetchData() {
   loading.value = true
-  selectedId.value = null
   try {
     const res = await getZoneHealth({
       centerLon: 122.5,
@@ -191,6 +204,7 @@ async function fetchData() {
     })
     rawData.value = res.data
     assessments.value = (res.data && res.data.zones || []).map(buildZoneAssessment)
+    selectedIds.value = new Set(assessments.value.map(z => z.id))
   } catch (e) {
     console.error('Failed to fetch zone health data', e)
   } finally {
@@ -214,6 +228,8 @@ onMounted(() => {
   background: #fafafa;
   font-size: 13px;
   margin-bottom: 28px;
+  cursor: pointer;
+  user-select: none;
 }
 
 .health-status-bar__level {
@@ -251,6 +267,8 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+  row-gap: 64px;
+  align-items: start;
 }
 
 /* ---- card ---- */
@@ -314,9 +332,8 @@ onMounted(() => {
 
 /* ---- detail panel ---- */
 .health-card__detail {
-  margin-top: 14px;
+  margin: 14px -16px -14px -16px;
   padding: 16px 20px;
-  border: 2px solid;
 }
 
 .health-card__interpretation {

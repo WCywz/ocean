@@ -73,7 +73,7 @@
       </section>
 
       <section class="hero-v2-outro">
-        <p>The system has reached its final spatial state.</p>
+        <p>Thank you for using our prediction system.</p>
       </section>
 
       <div class="hero-v2-login-area">
@@ -647,6 +647,10 @@ onUnmounted(() => {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+.hero-v2-login-area .landing-footer {
+  padding: 4rem 1.6rem;
 }
 
 .hero-v2-login-area a {
