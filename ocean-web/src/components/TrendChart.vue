@@ -1,6 +1,6 @@
 <template>
   <div v-loading="loading" class="trend-chart-container" ref="chartRef">
-    <div v-if="empty" class="trend-chart-empty">点击地图上的网格以查看趋势</div>
+    <div v-if="empty" class="trend-chart-empty">暂无趋势数据</div>
   </div>
 </template>
 
