@@ -34,7 +34,6 @@
         :legend-labels="currentLegendLabels"
         :legend-title="chlMode === 'concentration' ? '浓度 (mg/m³)' : '概率 (%)'"
         :loading="mapLoading"
-        @cell-click="onMapCellClick"
         @bbox-change="onBboxChange"
       />
     </div>
@@ -43,7 +42,6 @@
       <p class="editorial-section-label">Feature · 趋势分析</p>
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
         <h3 class="editorial-section-heading" style="margin: 0;">{{ chlMode === 'concentration' ? '叶绿素浓度变化趋势' : '趋势' }}</h3>
-        <span v-if="selectedPoint" style="font-size: 13px; color: var(--color-text-muted);">选中: ({{ selectedPoint.lon.toFixed(2) }}, {{ selectedPoint.lat.toFixed(2) }})</span>
       </div>
       <TrendChart
         :series-data="trendSeries"
@@ -75,7 +73,6 @@ const mapLoading = ref(false)
 const trendSeries = ref([])
 const trendDates = ref([])
 const trendLoading = ref(false)
-const selectedPoint = ref(null)
 const customBbox = ref(null)
 
 const currentColorRanges = computed(() =>
@@ -151,13 +148,11 @@ async function fetchTrendData(lon, lat) {
       name: `(${Number(lon).toFixed(2)}, ${Number(lat).toFixed(2)})`,
       data: points.map(p => p.value)
     }]
-    selectedPoint.value = { lon: Number(lon), lat: Number(lat) }
   } finally {
     trendLoading.value = false
   }
 }
 
-function onMapCellClick({ lat, lon }) { fetchTrendData(lon, lat) }
 function onBboxChange(bbox) { customBbox.value = bbox }
 
 async function loadSeaAreas() {
@@ -189,9 +184,10 @@ function handleReset() {
 function onSeaAreaChange() { customBbox.value = null }
 
 onMounted(async () => {
-  filterDate.value = todayStr()
+  filterDate.value = '2026-01-01'
   await loadSeaAreas()
   await fetchGridData()
+  fetchTrendData(123.5, 29.8)
 })
 </script>
 
