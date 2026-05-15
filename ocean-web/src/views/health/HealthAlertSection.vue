@@ -41,7 +41,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import L from 'leaflet'
 import { wgs84ToGcj02 } from '../../utils/coord-transform'
 
@@ -138,6 +138,10 @@ function destroyMap() {
     map = null
   }
 }
+
+onMounted(() => {
+  nextTick(initMap)
+})
 
 watch(() => props.alerts, () => {
   selectedIdx.value = -1

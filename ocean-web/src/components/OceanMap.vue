@@ -23,6 +23,7 @@ import L from 'leaflet'
 import 'leaflet-draw'
 import 'leaflet.heat'
 import { buildHeatGradient } from '../utils/chart-config'
+import { wgs84ToGcj02, gcj02ToWgs84 } from '../utils/coord-transform'
 
 const props = defineProps({
   gridData: { type: Array, default: () => [] },
@@ -63,7 +64,10 @@ function drawGrid() {
 
   if (!visible.length) return
 
-  const data = visible.map(p => [p.lat, p.lon, p.value])
+  const data = visible.map(p => {
+    const [gcjLng, gcjLat] = wgs84ToGcj02(p.lon, p.lat)
+    return [gcjLat, gcjLng, p.value]
+  })
   heatLayer = L.heatLayer(data, {
     radius: 15,
     blur: 10,
@@ -75,32 +79,38 @@ function drawGrid() {
 function onMoveEnd() {
   drawGrid()
   const b = map.getBounds()
+  const [swLng, swLat] = gcj02ToWgs84(b.getWest(), b.getSouth())
+  const [neLng, neLat] = gcj02ToWgs84(b.getEast(), b.getNorth())
   emit('bboxChange', {
-    north: b.getNorth(),
-    south: b.getSouth(),
-    east: b.getEast(),
-    west: b.getWest()
+    north: neLat,
+    south: swLat,
+    east: neLng,
+    west: swLng
   })
 }
 
 function onDrawCreated(e) {
   drawnItems.addLayer(e.layer)
   const b = e.layer.getBounds()
+  const [swLng, swLat] = gcj02ToWgs84(b.getWest(), b.getSouth())
+  const [neLng, neLat] = gcj02ToWgs84(b.getEast(), b.getNorth())
   emit('bboxChange', {
-    north: b.getNorth(),
-    south: b.getSouth(),
-    east: b.getEast(),
-    west: b.getWest()
+    north: neLat,
+    south: swLat,
+    east: neLng,
+    west: swLng
   })
 }
 
 function onDrawDeleted() {
   const b = map.getBounds()
+  const [swLng, swLat] = gcj02ToWgs84(b.getWest(), b.getSouth())
+  const [neLng, neLat] = gcj02ToWgs84(b.getEast(), b.getNorth())
   emit('bboxChange', {
-    north: b.getNorth(),
-    south: b.getSouth(),
-    east: b.getEast(),
-    west: b.getWest()
+    north: neLat,
+    south: swLat,
+    east: neLng,
+    west: swLng
   })
 }
 
@@ -127,14 +137,15 @@ function initDraw() {
 
 onMounted(() => {
   nextTick(() => {
+    const [gcjCenterLng, gcjCenterLat] = wgs84ToGcj02(props.center[1], props.center[0])
     map = L.map(mapContainer.value, {
       preferCanvas: true,
-      center: props.center,
+      center: [gcjCenterLat, gcjCenterLng],
       zoom: props.zoom
     })
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}&key=c286f049621bc825d06c2203774b2ef3', {
+      subdomains: ['1', '2', '3', '4'],
       maxZoom: 18
     }).addTo(map)
 
@@ -162,6 +173,7 @@ onUnmounted(() => {
   width: 100%;
   border-radius: 8px;
   overflow: hidden;
+  border: 2px solid #d0d0d0;
 }
 .map-legend {
   position: absolute;

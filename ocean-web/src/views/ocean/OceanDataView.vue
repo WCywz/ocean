@@ -3,6 +3,45 @@
     <h1 class="editorial-page-title">海洋观测数据</h1>
     <p class="editorial-page-subtitle">Ocean Observation Data</p>
 
+    <!-- SST time series chart -->
+    <div class="editorial-section">
+      <p class="editorial-section-label">Feature · 时间序列</p>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <h3 class="editorial-section-heading" style="margin: 0;">海表温度时间序列</h3>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <el-select
+            v-model="sstLocations"
+            placeholder="筛选观测点"
+            multiple collapse-tags collapse-tags-tooltip filterable
+            size="small" style="width: 280px"
+            @change="renderSstTimeSeries"
+          >
+            <el-option v-for="loc in locationOptions" :key="loc.key" :label="loc.label" :value="loc.key" />
+          </el-select>
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange" range-separator="至"
+            start-placeholder="开始" end-placeholder="结束"
+            value-format="YYYY-MM-DD" size="small" style="width: 260px"
+            @change="onDateRangeChange"
+          />
+          <el-button size="small" text @click="openSstFullscreen">
+            <el-icon><FullScreen /></el-icon>
+          </el-button>
+        </div>
+      </div>
+      <div v-loading="sstChartLoading" style="display: flex; align-items: stretch; position: relative; width: 100%; height: 320px;">
+        <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: #666; padding: 0 8px; white-space: nowrap; flex-shrink: 0;">海表温度 (°C)</div>
+        <div ref="sstChartRef" style="flex: 1; height: 100%; min-width: 0;"></div>
+        <div v-if="sstChartEmpty" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); font-size: 13px; pointer-events: none;">暂无符合条件的水温数据</div>
+      </div>
+    </div>
+
+    <!-- SST fullscreen modal -->
+    <el-dialog v-model="sstFullscreenVisible" title="海表温度时间序列" fullscreen :close-on-click-modal="false" @opened="onSstFullscreenOpened" @close="onSstFullscreenClosed">
+      <div ref="sstFullscreenChartRef" style="height: calc(100vh - 100px);"></div>
+    </el-dialog>
+
     <!-- Chl time series chart -->
     <div class="editorial-section">
       <p class="editorial-section-label">Feature · 时间序列</p>
@@ -25,44 +64,69 @@
             value-format="YYYY-MM-DD" size="small" style="width: 260px"
             @change="onDateRangeChange"
           />
-          <el-button size="small" text @click="openFullscreen">
+          <el-button size="small" text @click="openChlFullscreen">
             <el-icon><FullScreen /></el-icon>
           </el-button>
         </div>
       </div>
-      <div v-loading="chartLoading" style="display: flex; align-items: stretch; position: relative; width: 100%; height: 400px;">
+      <div v-loading="chlChartLoading" style="display: flex; align-items: stretch; position: relative; width: 100%; height: 400px;">
         <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: #666; padding: 0 8px; white-space: nowrap; flex-shrink: 0;">叶绿素浓度 (mg/m³)</div>
-        <div ref="timeSeriesChartRef" style="flex: 1; height: 100%; min-width: 0;"></div>
-        <div v-if="chartEmpty" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); font-size: 13px; pointer-events: none;">暂无符合条件的观测数据</div>
+        <div ref="chlChartRef" style="flex: 1; height: 100%; min-width: 0;"></div>
+        <div v-if="chlChartEmpty" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); font-size: 13px; pointer-events: none;">暂无符合条件的观测数据</div>
       </div>
     </div>
 
-    <!-- Fullscreen modal unchanged -->
-    <el-dialog v-model="fullscreenVisible" title="叶绿素浓度时间序列" fullscreen :close-on-click-modal="false" @opened="onFullscreenOpened" @close="onFullscreenClosed">
-      <div ref="fullscreenChartRef" style="height: calc(100vh - 100px);"></div>
+    <!-- Chl fullscreen modal -->
+    <el-dialog v-model="chlFullscreenVisible" title="叶绿素浓度时间序列" fullscreen :close-on-click-modal="false" @opened="onChlFullscreenOpened" @close="onChlFullscreenClosed">
+      <div ref="chlFullscreenChartRef" style="height: calc(100vh - 100px);"></div>
     </el-dialog>
 
-    <!-- Data table -->
+    <!-- Data tables: SST left, CHL right -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
       <h3 class="editorial-section-heading" style="margin: 0;">观测数据记录</h3>
       <button class="editorial-btn-outline" @click="loadTableData">刷新</button>
     </div>
-    <table class="editorial-table" v-loading="tableLoading">
-      <thead>
-        <tr>
-          <td>日期</td><td>纬度</td><td>经度</td><td>深度(m)</td><td>叶绿素</td>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(row, idx) in tableData" :key="idx">
-          <td>{{ row.time }}</td>
-          <td>{{ row.lat }}</td>
-          <td>{{ row.lon }}</td>
-          <td>{{ row.depth }}</td>
-          <td>{{ row.chl }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div v-loading="tableLoading" style="display: flex; gap: 24px;">
+      <!-- SST table -->
+      <div style="flex: 1; min-width: 0;">
+        <h4 style="font-size: 13px; font-weight: 600; color: var(--color-text); margin-bottom: 8px;">海表温度</h4>
+        <table class="editorial-table">
+          <thead>
+            <tr>
+              <td>日期</td><td>纬度</td><td>经度</td><td>温度 (°C)</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, idx) in sstTableData" :key="idx">
+              <td>{{ row.time }}</td>
+              <td>{{ row.lat }}</td>
+              <td>{{ row.lon }}</td>
+              <td>{{ row.sst }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <!-- CHL table -->
+      <div style="flex: 1; min-width: 0;">
+        <h4 style="font-size: 13px; font-weight: 600; color: var(--color-text); margin-bottom: 8px;">叶绿素浓度</h4>
+        <table class="editorial-table">
+          <thead>
+            <tr>
+              <td>日期</td><td>纬度</td><td>经度</td><td>深度 (m)</td><td>叶绿素</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, idx) in chlTableData" :key="idx">
+              <td>{{ row.time }}</td>
+              <td>{{ row.lat }}</td>
+              <td>{{ row.lon }}</td>
+              <td>{{ row.depth }}</td>
+              <td>{{ row.chl }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
     <div class="editorial-pagination">
       <span>共 {{ tableTotal }} 条</span>
       <select v-model="tableQuery.pageSize" class="editorial-select" style="width: 80px;" @change="loadTableData">
@@ -78,11 +142,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import { getChlTimeSeries, getOceanDataPage, getOceanLocations } from '../../api/ocean-data'
+import { getChlTimeSeries, getSstTimeSeries, getOceanDataPage, getOceanLocations } from '../../api/ocean-data'
 import {
-  CHL_COLORS,
+  SST_COLORS, CHL_COLORS,
   buildBaseOption, buildTooltipFormatter, buildSeriesData
 } from '../../utils/chart-config'
 
@@ -93,7 +157,6 @@ function toLocalDateStr(date) {
   return `${y}-${m}-${d}`
 }
 
-// ---- location options ----
 const locationOptions = ref([])
 
 const dateRange = ref([
@@ -101,18 +164,30 @@ const dateRange = ref([
   toLocalDateStr(new Date('2026-01-01'))
 ])
 
-// ---- chart ----
-const timeSeriesChartRef = ref(null)
+// ---- SST chart ----
+const sstChartRef = ref(null)
+const sstLocations = ref([])
+const allSstData = ref([])
+const sstChartLoading = ref(false)
+const sstChartEmpty = ref(false)
+let sstChart = null
+
+// ---- CHL chart ----
+const chlChartRef = ref(null)
 const chlLocations = ref([])
 const allChlData = ref([])
-const chartLoading = ref(false)
-const chartEmpty = ref(false)
-let timeSeriesChart = null
+const chlChartLoading = ref(false)
+const chlChartEmpty = ref(false)
+let chlChart = null
 
 // ---- fullscreen ----
-const fullscreenVisible = ref(false)
-const fullscreenChartRef = ref(null)
-let fullscreenChart = null
+const sstFullscreenVisible = ref(false)
+const sstFullscreenChartRef = ref(null)
+let sstFullscreenChart = null
+
+const chlFullscreenVisible = ref(false)
+const chlFullscreenChartRef = ref(null)
+let chlFullscreenChart = null
 
 // ---- table ----
 const tableQuery = ref({ pageNum: 1, pageSize: 10 })
@@ -120,19 +195,33 @@ const tableData = ref([])
 const tableTotal = ref(0)
 const tableLoading = ref(false)
 
+const sstTableData = computed(() => {
+  const seen = new Set()
+  return tableData.value.filter(row => {
+    if (row.sst == null) return false
+    const key = `${row.lat},${row.lon},${row.time}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+})
+
+const chlTableData = computed(() => tableData.value)
+
 let isAlive = true
 
 onMounted(async () => {
   await nextTick()
-  if (!isAlive || !timeSeriesChartRef.value) return
-  timeSeriesChart = echarts.init(timeSeriesChartRef.value)
+  if (!isAlive) return
+  if (sstChartRef.value) sstChart = echarts.init(sstChartRef.value)
+  if (chlChartRef.value) chlChart = echarts.init(chlChartRef.value)
 
   await loadLocationOptions()
   if (!isAlive) return
-  chartLoading.value = true
-  await fetchAllChlData()
+
+  await Promise.all([fetchAllSstData(), fetchAllChlData()])
   if (!isAlive) return
-  chartLoading.value = false
+  renderSstTimeSeries()
   renderChlTimeSeries()
   loadTableData()
 
@@ -142,13 +231,17 @@ onMounted(async () => {
 onUnmounted(() => {
   isAlive = false
   window.removeEventListener('resize', handleResize)
-  timeSeriesChart?.dispose()
-  fullscreenChart?.dispose()
+  sstChart?.dispose()
+  chlChart?.dispose()
+  sstFullscreenChart?.dispose()
+  chlFullscreenChart?.dispose()
 })
 
 function handleResize() {
-  timeSeriesChart?.resize()
-  fullscreenChart?.resize()
+  sstChart?.resize()
+  chlChart?.resize()
+  sstFullscreenChart?.resize()
+  chlFullscreenChart?.resize()
 }
 
 async function loadLocationOptions() {
@@ -163,27 +256,37 @@ async function loadLocationOptions() {
   } catch (e) { /* empty */ }
 }
 
+async function fetchAllSstData() {
+  if (!dateRange.value || dateRange.value.length !== 2) return
+  sstChartLoading.value = true
+  try {
+    allSstData.value = (await getSstTimeSeries(dateRange.value[0], dateRange.value[1], null, null)).data || []
+  } catch (e) { allSstData.value = [] }
+  sstChartLoading.value = false
+}
+
 async function fetchAllChlData() {
   if (!dateRange.value || dateRange.value.length !== 2) return
+  chlChartLoading.value = true
   try {
     allChlData.value = (await getChlTimeSeries(dateRange.value[0], dateRange.value[1], null, null)).data || []
   } catch (e) { allChlData.value = [] }
+  chlChartLoading.value = false
 }
 
 async function onDateRangeChange() {
-  chartLoading.value = true
-  await fetchAllChlData()
-  chartLoading.value = false
+  await Promise.all([fetchAllSstData(), fetchAllChlData()])
+  renderSstTimeSeries()
   renderChlTimeSeries()
 }
 
-function buildLocationMap(data) {
+function buildLocationMap(data, valueKey) {
   const map = {}
   const dateSet = new Set()
   data.forEach(item => {
     const key = `(${item.lon}, ${item.lat})`
     if (!map[key]) map[key] = {}
-    map[key][item.time] = item.chl
+    map[key][item.time] = item[valueKey]
     dateSet.add(item.time)
   })
   const allDates = Array.from(dateSet).sort()
@@ -194,48 +297,58 @@ function buildLocationMap(data) {
   return { seriesMap: result, allDates }
 }
 
-function renderChlTimeSeries() {
-  if (!timeSeriesChart || timeSeriesChart.isDisposed?.()) return
+function renderTimeSeries(chart, allData, selectedKeys, colors, unit, setEmpty) {
+  if (!chart || chart.isDisposed?.()) return
   if (!dateRange.value || dateRange.value.length !== 2) return
 
-  const selectedKeys = chlLocations.value
   const filtered = selectedKeys.length > 0
-    ? allChlData.value.filter(item => selectedKeys.includes(`${item.lon},${item.lat}`))
-    : allChlData.value
+    ? allData.filter(item => selectedKeys.includes(`${item.lon},${item.lat}`))
+    : allData
 
-  chartEmpty.value = filtered.length === 0
-  if (filtered.length === 0) { timeSeriesChart.clear(); return }
+  setEmpty(filtered.length === 0)
+  if (filtered.length === 0) { chart.clear(); return }
 
-  const { allDates, seriesMap } = buildLocationMap(filtered)
-  const seriesData = buildSeriesData(seriesMap, CHL_COLORS, { area: true, markLine: true })
+  const valueKey = unit === '°C' ? 'sst' : 'chl'
+  const { allDates, seriesMap } = buildLocationMap(filtered, valueKey)
+  const seriesData = buildSeriesData(seriesMap, colors, { area: true, markLine: true })
 
   const base = buildBaseOption({
     legendData: Object.keys(seriesMap),
     xAxisData: allDates,
     yAxisName: '',
-    yAxisUnit: 'mg/m³'
+    yAxisUnit: unit
   })
-  base.tooltip.formatter = buildTooltipFormatter('mg/m³', {})
+  base.tooltip.formatter = buildTooltipFormatter(unit, {})
 
-  timeSeriesChart.setOption({ ...base, series: seriesData, color: CHL_COLORS }, true)
+  chart.setOption({ ...base, series: seriesData, color: colors }, true)
+}
+
+function renderSstTimeSeries() {
+  renderTimeSeries(sstChart, allSstData.value, sstLocations.value, SST_COLORS, '°C', (v) => { sstChartEmpty.value = v })
+}
+
+function renderChlTimeSeries() {
+  renderTimeSeries(chlChart, allChlData.value, chlLocations.value, CHL_COLORS, 'mg/m³', (v) => { chlChartEmpty.value = v })
 }
 
 // ---- fullscreen ----
-function openFullscreen() {
-  fullscreenVisible.value = true
-}
-
-function onFullscreenOpened() {
+function openSstFullscreen() { sstFullscreenVisible.value = true }
+function onSstFullscreenOpened() {
   nextTick(() => {
-    fullscreenChart = echarts.init(fullscreenChartRef.value)
-    fullscreenChart.setOption(timeSeriesChart.getOption(), true)
+    sstFullscreenChart = echarts.init(sstFullscreenChartRef.value)
+    if (sstChart) sstFullscreenChart.setOption(sstChart.getOption(), true)
   })
 }
+function onSstFullscreenClosed() { sstFullscreenChart?.dispose(); sstFullscreenChart = null }
 
-function onFullscreenClosed() {
-  fullscreenChart?.dispose()
-  fullscreenChart = null
+function openChlFullscreen() { chlFullscreenVisible.value = true }
+function onChlFullscreenOpened() {
+  nextTick(() => {
+    chlFullscreenChart = echarts.init(chlFullscreenChartRef.value)
+    if (chlChart) chlFullscreenChart.setOption(chlChart.getOption(), true)
+  })
 }
+function onChlFullscreenClosed() { chlFullscreenChart?.dispose(); chlFullscreenChart = null }
 
 // ---- table ----
 async function loadTableData() {

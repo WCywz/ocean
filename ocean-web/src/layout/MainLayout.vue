@@ -28,9 +28,9 @@
             @mouseenter="showForecastMenu = true"
             @mouseleave="showForecastMenu = false"
           >
-            <router-link to="/app/forecast/sst" class="forecast-dropdown__item">海表温度预测</router-link>
-            <router-link to="/app/forecast/chl" class="forecast-dropdown__item">叶绿素预测</router-link>
-            <router-link to="/app/forecast/history" class="forecast-dropdown__item">历史预报记录</router-link>
+            <router-link to="/app/forecast/sst" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/forecast/sst' }" active-class="" exact-active-class="">海表温度预测</router-link>
+            <router-link to="/app/forecast/chl" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/forecast/chl' }" active-class="" exact-active-class="">叶绿素预测</router-link>
+            <router-link to="/app/forecast/history" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/forecast/history' }" active-class="" exact-active-class="">历史预报记录</router-link>
           </div>
         </div>
 
@@ -121,15 +121,21 @@ function handleLogout() {
 }
 .forecast-dropdown__item {
   display: block;
-  padding: 8px 16px;
-  font-size: 13px;
-  color: var(--color-text);
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-text-muted);
   text-decoration: none;
   text-transform: none;
   letter-spacing: 0;
-  transition: background 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 .forecast-dropdown__item:hover {
   background: var(--color-surface);
+  color: var(--color-text);
+}
+.forecast-dropdown__item--active {
+  color: var(--color-text);
+  font-weight: 600;
 }
 </style>

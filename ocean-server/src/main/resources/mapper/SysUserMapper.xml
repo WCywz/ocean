@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ocean.mapper.SysUserMapper">
+
+    <select id="selectUserPage" resultType="com.ocean.entity.SysUser">
+        SELECT * FROM sys_user
+        <where>
+            <if test="dto.username != null and dto.username != ''">
+                AND username LIKE CONCAT('%', #{dto.username}, '%')
+            </if>
+            <if test="dto.realName != null and dto.realName != ''">
+                AND real_name LIKE CONCAT('%', #{dto.realName}, '%')
+            </if>
+            <if test="dto.role != null and dto.role != ''">
+                AND role = #{dto.role}
+            </if>
+            <if test="dto.status != null">
+                AND status = #{dto.status}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C c:/Users/chutaorui/Desktop/ocean rev-parse --show-toplevel)",
+      "Bash(pnpm install *)",
+      "Read(//c/Users/chutaorui/AppData/Roaming/npm/**)",
+      "Bash(where pnpm *)",
+      "Bash(/d/nodejs/npm ls *)",
+      "Read(//d/nodejs/node_modules/**)",
+      "Bash(/d/nodejs/npx pnpm *)",
+      "Bash(/d/nodejs/npm install *)",
+      "Bash(pnpm test *)",
+      "Bash(bash \"C:/Users/chutaorui/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.7/skills/brainstorming/scripts/start-server.sh\" --project-dir \"C:/Users/chutaorui/Desktop/ocean\")"
+    ]
+  }
+}
