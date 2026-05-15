@@ -41,8 +41,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import L from 'leaflet'
+import { wgs84ToGcj02 } from '../../utils/coord-transform'
 
 const props = defineProps({
   alerts: { type: Array, default: () => [] },
@@ -84,21 +85,24 @@ function selectAlert(idx) {
 }
 
 function flyToAlert(item) {
-  if (!map || item.longitude == null || item.latitude == null) return
-  map.flyTo([item.latitude, item.longitude], map.getZoom(), { duration: 0.8 })
+  if (!map) { console.warn('[HealthAlert] map not ready'); return }
+  if (item.longitude == null || item.latitude == null) { console.warn('[HealthAlert] missing coords', item); return }
+  const [gcjLng, gcjLat] = wgs84ToGcj02(item.longitude, item.latitude)
+  map.flyTo([gcjLat, gcjLng], map.getZoom(), { duration: 0.8 })
   placeMarker(item)
 }
 
 function placeMarker(item) {
   clearMarker()
+  const [gcjLng, gcjLat] = wgs84ToGcj02(item.longitude, item.latitude)
   const color = item.dataType === 'SST' ? '#c0392b' : '#e67e22'
   const icon = L.divIcon({
     className: 'alert-pulse-marker',
-    html: `<div class="pulse-dot" style="background:${color}"></div>`,
-    iconSize: [12, 12],
-    iconAnchor: [6, 6]
+    html: `<div class="pulse-dot" style="background:${color}; width:16px; height:16px;"></div>`,
+    iconSize: [48, 48],
+    iconAnchor: [24, 24]
   })
-  pulseMarker = L.marker([item.latitude, item.longitude], { icon }).addTo(map)
+  pulseMarker = L.marker([gcjLat, gcjLng], { icon }).addTo(map)
 }
 
 function clearMarker() {
@@ -110,8 +114,9 @@ function clearMarker() {
 
 function initMap() {
   if (!mapContainer.value) return
+  const [gcjCenterLng, gcjCenterLat] = wgs84ToGcj02(122.5, 29.5)
   map = L.map(mapContainer.value, {
-    center: [29.5, 122.5],
+    center: [gcjCenterLat, gcjCenterLng],
     zoom: 7,
     scrollWheelZoom: false,
     doubleClickZoom: false,
@@ -119,7 +124,8 @@ function initMap() {
     dragging: true,
     attributionControl: false
   })
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}&key=c286f049621bc825d06c2203774b2ef3', {
+    subdomains: ['1', '2', '3', '4'],
     maxZoom: 10,
     minZoom: 5
   }).addTo(map)
@@ -138,8 +144,24 @@ watch(() => props.alerts, () => {
   clearMarker()
 })
 
-onMounted(() => {
-  nextTick(initMap)
+watch([() => props.alerts, () => props.loading], async ([alertList, loading]) => {
+  await nextTick()
+
+  // Empty state: destroy map
+  if (!alertList.length && !loading) {
+    destroyMap()
+    return
+  }
+
+  // Non-empty state: ensure map exists
+  if (!map && mapContainer.value) {
+    initMap()
+  }
+
+  // After loading overlay is removed, Leaflet needs size recalculation
+  if (map && !loading) {
+    map.invalidateSize()
+  }
 })
 
 onUnmounted(() => {
@@ -236,7 +258,7 @@ onUnmounted(() => {
 .alert-map {
   flex: 1;
   min-height: 360px;
-  border: 1px solid #f0f0f0;
+  border: 2px solid #d0d0d0;
 }
 
 .drilldown-links {
@@ -272,10 +294,11 @@ onUnmounted(() => {
 }
 
 .pulse-dot {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   position: relative;
+  box-shadow: 0 0 6px rgba(0,0,0,0.3);
 }
 
 .pulse-dot::after {
@@ -283,22 +306,21 @@ onUnmounted(() => {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 3rem;
-  height: 3rem;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: inherit;
-  opacity: 0.3;
+  opacity: 0.35;
   animation: alert-pulse 1.5s cubic-bezier(0.2, 0.6, 0.35, 1) infinite;
 }
 
 @keyframes alert-pulse {
   0% {
-    transform: translate(-50%, -50%) scale(0.15);
-    opacity: 0.4;
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 0.5;
   }
   80%, 100% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%) scale(1.4);
     opacity: 0;
   }
 }
