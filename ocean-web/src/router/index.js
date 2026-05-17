@@ -61,10 +61,22 @@ const routes = [
         meta: { title: '历史预报记录' }
       },
       {
-        path: 'ocean-data',
-        name: 'OceanData',
-        component: () => import('../views/ocean/OceanDataView.vue'),
-        meta: { title: '海洋观测数据' }
+        path: 'observation/sst',
+        name: 'ObsSst',
+        component: () => import('../views/observation/ObsSstView.vue'),
+        meta: { title: '海表温度观测' }
+      },
+      {
+        path: 'observation/chl',
+        name: 'ObsCHL',
+        component: () => import('../views/observation/ObsChlView.vue'),
+        meta: { title: '叶绿素观测' }
+      },
+      {
+        path: 'observation/history',
+        name: 'ObsHistory',
+        component: () => import('../views/observation/ObsHistoryView.vue'),
+        meta: { title: '历史观测记录' }
       },
       {
         path: 'ocean-health',

@@ -34,11 +34,26 @@
           </div>
         </div>
 
-        <router-link
-          to="/app/ocean-data"
+        <!-- Observation dropdown -->
+        <div
           class="editorial-nav__item"
-          :class="{ 'editorial-nav__item--active': isActive('/app/ocean-data') }"
-        >观测</router-link>
+          :class="{ 'editorial-nav__item--active': isActive('/app/observation') }"
+          @mouseenter="showObsMenu = true"
+          @mouseleave="showObsMenu = false"
+          style="position: relative;"
+        >
+          观测
+          <div
+            v-show="showObsMenu"
+            class="forecast-dropdown"
+            @mouseenter="showObsMenu = true"
+            @mouseleave="showObsMenu = false"
+          >
+            <router-link to="/app/observation/sst" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/observation/sst' }" active-class="" exact-active-class="">海表温度观测</router-link>
+            <router-link to="/app/observation/chl" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/observation/chl' }" active-class="" exact-active-class="">叶绿素观测</router-link>
+            <router-link to="/app/observation/history" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/observation/history' }" active-class="" exact-active-class="">历史观测记录</router-link>
+          </div>
+        </div>
 
         <router-link
           to="/app/ocean-health"
@@ -85,6 +100,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const showForecastMenu = ref(false)
+const showObsMenu = ref(false)
 const userInfo = computed(() => userStore.userInfo)
 const isAdmin = computed(() => userStore.isAdmin())
 
