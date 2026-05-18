@@ -24,7 +24,7 @@ import 'leaflet-draw'
 import 'leaflet.heat'
 import { buildHeatGradient } from '../utils/chart-config'
 import { wgs84ToGcj02, gcj02ToWgs84 } from '../utils/coord-transform'
-import { getLandGeoJSON } from '../utils/land-mask'
+import { isPointInLand } from '../utils/land-mask'
 
 const props = defineProps({
   gridData: { type: Array, default: () => [] },
@@ -42,7 +42,6 @@ const emit = defineEmits(['bboxChange'])
 const mapContainer = ref(null)
 let map = null
 let heatLayer = null
-let landLayer = null
 let drawControl = null
 let drawnItems = null
 
@@ -64,7 +63,7 @@ function drawGrid() {
     p.lat <= wgsNorth + pad &&
     p.lon >= wgsWest - pad &&
     p.lon <= wgsEast + pad
-  )
+  ).filter(p => !isPointInLand(p.lon, p.lat))
 
   if (!visible.length) return
 
@@ -78,10 +77,6 @@ function drawGrid() {
     maxZoom: 10,
     gradient: buildHeatGradient(props.colorRanges)
   }).addTo(map)
-
-  if (landLayer) {
-    landLayer.bringToFront()
-  }
 }
 
 function onMoveEnd() {
@@ -157,25 +152,9 @@ onMounted(() => {
       maxZoom: 18
     }).addTo(map)
 
-    map.createPane('landMask')
-    map.getPane('landMask').style.zIndex = 450
-    map.getPane('landMask').style.pointerEvents = 'none'
-
     map.on('moveend', onMoveEnd)
     initDraw()
     drawGrid()
-
-    setTimeout(() => {
-      try {
-        const landGeoJSON = getLandGeoJSON()
-        landLayer = L.geoJSON(landGeoJSON, {
-          style: { fillColor: '#f2efe9', fillOpacity: 1, weight: 0, color: 'transparent' },
-          pane: 'landMask'
-        }).addTo(map)
-      } catch (e) {
-        console.error('Land mask failed to load:', e)
-      }
-    }, 100)
   })
 })
 

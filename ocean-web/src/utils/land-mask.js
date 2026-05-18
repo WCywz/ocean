@@ -1,32 +1,56 @@
 import { feature } from 'topojson-client'
 import landTopo from 'world-atlas/land-50m.json'
-import { wgs84ToGcj02 } from './coord-transform'
 
-let _geojson = null
+let _multiPolygon = null
+let _bboxes = null
 
-function convertCoords(coords) {
-  if (typeof coords[0] === 'number') {
-    const [lng, lat] = wgs84ToGcj02(coords[0], coords[1])
-    return [lng, lat]
-  }
-  return coords.map(convertCoords)
+function getLandMultiPolygon() {
+  if (_multiPolygon) return _multiPolygon
+  const geojson = feature(landTopo, landTopo.objects.land)
+  const features = geojson.features || [geojson]
+  _multiPolygon = features[0].geometry
+  return _multiPolygon
 }
 
-export function getLandGeoJSON() {
-  if (_geojson) return _geojson
+function getBBoxes() {
+  if (_bboxes) return _bboxes
+  const mp = getLandMultiPolygon()
+  _bboxes = mp.coordinates.map(polygon => {
+    const ring = polygon[0]
+    let minLng = Infinity, maxLng = -Infinity
+    let minLat = Infinity, maxLat = -Infinity
+    for (const [lng, lat] of ring) {
+      if (lng < minLng) minLng = lng
+      if (lng > maxLng) maxLng = lng
+      if (lat < minLat) minLat = lat
+      if (lat > maxLat) maxLat = lat
+    }
+    return { minLng, maxLng, minLat, maxLat }
+  })
+  return _bboxes
+}
 
-  const geojson = feature(landTopo, landTopo.objects.land)
-  const features = geojson.features ? geojson.features : [geojson]
-
-  _geojson = {
-    type: 'FeatureCollection',
-    features: features.map(f => ({
-      ...f,
-      geometry: {
-        ...f.geometry,
-        coordinates: convertCoords(f.geometry.coordinates)
+function pointInPolygon(x, y, rings) {
+  let inside = false
+  for (const ring of rings) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0], yi = ring[i][1]
+      const xj = ring[j][0], yj = ring[j][1]
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
+        inside = !inside
       }
-    }))
+    }
   }
-  return _geojson
+  return inside
+}
+
+export function isPointInLand(lng, lat) {
+  const mp = getLandMultiPolygon()
+  const bboxes = getBBoxes()
+  for (let i = 0; i < mp.coordinates.length; i++) {
+    const bb = bboxes[i]
+    if (lng < bb.minLng || lng > bb.maxLng || lat < bb.minLat || lat > bb.maxLat) continue
+    if (pointInPolygon(lng, lat, mp.coordinates[i])) return true
+  }
+  return false
 }
