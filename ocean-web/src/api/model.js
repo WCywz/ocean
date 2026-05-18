@@ -37,7 +37,7 @@ export function getRunningVersions() {
 
 /** 获取模型下的所有版本 */
 export function getModelVersions(modelId) {
-  return request({ url: `/model/${modelId}/versions`, method: 'get' })
+  return request({ url: `/model/${modelId}/version`, method: 'get' })
 }
 
 /** 新增版本 */

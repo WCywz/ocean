@@ -15,11 +15,11 @@ import java.util.Map;
 /**
  * 海洋观测数据控制器
  */
-@RestController
-@RequestMapping("/api/ocean-data")
+// @RestController -- disabled, replaced by ObservationController
+// @RequestMapping("/api/ocean-data")
 public class OceanDataController {
 
-    @Autowired
+    //@Autowired
     private OceanDataService oceanDataService;
 
     /**

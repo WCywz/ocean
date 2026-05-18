@@ -12,7 +12,7 @@ public class ModelVersionVO {
 
     private Long id;
 
-    private Long groupId;
+    private Long modelId;
 
     private String versionLabel;
 
