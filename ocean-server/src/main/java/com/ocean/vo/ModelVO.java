@@ -18,6 +18,8 @@ public class ModelVO {
     private String status;
     private LocalDateTime lastRunTime;
     private String description;
+    private Long versionCount;
+    private Long runningCount;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

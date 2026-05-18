@@ -17,11 +17,11 @@ import java.util.List;
 /**
  * 预报模型管理控制器
  */
-@RestController
-@RequestMapping("/api/model")
+// @RestController -- disabled, replaced by ModelController + ModelVersionController
+// @RequestMapping("/api/model")
 public class ForecastModelController {
 
-    @Autowired
+    //@Autowired
     private ForecastModelService forecastModelService;
 
     // ==================== 模型组 ====================

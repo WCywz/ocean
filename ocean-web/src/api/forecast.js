@@ -46,6 +46,6 @@ export function getDashboardTrend(dataType = 'SST', days = 7) {
 }
 
 /** 获取阈值告警 */
-export function getAlerts(forecastDate) {
-  return request({ url: '/forecast/alerts', method: 'get', params: { forecastDate } })
+export function getAlerts(alertDate) {
+  return request({ url: '/alert/events', method: 'get', params: { alertDate, status: 'active' } })
 }

@@ -145,6 +145,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { getChlTimeSeries, getSstTimeSeries, getOceanDataPage, getOceanLocations } from '../../api/ocean-data'
+import { getSystemDate } from '../../api/system'
 import {
   SST_COLORS, CHL_COLORS,
   buildBaseOption, buildTooltipFormatter, buildSeriesData
@@ -159,10 +160,9 @@ function toLocalDateStr(date) {
 
 const locationOptions = ref([])
 
-const dateRange = ref([
-  toLocalDateStr(new Date('2025-12-25')),
-  toLocalDateStr(new Date('2026-01-01'))
-])
+const dateRange = ref([])
+
+let systemDate = '2026-01-01'
 
 // ---- SST chart ----
 const sstChartRef = ref(null)
@@ -215,6 +215,13 @@ onMounted(async () => {
   if (!isAlive) return
   if (sstChartRef.value) sstChart = echarts.init(sstChartRef.value)
   if (chlChartRef.value) chlChart = echarts.init(chlChartRef.value)
+
+  // 获取系统日期作为默认值
+  try {
+    const res = await getSystemDate()
+    systemDate = res.data
+  } catch (e) { /* use fallback */ }
+  dateRange.value = [toLocalDateStr(new Date(systemDate)), toLocalDateStr(new Date(systemDate))]
 
   await loadLocationOptions()
   if (!isAlive) return
@@ -354,7 +361,12 @@ function onChlFullscreenClosed() { chlFullscreenChart?.dispose(); chlFullscreenC
 async function loadTableData() {
   tableLoading.value = true
   try {
-    const res = await getOceanDataPage({ ...tableQuery.value })
+    const params = { ...tableQuery.value }
+    if (dateRange.value && dateRange.value.length === 2) {
+      params.startDate = dateRange.value[0]
+      params.endDate = dateRange.value[1]
+    }
+    const res = await getOceanDataPage(params)
     tableData.value = res.data.records
     tableTotal.value = res.data.total
   } finally { tableLoading.value = false }

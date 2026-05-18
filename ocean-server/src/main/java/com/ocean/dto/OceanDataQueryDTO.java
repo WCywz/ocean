@@ -23,6 +23,9 @@ public class OceanDataQueryDTO {
     /** 结束日期 */
     private String endDate;
 
+    /** 变量: chl/so/thetao */
+    private String variable;
+
     /** 深度最小值 */
     private Double depthMin;
 

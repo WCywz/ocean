@@ -19,11 +19,11 @@ import java.util.Map;
 /**
  * 预报数据控制器（可视化数据接口）
  */
-@RestController
-@RequestMapping("/api/forecast")
+// @RestController -- disabled, replaced by ForecastController
+// @RequestMapping("/api/forecast")
 public class ForecastRecordController {
 
-    @Autowired
+    //@Autowired
     private ForecastRecordService forecastRecordService;
 
     /**

@@ -1,24 +1,27 @@
-package com.ocean.vo;
+package com.ocean.entity;
 
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 /**
- * 模型版本视图对象
+ * 模型版本实体
  */
 @Data
-public class ModelVersionVO {
+@TableName("model_version")
+public class ModelVersion {
 
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long modelId;
 
     private String versionLabel;
 
-    private String cronExpression;
-
     private String paramsConfig;
+
+    private String cronExpression;
 
     private String dataSource;
 
@@ -30,7 +33,9 @@ public class ModelVersionVO {
 
     private LocalDateTime lastRunTime;
 
+    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 
+    @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
 }
