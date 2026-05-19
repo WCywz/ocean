@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "mysql": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@berthojoris/mcp-mysql-server",
+        "mysql://root:your_password@localhost:3306/ocean_forecast",
+        "list,read,utility"
+      ]
+    }
+  }
+}
