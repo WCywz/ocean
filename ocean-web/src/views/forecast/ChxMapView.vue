@@ -27,7 +27,7 @@
 
     <div class="editorial-section">
       <p class="editorial-section-label">Interactive</p>
-      <h3 class="editorial-section-heading">预报栅格地图</h3>
+      <h3 class="editorial-section-heading">预报热力地图</h3>
       <OceanMap
         :grid-data="gridData"
         :color-ranges="currentColorRanges"
@@ -61,10 +61,12 @@ import { ref, computed, onMounted } from 'vue'
 import OceanMap from '../../components/OceanMap.vue'
 import TrendChart from '../../components/TrendChart.vue'
 import { getMapGrid, getPointTrend, getSeaAreas } from '../../api/forecast'
+import { getSystemDate } from '../../api/system'
 import { CHL_CONC_COLORS, CHL_PROB_COLORS, CHL_COLORS } from '../../utils/chart-config'
 
 const chlMode = ref('concentration')
 const filterDate = ref('')
+const systemDate = ref('')
 const probDays = ref(7)
 const threshold = ref(3.0)
 const seaArea = ref(null)
@@ -87,12 +89,11 @@ const currentLegendLabels = computed(() =>
 )
 
 function todayStr() {
-  const d = new Date()
-  return d.toISOString().slice(0, 10)
+  return systemDate.value
 }
 
 function pastDate(days) {
-  const d = new Date()
+  const d = new Date(systemDate.value)
   d.setDate(d.getDate() - days)
   return d.toISOString().slice(0, 10)
 }
@@ -191,6 +192,8 @@ function handleReset() {
 function onSeaAreaChange() { customBbox.value = null }
 
 onMounted(async () => {
+  const res = await getSystemDate()
+  systemDate.value = res.data
   await loadSeaAreas()
   await fetchGridData()
 })

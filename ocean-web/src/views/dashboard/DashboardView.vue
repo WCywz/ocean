@@ -96,6 +96,7 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDashboard, getDashboardTrend, getAlerts } from '../../api/forecast'
+import { getSystemDate } from '../../api/system'
 import { getZoneHealth } from '../../api/health'
 import { buildZoneAssessment, buildOverallSummary } from '../../utils/health-assessment'
 import StatCards from './StatCards.vue'
@@ -184,7 +185,11 @@ const loading = reactive({
   alerts: false
 })
 
-const todayStr = computed(() => 'Jan 1, 2026')
+const systemDate = ref('')
+const todayStr = computed(() => {
+  if (!systemDate.value) return ''
+  return new Date(systemDate.value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+})
 
 async function fetchDashboard() {
   loading.dashboard = true
@@ -224,7 +229,9 @@ function goChl() { router.push('/app/forecast/chl') }
 function goOceanData() { router.push('/app/ocean-data') }
 function goHealth() { router.push('/app/ocean-health') }
 
-onMounted(() => {
+onMounted(async () => {
+  const res = await getSystemDate()
+  systemDate.value = res.data
   fetchHealth()
   fetchDashboard()
   fetchTrend('SST')

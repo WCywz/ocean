@@ -20,7 +20,7 @@
     <!-- Map -->
     <div class="editorial-section">
       <p class="editorial-section-label">Interactive</p>
-      <h3 class="editorial-section-heading">预报栅格地图</h3>
+      <h3 class="editorial-section-heading">预报热力地图</h3>
       <OceanMap
         :grid-data="gridData"
         :color-ranges="SST_MAP_COLORS"
@@ -56,9 +56,11 @@ import { ref, onMounted } from 'vue'
 import OceanMap from '../../components/OceanMap.vue'
 import TrendChart from '../../components/TrendChart.vue'
 import { getMapGrid, getPointTrend, getSeaAreas } from '../../api/forecast'
+import { getSystemDate } from '../../api/system'
 import { SST_MAP_COLORS, SST_COLORS } from '../../utils/chart-config'
 
 const filterDate = ref('')
+const systemDate = ref('')
 const seaArea = ref(null)
 const seaAreas = ref([])
 const gridData = ref([])
@@ -70,11 +72,6 @@ const trendLoading = ref(false)
 const customBbox = ref(null)
 
 const legendLabels = ['<10°C', '10-13°C', '13-16°C', '16-19°C', '19-22°C', '22-25°C', '25-28°C', '28-31°C', '31-34°C', '>34°C']
-
-function todayStr() {
-  const d = new Date()
-  return d.toISOString().slice(0, 10)
-}
 
 function buildBboxParams() {
   const params = {}
@@ -97,7 +94,7 @@ async function fetchGridData() {
   try {
     const params = {
       dataType: 'SST',
-      forecastDate: filterDate.value || todayStr(),
+      forecastDate: filterDate.value || systemDate.value,
       precision: 0.05,
       ...buildBboxParams()
     }
@@ -115,7 +112,7 @@ async function fetchGridData() {
 async function fetchTrendData(lon, lat) {
   trendLoading.value = true
   try {
-    const dateEnd = filterDate.value || todayStr()
+    const dateEnd = filterDate.value || systemDate.value
     const res = await getPointTrend({ dataType: 'SST', lon, lat, dateEnd })
     const points = res.data || []
     trendDates.value = points.map(p => p.forecastDate)
@@ -159,6 +156,8 @@ function onSeaAreaChange() {
 }
 
 onMounted(async () => {
+  const res = await getSystemDate()
+  systemDate.value = res.data
   await loadSeaAreas()
   await fetchGridData()
 })

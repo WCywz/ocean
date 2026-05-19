@@ -18,7 +18,7 @@
 
     <div class="editorial-section">
       <p class="editorial-section-label">Interactive</p>
-      <h3 class="editorial-section-heading">观测栅格地图</h3>
+      <h3 class="editorial-section-heading">观测热力地图</h3>
       <OceanMap
         :grid-data="gridData"
         :color-ranges="CHL_CONC_COLORS"
@@ -53,9 +53,11 @@ import OceanMap from '../../components/OceanMap.vue'
 import TrendChart from '../../components/TrendChart.vue'
 import { getObsMapGrid, getObsPointTrend } from '../../api/ocean-data'
 import { getSeaAreas } from '../../api/forecast'
+import { getSystemDate } from '../../api/system'
 import { CHL_CONC_COLORS, CHL_COLORS } from '../../utils/chart-config'
 
 const filterDate = ref('')
+const systemDate = ref('')
 const seaArea = ref(null)
 const seaAreas = ref([])
 const gridData = ref([])
@@ -68,8 +70,7 @@ const customBbox = ref(null)
 const legendLabels = ['<0.5', '0.5-1.5', '1.5-3.0', '3.0-5.0', '>5.0 mg/m³']
 
 function defaultDate() {
-  const d = new Date()
-  return d.toISOString().slice(0, 10)
+  return systemDate.value
 }
 
 function buildBboxParams() {
@@ -148,6 +149,8 @@ function handleReset() {
 function onSeaAreaChange() { customBbox.value = null }
 
 onMounted(async () => {
+  const res = await getSystemDate()
+  systemDate.value = res.data
   await loadSeaAreas()
   await fetchGridData()
 })
