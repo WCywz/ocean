@@ -43,7 +43,9 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import L from 'leaflet'
-import { wgs84ToGcj02 } from '../../utils/coord-transform'
+import { feature } from 'topojson-client'
+import landTopo from 'world-atlas/land-50m.json'
+import countriesTopo from 'world-atlas/countries-50m.json'
 
 const props = defineProps({
   alerts: { type: Array, default: () => [] },
@@ -87,14 +89,12 @@ function selectAlert(idx) {
 function flyToAlert(item) {
   if (!map) { console.warn('[HealthAlert] map not ready'); return }
   if (item.longitude == null || item.latitude == null) { console.warn('[HealthAlert] missing coords', item); return }
-  const [gcjLng, gcjLat] = wgs84ToGcj02(item.longitude, item.latitude)
-  map.flyTo([gcjLat, gcjLng], map.getZoom(), { duration: 0.8 })
+  map.flyTo([item.latitude, item.longitude], map.getZoom(), { duration: 0.8 })
   placeMarker(item)
 }
 
 function placeMarker(item) {
   clearMarker()
-  const [gcjLng, gcjLat] = wgs84ToGcj02(item.longitude, item.latitude)
   const color = item.dataType === 'SST' ? '#c0392b' : '#e67e22'
   const icon = L.divIcon({
     className: 'alert-pulse-marker',
@@ -102,7 +102,7 @@ function placeMarker(item) {
     iconSize: [48, 48],
     iconAnchor: [24, 24]
   })
-  pulseMarker = L.marker([gcjLat, gcjLng], { icon }).addTo(map)
+  pulseMarker = L.marker([item.latitude, item.longitude], { icon }).addTo(map)
 }
 
 function clearMarker() {
@@ -114,20 +114,33 @@ function clearMarker() {
 
 function initMap() {
   if (!mapContainer.value) return
-  const [gcjCenterLng, gcjCenterLat] = wgs84ToGcj02(122.5, 29.5)
   map = L.map(mapContainer.value, {
-    center: [gcjCenterLat, gcjCenterLng],
+    center: [29.5, 122.5],
     zoom: 7,
+    minZoom: 4,
+    maxZoom: 10,
+    maxBounds: [[0, 100], [48, 145]],
+    maxBoundsViscosity: 0.8,
     scrollWheelZoom: false,
     doubleClickZoom: false,
     zoomControl: false,
     dragging: true,
     attributionControl: false
   })
-  L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}&key=c286f049621bc825d06c2203774b2ef3', {
-    subdomains: ['1', '2', '3', '4'],
-    maxZoom: 10,
-    minZoom: 5
+
+  // Vector basemap (same as OceanMap)
+  map.createPane('basemap')
+  map.getPane('basemap').style.zIndex = 250
+
+  const landGeojson = feature(landTopo, landTopo.objects.land)
+  L.geoJSON(landGeojson, {
+    pane: 'basemap',
+    style: { fillColor: '#f5f0e8', fillOpacity: 1, color: '#c8c0b0', weight: 0.8 },
+  }).addTo(map)
+
+  L.geoJSON(feature(countriesTopo, countriesTopo.objects.countries), {
+    pane: 'basemap',
+    style: { fill: false, color: '#b8a88a', weight: 1.2, dashArray: '6 3' },
   }).addTo(map)
 }
 
@@ -262,7 +275,7 @@ onUnmounted(() => {
 .alert-map {
   flex: 1;
   min-height: 360px;
-  border: 2px solid #d0d0d0;
+  background: #a8d8ea;
 }
 
 .drilldown-links {
