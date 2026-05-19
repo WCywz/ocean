@@ -39,13 +39,14 @@ const props = defineProps({
   maxZoom: { type: Number, default: 10 }
 })
 
-const emit = defineEmits(['bboxChange'])
+const emit = defineEmits(['bboxChange', 'gridClick'])
 
 const mapContainer = ref(null)
 let map = null
 let heatLayer = null
 let drawControl = null
 let drawnItems = null
+let selectedMarker = null
 
 const legendColors = computed(() => props.colorRanges.map(r => r.color))
 
@@ -245,6 +246,54 @@ function drawGrid() {
   heatLayer.addTo(map)
 }
 
+// ── Grid point interaction ──
+
+function findNearestGridPoint(lat, lng) {
+  if (!props.gridData.length) return null
+  let best = null
+  let bestDist = Infinity
+  for (const p of props.gridData) {
+    const dlat = p.lat - lat
+    const dlng = p.lon - lng
+    const dist = dlat * dlat + dlng * dlng
+    if (dist < bestDist) { bestDist = dist; best = p }
+  }
+  return best
+}
+
+function placeSelectedMarker(pt) {
+  clearSelectedMarker()
+  selectedMarker = L.circleMarker([pt.lat, pt.lon], {
+    radius: 6,
+    fillColor: '#1a3a5c',
+    color: '#fff',
+    weight: 2,
+    fillOpacity: 0.9,
+    pane: 'labels',
+    interactive: false
+  }).addTo(map)
+}
+
+function clearSelectedMarker() {
+  if (selectedMarker) { map.removeLayer(selectedMarker); selectedMarker = null }
+}
+
+function onMapClick(e) {
+  const pt = findNearestGridPoint(e.latlng.lat, e.latlng.lng)
+  if (!pt) return
+  placeSelectedMarker(pt)
+  emit('gridClick', { lon: pt.lon, lat: pt.lat })
+}
+
+function emitCenterPoint() {
+  if (!props.gridData.length) return
+  const pt = findNearestGridPoint(props.center[0], props.center[1])
+  if (pt) {
+    placeSelectedMarker(pt)
+    emit('gridClick', { lon: pt.lon, lat: pt.lat })
+  }
+}
+
 // ── Map event handlers ──
 
 function onMoveEnd() {
@@ -403,13 +452,22 @@ onMounted(() => {
 
     initBaseLayers()
     map.on('moveend', onMoveEnd)
+    map.on('click', onMapClick)
     initDraw()
     drawGrid()
   })
 })
 
+let gridEmitted = false
+
 watch(() => props.gridData, () => {
-  nextTick(() => drawGrid())
+  nextTick(() => {
+    drawGrid()
+    if (!gridEmitted && props.gridData.length) {
+      gridEmitted = true
+      emitCenterPoint()
+    }
+  })
 }, { deep: true })
 
 onUnmounted(() => {

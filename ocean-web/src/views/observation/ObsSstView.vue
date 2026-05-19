@@ -26,6 +26,7 @@
         legend-title="温度 (°C)"
         :loading="mapLoading"
         @bbox-change="onBboxChange"
+        @grid-click="onGridClick"
       />
     </div>
 
@@ -68,7 +69,8 @@ const customBbox = ref(null)
 const legendLabels = ['<10°C', '10-13°C', '13-16°C', '16-19°C', '19-22°C', '22-25°C', '25-28°C', '28-31°C', '31-34°C', '>34°C']
 
 function defaultDate() {
-  return '2026-01-01'
+  const d = new Date()
+  return d.toISOString().slice(0, 10)
 }
 
 function buildBboxParams() {
@@ -109,7 +111,8 @@ async function fetchGridData() {
 async function fetchTrendData(lon, lat) {
   trendLoading.value = true
   try {
-    const res = await getObsPointTrend({ dataType: 'thetao', lon, lat })
+    const dateEnd = filterDate.value || defaultDate()
+    const res = await getObsPointTrend({ dataType: 'thetao', lon, lat, dateEnd })
     const points = res.data || []
     trendDates.value = points.map(p => p.obsDate)
     trendSeries.value = [{
@@ -123,6 +126,10 @@ async function fetchTrendData(lon, lat) {
 
 function onBboxChange(bbox) {
   customBbox.value = bbox
+}
+
+function onGridClick({ lon, lat }) {
+  fetchTrendData(lon, lat)
 }
 
 async function loadSeaAreas() {
@@ -148,10 +155,8 @@ function onSeaAreaChange() {
 }
 
 onMounted(async () => {
-  filterDate.value = '2026-01-01'
   await loadSeaAreas()
   await fetchGridData()
-  fetchTrendData(123.5, 29.8)
 })
 </script>
 

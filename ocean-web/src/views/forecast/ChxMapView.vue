@@ -35,6 +35,7 @@
         :legend-title="chlMode === 'concentration' ? '浓度 (mg/m³)' : '概率 (%)'"
         :loading="mapLoading"
         @bbox-change="onBboxChange"
+        @grid-click="onGridClick"
       />
     </div>
 
@@ -86,11 +87,12 @@ const currentLegendLabels = computed(() =>
 )
 
 function todayStr() {
-  return '2026-01-01'
+  const d = new Date()
+  return d.toISOString().slice(0, 10)
 }
 
 function pastDate(days) {
-  const d = new Date('2026-01-01')
+  const d = new Date()
   d.setDate(d.getDate() - days)
   return d.toISOString().slice(0, 10)
 }
@@ -141,7 +143,8 @@ async function fetchGridData() {
 async function fetchTrendData(lon, lat) {
   trendLoading.value = true
   try {
-    const res = await getPointTrend({ dataType: 'CHL', lon, lat })
+    const dateEnd = filterDate.value || todayStr()
+    const res = await getPointTrend({ dataType: 'CHL', lon, lat, dateEnd })
     const points = res.data || []
     trendDates.value = points.map(p => p.forecastDate)
     trendSeries.value = [{
@@ -154,6 +157,10 @@ async function fetchTrendData(lon, lat) {
 }
 
 function onBboxChange(bbox) { customBbox.value = bbox }
+
+function onGridClick({ lon, lat }) {
+  fetchTrendData(lon, lat)
+}
 
 async function loadSeaAreas() {
   try {
@@ -173,7 +180,7 @@ function onModeChange() {
 async function handleSearch() { await fetchGridData() }
 
 function handleReset() {
-  filterDate.value = todayStr()
+  filterDate.value = ''
   probDays.value = 7
   threshold.value = 3.0
   seaArea.value = null
@@ -184,10 +191,8 @@ function handleReset() {
 function onSeaAreaChange() { customBbox.value = null }
 
 onMounted(async () => {
-  filterDate.value = '2026-01-01'
   await loadSeaAreas()
   await fetchGridData()
-  fetchTrendData(123.5, 29.8)
 })
 </script>
 

@@ -26,6 +26,7 @@
         legend-title="浓度 (mg/m³)"
         :loading="mapLoading"
         @bbox-change="onBboxChange"
+        @grid-click="onGridClick"
       />
     </div>
 
@@ -67,7 +68,8 @@ const customBbox = ref(null)
 const legendLabels = ['<0.5', '0.5-1.5', '1.5-3.0', '3.0-5.0', '>5.0 mg/m³']
 
 function defaultDate() {
-  return '2026-01-01'
+  const d = new Date()
+  return d.toISOString().slice(0, 10)
 }
 
 function buildBboxParams() {
@@ -108,7 +110,8 @@ async function fetchGridData() {
 async function fetchTrendData(lon, lat) {
   trendLoading.value = true
   try {
-    const res = await getObsPointTrend({ dataType: 'chl', lon, lat })
+    const dateEnd = filterDate.value || defaultDate()
+    const res = await getObsPointTrend({ dataType: 'chl', lon, lat, dateEnd })
     const points = res.data || []
     trendDates.value = points.map(p => p.obsDate)
     trendSeries.value = [{
@@ -122,6 +125,10 @@ async function fetchTrendData(lon, lat) {
 
 function onBboxChange(bbox) { customBbox.value = bbox }
 
+function onGridClick({ lon, lat }) {
+  fetchTrendData(lon, lat)
+}
+
 async function loadSeaAreas() {
   try {
     const res = await getSeaAreas()
@@ -132,7 +139,7 @@ async function loadSeaAreas() {
 async function handleSearch() { await fetchGridData() }
 
 function handleReset() {
-  filterDate.value = defaultDate()
+  filterDate.value = ''
   seaArea.value = null
   customBbox.value = null
   fetchGridData()
@@ -141,10 +148,8 @@ function handleReset() {
 function onSeaAreaChange() { customBbox.value = null }
 
 onMounted(async () => {
-  filterDate.value = '2026-01-01'
   await loadSeaAreas()
   await fetchGridData()
-  fetchTrendData(123.5, 29.8)
 })
 </script>
 
