@@ -124,11 +124,16 @@ export function buildSeriesData(seriesMap, colors, { area, markLine } = {}) {
 // ---- Map color configs ----
 
 export const SST_MAP_COLORS = [
-  { min: -Infinity, max: 16,  color: '#1A5276', label: '<16°C' },
-  { min: 16,       max: 20,  color: '#2E86C1', label: '16-20°C' },
-  { min: 20,       max: 24,  color: '#F39C12', label: '20-24°C' },
-  { min: 24,       max: 28,  color: '#E67E22', label: '24-28°C' },
-  { min: 28,       max: Infinity, color: '#E74C3C', label: '>28°C' }
+  { min: -Infinity, max: 10,  color: '#313695' },
+  { min: 10,        max: 13,  color: '#4575b4' },
+  { min: 13,        max: 16,  color: '#74add1' },
+  { min: 16,        max: 19,  color: '#abd9e9' },
+  { min: 19,        max: 22,  color: '#fee090' },
+  { min: 22,        max: 25,  color: '#fdae61' },
+  { min: 25,        max: 28,  color: '#f46d43' },
+  { min: 28,        max: 31,  color: '#d73027' },
+  { min: 31,        max: 34,  color: '#a50026' },
+  { min: 34,        max: Infinity, color: '#67001f' }
 ]
 
 export const CHL_CONC_COLORS = [

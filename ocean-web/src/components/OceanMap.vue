@@ -21,8 +21,10 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import L from 'leaflet'
 import 'leaflet-draw'
-import { wgs84ToGcj02, gcj02ToWgs84 } from '../utils/coord-transform'
-import { isPointInLand } from '../utils/land-mask'
+import { feature } from 'topojson-client'
+import landTopo from 'world-atlas/land-50m.json'
+import countriesTopo from 'world-atlas/countries-50m.json'
+
 
 const props = defineProps({
   gridData: { type: Array, default: () => [] },
@@ -33,6 +35,7 @@ const props = defineProps({
   center: { type: Array, default: () => [29.8, 123.5] },
   zoom: { type: Number, default: 7 },
   height: { type: String, default: '450px' },
+  minZoom: { type: Number, default: 4 },
   maxZoom: { type: Number, default: 10 }
 })
 
@@ -78,10 +81,6 @@ const HeatInterpLayer = L.Layer.extend({
   _interpolate(lat, lng) {
     const g = this._grid
     if (!g) return null
-    // Convert GCJ-02 (map tile coords) back to WGS-84 for grid lookup
-    const [wgsLng, wgsLat] = gcj02ToWgs84(lng, lat)
-    lat = wgsLat
-    lng = wgsLng
 
     let i0 = 0, i1 = 0
     for (let i = 0; i < g.lats.length - 1; i++) {
@@ -128,7 +127,7 @@ const HeatInterpLayer = L.Layer.extend({
     this._canvas.style.left = '0'
     this._canvas.style.pointerEvents = 'none'
     this._ctx = this._canvas.getContext('2d', { willReadFrequently: false })
-    map.getPanes().overlayPane.appendChild(this._canvas)
+    map.getPane('heatmap').appendChild(this._canvas)
     this._debounce = null
     map.on('moveend zoomend viewreset', this._scheduleDraw, this)
     this._resize()
@@ -242,13 +241,7 @@ function drawGrid() {
     map.removeLayer(heatLayer)
   }
 
-  // Filter land points, keep WGS-84 coords for grid structure integrity
-  const oceanPts = props.gridData
-    .filter(p => !isPointInLand(p.lon, p.lat))
-
-  if (!oceanPts.length) return
-
-  heatLayer = new HeatInterpLayer(oceanPts, props.colorRanges)
+  heatLayer = new HeatInterpLayer(props.gridData, props.colorRanges)
   heatLayer.addTo(map)
 }
 
@@ -256,38 +249,32 @@ function drawGrid() {
 
 function onMoveEnd() {
   const b = map.getBounds()
-  const [swLng, swLat] = gcj02ToWgs84(b.getWest(), b.getSouth())
-  const [neLng, neLat] = gcj02ToWgs84(b.getEast(), b.getNorth())
   emit('bboxChange', {
-    north: neLat,
-    south: swLat,
-    east: neLng,
-    west: swLng
+    north: b.getNorth(),
+    south: b.getSouth(),
+    east: b.getEast(),
+    west: b.getWest()
   })
 }
 
 function onDrawCreated(e) {
   drawnItems.addLayer(e.layer)
   const b = e.layer.getBounds()
-  const [swLng, swLat] = gcj02ToWgs84(b.getWest(), b.getSouth())
-  const [neLng, neLat] = gcj02ToWgs84(b.getEast(), b.getNorth())
   emit('bboxChange', {
-    north: neLat,
-    south: swLat,
-    east: neLng,
-    west: swLng
+    north: b.getNorth(),
+    south: b.getSouth(),
+    east: b.getEast(),
+    west: b.getWest()
   })
 }
 
 function onDrawDeleted() {
   const b = map.getBounds()
-  const [swLng, swLat] = gcj02ToWgs84(b.getWest(), b.getSouth())
-  const [neLng, neLat] = gcj02ToWgs84(b.getEast(), b.getNorth())
   emit('bboxChange', {
-    north: neLat,
-    south: swLat,
-    east: neLng,
-    west: swLng
+    north: b.getNorth(),
+    south: b.getSouth(),
+    east: b.getEast(),
+    west: b.getWest()
   })
 }
 
@@ -312,21 +299,109 @@ function initDraw() {
   map.on(L.Draw.Event.DELETED, onDrawDeleted)
 }
 
+function initBaseLayers() {
+  // Pane for heatmap — below land so land masks the interpolation bleed
+  map.createPane('heatmap')
+  map.getPane('heatmap').style.zIndex = 200
+
+  // Pane for basemap (land, borders, grid) — above heatmap
+  map.createPane('basemap')
+  map.getPane('basemap').style.zIndex = 250
+
+  // Pane for labels — above heatmap so text is always visible
+  map.createPane('labels')
+  map.getPane('labels').style.zIndex = 650
+
+  const landGeojson = feature(landTopo, landTopo.objects.land)
+  const countriesGeojson = feature(countriesTopo, countriesTopo.objects.countries)
+
+  // Land fill
+  L.geoJSON(landGeojson, {
+    pane: 'basemap',
+    style: { fillColor: '#f5f0e8', fillOpacity: 1, color: '#c8c0b0', weight: 0.8 },
+  }).addTo(map)
+
+  // Country borders
+  L.geoJSON(countriesGeojson, {
+    pane: 'basemap',
+    style: { fill: false, color: '#b8a88a', weight: 1.2, dashArray: '6 3' },
+  }).addTo(map)
+
+  // Grid lines (every 5°)
+  for (let lat = 10; lat <= 45; lat += 5) {
+    L.polyline([[lat, 105], [lat, 135]], {
+      pane: 'basemap', color: 'rgba(120,160,180,0.25)', weight: 0.5, interactive: false,
+    }).addTo(map)
+  }
+  for (let lon = 105; lon <= 135; lon += 5) {
+    L.polyline([[5, lon], [45, lon]], {
+      pane: 'basemap', color: 'rgba(120,160,180,0.25)', weight: 0.5, interactive: false,
+    }).addTo(map)
+  }
+
+  // Country labels
+  const countries = [
+    ['中国', 35.0, 108.0], ['俄罗斯', 55.0, 95.0], ['蒙古', 46.5, 105.0],
+    ['朝鲜', 39.5, 127.0], ['韩国', 36.0, 127.8], ['日本', 37.0, 138.0],
+    ['菲律宾', 12.5, 122.5], ['越南', 16.5, 106.5], ['老挝', 18.5, 103.5],
+    ['泰国', 15.5, 101.0], ['缅甸', 21.0, 96.0], ['柬埔寨', 12.5, 105.0],
+    ['印度', 22.0, 79.0], ['尼泊尔', 28.0, 83.5], ['不丹', 27.5, 90.5],
+    ['哈萨克斯坦', 47.0, 66.0], ['马来西亚', 3.5, 110.0], ['印度尼西亚', -2.0, 115.0],
+  ]
+  for (const [name, lat, lon] of countries) {
+    L.marker([lat, lon], {
+      pane: 'labels',
+      icon: L.divIcon({ className: 'country-label', html: name, iconSize: [60, 20], iconAnchor: [30, 10] }),
+    }).addTo(map)
+  }
+
+  // Sea area labels
+  const seas = [
+    ['渤  海', 38.8, 119.5], ['黄  海', 35.5, 123.5], ['东  海', 28.5, 124.5],
+    ['南  海', 15.0, 115.0], ['日本海', 39.0, 133.0], ['菲律宾海', 18.0, 128.0],
+  ]
+  for (const [name, lat, lon] of seas) {
+    L.marker([lat, lon], {
+      pane: 'labels',
+      icon: L.divIcon({ className: 'sea-label', html: name, iconSize: [100, 24], iconAnchor: [50, 12] }),
+    }).addTo(map)
+  }
+
+  // Coastal cities
+  const cities = [
+    ['大连', 38.92, 121.63], ['天津', 39.08, 117.20], ['青岛', 36.07, 120.38],
+    ['上海', 31.23, 121.47], ['宁波', 29.87, 121.55], ['舟山', 30.02, 122.11],
+    ['温州', 28.02, 120.65], ['福州', 26.07, 119.30], ['厦门', 24.48, 118.09],
+    ['广州', 23.13, 113.26], ['深圳', 22.54, 114.06], ['海口', 20.04, 110.34],
+    ['三亚', 18.25, 109.51], ['台北', 25.03, 121.57],
+    ['首尔', 37.57, 126.98], ['东京', 35.68, 139.76], ['马尼拉', 14.60, 120.98],
+    ['胡志明', 10.82, 106.63],
+  ]
+  for (const [name, lat, lon] of cities) {
+    L.circleMarker([lat, lon], {
+      radius: 3, fillColor: '#e87d5c', color: '#fff', weight: 1, fillOpacity: 0.9,
+      pane: 'labels', interactive: false,
+    }).addTo(map)
+    L.marker([lat, lon], {
+      pane: 'labels',
+      icon: L.divIcon({ className: 'city-label', html: name, iconSize: [40, 16], iconAnchor: [-8, 4] }),
+    }).addTo(map)
+  }
+}
+
 onMounted(() => {
   nextTick(() => {
-    const [gcjCenterLng, gcjCenterLat] = wgs84ToGcj02(props.center[1], props.center[0])
     map = L.map(mapContainer.value, {
       preferCanvas: true,
-      center: [gcjCenterLat, gcjCenterLng],
+      center: [props.center[0], props.center[1]],
       zoom: props.zoom,
-      maxZoom: props.maxZoom
+      minZoom: props.minZoom,
+      maxZoom: props.maxZoom,
+      maxBounds: [[0, 100], [48, 145]],
+      maxBoundsViscosity: 0.8
     })
 
-    L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}&key=c286f049621bc825d06c2203774b2ef3', {
-      subdomains: ['1', '2', '3', '4'],
-      maxZoom: 18
-    }).addTo(map)
-
+    initBaseLayers()
     map.on('moveend', onMoveEnd)
     initDraw()
     drawGrid()
@@ -351,7 +426,7 @@ onUnmounted(() => {
   width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  border: 2px solid #d0d0d0;
+  background: #a8d8ea;
 }
 .map-legend {
   position: absolute;
@@ -384,5 +459,26 @@ onUnmounted(() => {
 .legend-label {
   color: #555;
   white-space: nowrap;
+}
+</style>
+
+<style>
+/* Basemap labels (unscoped so Leaflet divIcon classes work) */
+.country-label {
+  font-size: 15px; font-weight: 700; color: #5d5348;
+  text-shadow: 0 0 4px rgba(245,240,232,0.8);
+  white-space: nowrap; pointer-events: none;
+  text-align: center;
+}
+.city-label {
+  font-size: 12px; color: #555;
+  text-shadow: 0 0 3px rgba(255,255,255,0.9);
+  white-space: nowrap; pointer-events: none;
+}
+.sea-label {
+  font-size: 14px; font-style: italic; color: #4a8faa;
+  text-shadow: 0 0 4px rgba(168,216,234,0.7);
+  white-space: nowrap; pointer-events: none;
+  text-align: center; letter-spacing: 4px;
 }
 </style>

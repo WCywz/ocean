@@ -68,7 +68,7 @@ const trendLoading = ref(false)
 
 const customBbox = ref(null)
 
-const legendLabels = ['<16°C', '16-20°C', '20-24°C', '24-28°C', '>28°C']
+const legendLabels = ['<10°C', '10-13°C', '13-16°C', '16-19°C', '19-22°C', '22-25°C', '25-28°C', '28-31°C', '31-34°C', '>34°C']
 
 function todayStr() {
   return '2026-01-01'

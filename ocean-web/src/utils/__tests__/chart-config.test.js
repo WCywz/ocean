@@ -120,10 +120,10 @@ describe('chart-config', () => {
   })
 
   describe('map color configs', () => {
-    it('SST_MAP_COLORS has 5 temperature ranges', () => {
-      expect(SST_MAP_COLORS).toHaveLength(5)
-      expect(SST_MAP_COLORS[0]).toEqual({ min: -Infinity, max: 16, color: '#1A5276', label: '<16°C' })
-      expect(SST_MAP_COLORS[4]).toEqual({ min: 28, max: Infinity, color: '#E74C3C', label: '>28°C' })
+    it('SST_MAP_COLORS has 10 temperature ranges', () => {
+      expect(SST_MAP_COLORS).toHaveLength(10)
+      expect(SST_MAP_COLORS[0]).toEqual({ min: -Infinity, max: 10, color: '#313695' })
+      expect(SST_MAP_COLORS[9]).toEqual({ min: 34, max: Infinity, color: '#67001f' })
     })
 
     it('CHL_CONC_COLORS has 5 concentration ranges', () => {
@@ -138,9 +138,9 @@ describe('chart-config', () => {
     })
 
     it('getMapColor returns correct color for value', () => {
-      expect(getMapColor(15, SST_MAP_COLORS)).toBe('#1A5276')
-      expect(getMapColor(22, SST_MAP_COLORS)).toBe('#F39C12')
-      expect(getMapColor(30, SST_MAP_COLORS)).toBe('#E74C3C')
+      expect(getMapColor(8, SST_MAP_COLORS)).toBe('#313695')
+      expect(getMapColor(23, SST_MAP_COLORS)).toBe('#fdae61')
+      expect(getMapColor(30, SST_MAP_COLORS)).toBe('#d73027')
     })
 
     it('getMapColor returns fallback for undefined value', () => {
@@ -152,9 +152,9 @@ describe('chart-config', () => {
     it('converts SST color ranges to leaflet.heat gradient object', () => {
       const gradient = buildHeatGradient(SST_MAP_COLORS)
       expect(gradient).toBeTypeOf('object')
-      expect(Object.keys(gradient)).toHaveLength(5)
-      expect(gradient['0']).toBe('#1A5276')
-      expect(gradient['1']).toBe('#E74C3C')
+      expect(Object.keys(gradient)).toHaveLength(10)
+      expect(gradient['0']).toBe('#313695')
+      expect(gradient['1']).toBe('#67001f')
     })
 
     it('normalizes gradient keys between 0 and 1', () => {
