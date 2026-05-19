@@ -76,4 +76,9 @@ public class ForecastController {
     public Result<List<Map<String, Object>>> getSeaAreas() {
         return Result.success(forecastService.getSeaAreas());
     }
+
+    @PostMapping("/run")
+    public Result<Map<String, Object>> runForecast() {
+        return Result.success(forecastService.runForecast());
+    }
 }

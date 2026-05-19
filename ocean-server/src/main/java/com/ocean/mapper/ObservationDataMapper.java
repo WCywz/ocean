@@ -40,4 +40,15 @@ public interface ObservationDataMapper extends BaseMapper<ObservationData> {
 
     @Select("SELECT DISTINCT lat, lon FROM observation_grid_cache ORDER BY lat, lon")
     List<Map<String, Object>> selectDistinctLocations();
+
+    @Select("SELECT obs_time AS time, depth, lat, lon, " +
+            "MAX(CASE WHEN variable = 'chl' THEN value END) AS chl, " +
+            "MAX(CASE WHEN variable = 'thetao' THEN value END) AS thetao, " +
+            "MAX(CASE WHEN variable = 'so' THEN value END) AS so " +
+            "FROM observation_data " +
+            "WHERE obs_time BETWEEN #{startDate} AND #{endDate} " +
+            "GROUP BY obs_time, depth, lat, lon " +
+            "ORDER BY obs_time, lat, lon, depth")
+    List<Map<String, Object>> selectForecastInput(@Param("startDate") String startDate,
+                                                    @Param("endDate") String endDate);
 }

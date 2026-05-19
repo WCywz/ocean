@@ -19,4 +19,7 @@ public interface ForecastService {
     List<Map<String, Object>> getDashboardTrend(String dataType, Integer days);
     List<Map<String, Object>> getChlProbability(String dateStart, String dateEnd, Double threshold);
     List<Map<String, Object>> getSeaAreas();
+
+    /** Run model forecast and persist results to forecast_grid */
+    Map<String, Object> runForecast();
 }
