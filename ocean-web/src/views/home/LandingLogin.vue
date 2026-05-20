@@ -34,9 +34,6 @@
         <a class="text-link" @click="$router.push('/register')">注册</a>
       </div>
 
-      <div class="landing-login__creds">
-        管理员: admin / admin123 &nbsp;·&nbsp; 用户: user / user123
-      </div>
     </div>
   </section>
 </template>
@@ -55,8 +52,8 @@ const loading = ref(false)
 const loginRef = ref(null)
 
 const form = reactive({
-  username: 'admin',
-  password: 'admin123'
+  username: '',
+  password: ''
 })
 
 async function handleLogin() {

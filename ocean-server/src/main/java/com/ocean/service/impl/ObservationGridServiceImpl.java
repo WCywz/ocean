@@ -1,10 +1,13 @@
 package com.ocean.service.impl;
 
+import com.ocean.mapper.ObservationDataMapper;
 import com.ocean.mapper.ObservationGridMapper;
 import com.ocean.service.ObservationGridService;
+import com.ocean.service.SystemConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -13,6 +16,10 @@ public class ObservationGridServiceImpl implements ObservationGridService {
 
     @Autowired
     private ObservationGridMapper observationGridMapper;
+    @Autowired
+    private ObservationDataMapper observationDataMapper;
+    @Autowired
+    private SystemConfigService systemConfigService;
 
     @Override
     public List<Map<String, Object>> getMapGrid(String variable, String obsDate,
@@ -24,7 +31,10 @@ public class ObservationGridServiceImpl implements ObservationGridService {
     @Override
     public List<Map<String, Object>> getPointTrend(String dataType, Double lon, Double lat,
                                                     String dateStart, String dateEnd) {
-        return observationGridMapper.selectPointTrend(dataType, lon, lat, dateStart, dateEnd);
+        LocalDate systemDate = systemConfigService.getSystemDate();
+        String start = systemDate.minusDays(7).toString();
+        String end = systemDate.toString();
+        return observationDataMapper.selectRecentPointTrend(dataType, lat, lon, start, end);
     }
 
     @Override

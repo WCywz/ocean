@@ -57,12 +57,23 @@ public interface ForecastGridMapper extends BaseMapper<ForecastGrid> {
                                                 @Param("dateStart") String dateStart,
                                                 @Param("dateEnd") String dateEnd);
 
-    @Select("SELECT f.lat, f.lon, AVG(f.value) AS avg_value, MAX(f.forecast_date) AS forecastDate " +
-            "FROM forecast_grid f WHERE f.variable = #{dataType} AND f.depth = 0 " +
-            "AND f.forecast_date >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY) " +
-            "GROUP BY f.lat, f.lon ORDER BY AVG(f.value) DESC LIMIT 5")
+    @Select("SELECT forecast_date AS date, value " +
+            "FROM forecast_grid WHERE variable = #{dataType} AND depth = 0 " +
+            "AND lat = #{lat} AND lon = #{lon} " +
+            "AND forecast_date >= #{startDate} AND forecast_date < #{endDate} " +
+            "ORDER BY forecast_date")
     List<Map<String, Object>> selectDashboardTrend(@Param("dataType") String dataType,
-                                                    @Param("days") Integer days);
+                                                    @Param("lat") Double lat,
+                                                    @Param("lon") Double lon,
+                                                    @Param("startDate") String startDate,
+                                                    @Param("endDate") String endDate);
+
+    @Select("SELECT lat, lon, " +
+            "POW(lat - #{centerLat}, 2) + POW(lon - #{centerLon}, 2) AS dist " +
+            "FROM forecast_grid WHERE depth = 0 " +
+            "ORDER BY dist LIMIT 1")
+    Map<String, Object> selectNearestPoint(@Param("centerLat") Double centerLat,
+                                           @Param("centerLon") Double centerLon);
 
     @Select("SELECT lat, lon, " +
             "SUM(CASE WHEN value > #{threshold} THEN 1 ELSE 0 END) / COUNT(*) AS probability " +

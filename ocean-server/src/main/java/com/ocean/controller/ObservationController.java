@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.ocean.common.Result;
 import com.ocean.dto.OceanDataQueryDTO;
 import com.ocean.service.ObservationGridService;
+import com.ocean.service.ObservationIngestService;
 import com.ocean.service.ObservationService;
 import com.ocean.vo.OceanDataVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,9 @@ public class ObservationController {
 
     @Autowired
     private ObservationGridService observationGridService;
+
+    @Autowired
+    private ObservationIngestService observationIngestService;
 
     // ---- observation_data (原始观测数据) ----
 
@@ -81,5 +85,19 @@ public class ObservationController {
     @GetMapping("/grid/locations")
     public Result<List<Map<String, Object>>> getGridLocations() {
         return Result.success(observationGridService.getDistinctLocations());
+    }
+
+    // ---- data ingestion ----
+
+    @PostMapping("/ingest/next")
+    public Result<String> ingestNextDay() {
+        java.time.LocalDate date = observationIngestService.ingestNextDay();
+        return Result.success("Ingested data for " + date + ", system date advanced");
+    }
+
+    @PostMapping("/ingest/date")
+    public Result<String> ingestDate(@RequestParam String date) {
+        observationIngestService.ingestDate(java.time.LocalDate.parse(date));
+        return Result.success("Ingested data for " + date);
     }
 }

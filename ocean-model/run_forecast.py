@@ -249,7 +249,7 @@ def run_predictions(models, data_norm, scalers, metas, forecast_start_date, devi
 
         for i, meta in enumerate(metas):
             for day_offset in range(HORIZON):
-                forecast_date = (forecast_start + timedelta(days=day_offset)).isoformat()
+                forecast_date = (forecast_start + timedelta(days=day_offset + 1)).isoformat()
                 results.append({
                     "model_id": model_id,
                     "data_type": data_type,

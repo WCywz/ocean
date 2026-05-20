@@ -43,9 +43,6 @@
         </div>
       </div>
 
-      <div style="margin-top: 28px; font-size: 11px; color: var(--color-text-muted); text-align: center;">
-        管理员: admin / admin123 &nbsp;·&nbsp; 用户: user / user123
-      </div>
     </div>
   </div>
 </template>
@@ -62,8 +59,8 @@ const userStore = useUserStore()
 const loading = ref(false)
 
 const form = reactive({
-  username: 'admin',
-  password: 'admin123'
+  username: '',
+  password: ''
 })
 
 async function handleLogin() {

@@ -15,7 +15,6 @@ import com.ocean.vo.DashboardVO;
 import com.ocean.vo.ForecastVO;
 import com.ocean.service.SystemConfigService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +35,7 @@ public class ForecastServiceImpl implements ForecastService {
     @Autowired private SystemConfigService systemConfigService;
     @Autowired private ForecastConfig forecastConfig;
     @Autowired private ObservationDataMapper observationDataMapper;
+    // @Autowired private MonitoringStationMapper monitoringStationMapper;
 
     @Override
     public DashboardVO getDashboard() {
@@ -47,29 +47,50 @@ public class ForecastServiceImpl implements ForecastService {
                 new LambdaQueryWrapper<ForecastGrid>().eq(ForecastGrid::getForecastDate, systemConfigService.getSystemDate())));
         vo.setAlertCount(alertEventMapper.selectCount(
                 new LambdaQueryWrapper<AlertEvent>().eq(AlertEvent::getStatus, "active")));
-        vo.setLatestSstData(getLatestGridData("sst"));
-        vo.setLatestChlData(getLatestGridData("chl"));
+        // 数据附录暂时停用
+        // vo.setLatestSstData(getStationObsData("sst"));
+        // vo.setLatestChlData(getStationObsData("chl"));
         return vo;
     }
 
-    private List<Map<String, Object>> getLatestGridData(String variable) {
+    // 数据附录暂时停用
+    /*
+    private List<Map<String, Object>> getStationObsData(String variable) {
+        String dbVariable = variable.equals("sst") ? "thetao" : "chl";
+
+        List<MonitoringStation> stations = monitoringStationMapper.selectList(
+                new LambdaQueryWrapper<MonitoringStation>().eq(MonitoringStation::getIsActive, 1));
+
+        List<Map<String, Object>> rows = observationDataMapper.selectLatestStationObs(dbVariable);
+
         List<Map<String, Object>> result = new ArrayList<>();
-        LambdaQueryWrapper<ForecastGrid> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ForecastGrid::getVariable, variable)
-               .eq(ForecastGrid::getDepth, 0)
-               .orderByDesc(ForecastGrid::getForecastDate)
-               .last("LIMIT 5");
-        List<ForecastGrid> list = forecastGridMapper.selectList(wrapper);
-        for (ForecastGrid g : list) {
+        for (MonitoringStation station : stations) {
             Map<String, Object> m = new HashMap<>();
-            m.put("lat", g.getLat());
-            m.put("lon", g.getLon());
-            m.put("value", g.getValue());
-            m.put("forecastDate", g.getForecastDate().toString());
+            m.put("locationName", station.getStationName());
+            m.put("lat", station.getLat());
+            m.put("lon", station.getLon());
+
+            Map<String, Object> match = null;
+            for (Map<String, Object> row : rows) {
+                if (station.getLat().equals(((Number) row.get("lat")).doubleValue())
+                        && station.getLon().equals(((Number) row.get("lon")).doubleValue())) {
+                    match = row;
+                    break;
+                }
+            }
+
+            if (match != null) {
+                m.put("value", match.get("value"));
+                m.put("forecastDate", match.get("obsDate").toString());
+            } else {
+                m.put("value", null);
+                m.put("forecastDate", systemConfigService.getSystemDate().toString());
+            }
             result.add(m);
         }
         return result;
     }
+    */
 
     @Override
     public IPage<ForecastVO> getRecordPage(ForecastQueryDTO dto) {
@@ -122,12 +143,30 @@ public class ForecastServiceImpl implements ForecastService {
 
     @Override
     public List<Map<String, Object>> getPointTrend(String dataType, Double lon, Double lat, String dateStart, String dateEnd) {
-        return forecastGridMapper.selectPointTrend(dataType.toLowerCase(), lon, lat, dateStart, dateEnd);
+        LocalDate systemDate = systemConfigService.getSystemDate();
+        String start = systemDate.plusDays(1).toString();
+        String end = systemDate.plusDays(7).toString();
+        return forecastGridMapper.selectPointTrend(dataType.toLowerCase(), lon, lat, start, end);
     }
 
     @Override
     public List<Map<String, Object>> getDashboardTrend(String dataType, Integer days) {
-        return forecastGridMapper.selectDashboardTrend(dataType.toLowerCase(), days);
+        // Use map center point (29.8, 123.5) to find nearest grid point
+        Map<String, Object> nearest = forecastGridMapper.selectNearestPoint(29.8, 123.5);
+        Double ptLat = ((Number) nearest.get("lat")).doubleValue();
+        Double ptLon = ((Number) nearest.get("lon")).doubleValue();
+
+        String startDate = systemConfigService.getSystemDate().plusDays(1).toString();
+        String endDate = systemConfigService.getSystemDate().plusDays(days + 1).toString();
+        List<Map<String, Object>> dataPoints = forecastGridMapper.selectDashboardTrend(
+                dataType.toLowerCase(), ptLat, ptLon, startDate, endDate);
+
+        Map<String, Object> series = new HashMap<>();
+        series.put("locationName", String.format("(%.2f°N, %.2f°E)", ptLat, ptLon));
+        series.put("longitude", ptLon);
+        series.put("latitude", ptLat);
+        series.put("dataPoints", dataPoints);
+        return List.of(series);
     }
 
     @Override

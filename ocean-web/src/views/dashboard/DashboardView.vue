@@ -72,7 +72,8 @@
       <div style="flex: 1;">
         <AlertPanel :alerts="alerts" :loading="loading.alerts" />
       </div>
-      <div style="flex: 2; display: flex; flex-direction: column; gap: 24px;">
+      <!-- 数据附录暂时停用 -->
+      <!-- <div style="flex: 2; display: flex; flex-direction: column; gap: 24px;">
         <LatestDataTable
           title="最新海表温度 (SST)"
           dataType="SST"
@@ -87,7 +88,7 @@
           :loading="loading.dashboard"
           @navigate="goOceanData"
         />
-      </div>
+      </div> -->
     </div>
   </div>
 </template>

@@ -41,6 +41,27 @@ public interface ObservationDataMapper extends BaseMapper<ObservationData> {
     @Select("SELECT DISTINCT lat, lon FROM observation_grid_cache ORDER BY lat, lon")
     List<Map<String, Object>> selectDistinctLocations();
 
+    @Select("SELECT od.variable, od.obs_time AS obsDate, od.lat, od.lon, od.value " +
+            "FROM observation_data od " +
+            "WHERE od.variable = #{variable} " +
+            "AND od.depth = (SELECT MIN(d2.depth) FROM observation_data d2 WHERE d2.variable = #{variable} AND d2.lat = od.lat AND d2.lon = od.lon) " +
+            "AND od.obs_time = (SELECT MAX(d3.obs_time) FROM observation_data d3 WHERE d3.variable = #{variable} AND d3.lat = od.lat AND d3.lon = od.lon AND d3.depth = od.depth) " +
+            "AND (od.lat, od.lon) IN (SELECT lat, lon FROM monitoring_station WHERE is_active = 1)")
+    List<Map<String, Object>> selectLatestStationObs(@Param("variable") String variable);
+
+    @Select("SELECT obs_time AS obsDate, value " +
+            "FROM observation_data " +
+            "WHERE variable = #{variable} " +
+            "AND lat = #{lat} AND lon = #{lon} " +
+            "AND depth = (SELECT MIN(d2.depth) FROM observation_data d2 WHERE d2.variable = #{variable} AND d2.lat = #{lat} AND d2.lon = #{lon}) " +
+            "AND obs_time >= #{dateStart} AND obs_time <= #{dateEnd} " +
+            "ORDER BY obs_time ASC")
+    List<Map<String, Object>> selectRecentPointTrend(@Param("variable") String variable,
+                                                     @Param("lat") Double lat,
+                                                     @Param("lon") Double lon,
+                                                     @Param("dateStart") String dateStart,
+                                                     @Param("dateEnd") String dateEnd);
+
     @Select("SELECT obs_time AS time, depth, lat, lon, " +
             "MAX(CASE WHEN variable = 'chl' THEN value END) AS chl, " +
             "MAX(CASE WHEN variable = 'thetao' THEN value END) AS thetao, " +
