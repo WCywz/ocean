@@ -1,19 +1,16 @@
 package com.ocean.sms;
 
-import com.aliyun.auth.credentials.Credential;
-import com.aliyun.auth.credentials.provider.StaticCredentialProvider;
-import com.aliyun.sdk.service.dysmsapi20170525.AsyncClient;
-import com.aliyun.sdk.service.dysmsapi20170525.models.SendSmsRequest;
-import com.aliyun.sdk.service.dysmsapi20170525.models.SendSmsResponse;
-import darabonba.core.client.ClientOverrideConfiguration;
+import com.aliyuncs.DefaultAcsClient;
+import com.aliyuncs.IAcsClient;
+import com.aliyuncs.dysmsapi.model.v20170525.SendSmsRequest;
+import com.aliyuncs.dysmsapi.model.v20170525.SendSmsResponse;
+import com.aliyuncs.profile.DefaultProfile;
+import com.aliyuncs.profile.IClientProfile;
 import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-
-import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Component
@@ -32,7 +29,7 @@ public class AliyunSmsService implements SmsService {
     @Value("${sms.aliyun.template-code:}")
     private String templateCode;
 
-    private AsyncClient client;
+    private IAcsClient client;
 
     @PostConstruct
     public void init() {
@@ -40,22 +37,14 @@ public class AliyunSmsService implements SmsService {
             log.warn("Aliyun SMS credentials not configured — SMS will not be sent");
             return;
         }
-        StaticCredentialProvider provider = StaticCredentialProvider.create(
-                Credential.builder()
-                        .accessKeyId(accessKeyId)
-                        .accessKeySecret(accessKeySecret)
-                        .build());
-        client = AsyncClient.builder()
-                .region("cn-hangzhou")
-                .credentialsProvider(provider)
-                .overrideConfiguration(ClientOverrideConfiguration.create().setEndpoint("dysmsapi.aliyuncs.com"))
-                .build();
-        log.info("Aliyun SMS client initialized");
-    }
-
-    @PreDestroy
-    public void destroy() {
-        if (client != null) client.close();
+        try {
+            IClientProfile profile = DefaultProfile.getProfile("cn-hangzhou", accessKeyId, accessKeySecret);
+            DefaultProfile.addEndpoint("cn-hangzhou", "Dysmsapi", "dysmsapi.aliyuncs.com");
+            client = new DefaultAcsClient(profile);
+            log.info("Aliyun SMS client initialized");
+        } catch (Exception e) {
+            log.error("Failed to initialize Aliyun SMS client", e);
+        }
     }
 
     @Override
@@ -65,22 +54,19 @@ public class AliyunSmsService implements SmsService {
             return false;
         }
 
-        SendSmsRequest request = SendSmsRequest.builder()
-                .phoneNumbers(phone)
-                .signName(signName)
-                .templateCode(templateCode)
-                .templateParam("{\"content\":\"" + escapeJson(content) + "\"}")
-                .build();
+        SendSmsRequest request = new SendSmsRequest();
+        request.setPhoneNumbers(phone);
+        request.setSignName(signName);
+        request.setTemplateCode(templateCode);
+        request.setTemplateParam("{\"content\":\"" + escapeJson(content) + "\"}");
 
         try {
-            CompletableFuture<SendSmsResponse> future = client.sendSms(request);
-            SendSmsResponse response = future.get();
-            if ("OK".equals(response.getBody().getCode())) {
-                log.info("SMS sent to {}: {}", phone, response.getBody().getBizId());
+            SendSmsResponse response = client.getAcsResponse(request);
+            if ("OK".equals(response.getCode())) {
+                log.info("SMS sent to {}: {}", phone, response.getBizId());
                 return true;
             } else {
-                log.error("SMS send failed: code={}, message={}",
-                        response.getBody().getCode(), response.getBody().getMessage());
+                log.error("SMS send failed: code={}, message={}", response.getCode(), response.getMessage());
                 return false;
             }
         } catch (Exception e) {
