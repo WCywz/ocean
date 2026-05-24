@@ -27,6 +27,9 @@ public class SysUser {
     /** 状态: 1-启用, 0-禁用 */
     private Integer status;
 
+    /** 手机号（用于SMS通知） */
+    private String phone;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

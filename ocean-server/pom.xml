@@ -96,6 +96,13 @@
             <version>${knife4j.version}</version>
         </dependency>
 
+        <!-- Aliyun SMS -->
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>dysmsapi20170525</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+
         <!-- 测试 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
