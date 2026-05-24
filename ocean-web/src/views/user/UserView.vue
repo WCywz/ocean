@@ -34,6 +34,7 @@
         <tr>
           <td>用户名</td>
           <td>真实姓名</td>
+          <td>手机号</td>
           <td>角色</td>
           <td>状态</td>
           <td>创建时间</td>
@@ -44,6 +45,7 @@
         <tr v-for="row in tableData" :key="row.id">
           <td :style="{ borderLeft: '3px solid ' + (row.status === 1 ? '#22c55e' : '#ef4444') }">{{ row.username }}</td>
           <td>{{ row.realName }}</td>
+          <td>{{ row.phone || '-' }}</td>
           <td><span class="editorial-tag">{{ row.role === 'ADMIN' ? 'ADMIN' : 'USER' }}</span></td>
           <td>{{ row.status === 1 ? '启用' : '禁用' }}</td>
           <td class="text-muted">{{ row.createTime }}</td>
@@ -93,6 +95,10 @@
         <input v-model="form.realName" class="editorial-input" placeholder="请输入真实姓名" />
       </div>
       <div style="margin-bottom: 18px;">
+        <label class="editorial-form-label">手机号</label>
+        <input v-model="form.phone" class="editorial-input" placeholder="请输入手机号" />
+      </div>
+      <div style="margin-bottom: 18px;">
         <label class="editorial-form-label">角色</label>
         <select v-model="form.role" class="editorial-select">
           <option value="ADMIN">管理员</option>
@@ -132,7 +138,7 @@ const dialogTitle = ref('新增用户')
 const isEdit = ref(false)
 const editId = ref(null)
 const submitLoading = ref(false)
-const form = reactive({ username: '', password: '', realName: '', role: 'USER', status: 1 })
+const form = reactive({ username: '', password: '', realName: '', role: 'USER', status: 1, phone: '' })
 
 const pageStatusColor = computed(() => {
   const hasDisabled = tableData.value.some(r => r.status === 0)
@@ -180,6 +186,7 @@ function handleAdd() {
   form.username = ''
   form.password = ''
   form.realName = ''
+  form.phone = ''
   form.role = 'USER'
   form.status = 1
   dialogVisible.value = true
@@ -192,6 +199,7 @@ function handleEdit(row) {
   form.username = row.username
   form.password = ''
   form.realName = row.realName
+  form.phone = row.phone || ''
   form.role = row.role
   form.status = row.status
   dialogVisible.value = true

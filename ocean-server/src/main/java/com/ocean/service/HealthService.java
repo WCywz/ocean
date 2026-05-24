@@ -11,4 +11,10 @@ public interface HealthService {
     ZoneHealthVO getAssessment(LocalDate date);
     List<Map<String, Object>> getZoneTrend(Long zoneId, LocalDate startDate, LocalDate endDate);
     Map<String, Object> getDashboard();
+
+    /**
+     * Build daily SMS summary text for all zones.
+     * @return formatted SMS message body, or null if no data available
+     */
+    String buildDailySummary();
 }
