@@ -8,11 +8,12 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "forecast")
 public class ForecastConfig {
+    private String dataDir = "./data";
     private PythonConfig python = new PythonConfig();
 
     @Data
     public static class PythonConfig {
-        private String path = "python";
+        private String path = "python3";
         private String scriptDir = "ocean-model";
     }
 }

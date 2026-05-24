@@ -70,10 +70,11 @@ public interface ForecastGridMapper extends BaseMapper<ForecastGrid> {
 
     @Select("SELECT lat, lon, " +
             "POW(lat - #{centerLat}, 2) + POW(lon - #{centerLon}, 2) AS dist " +
-            "FROM forecast_grid WHERE depth = 0 " +
+            "FROM forecast_grid WHERE depth = 0 AND forecast_date >= #{fromDate} " +
             "ORDER BY dist LIMIT 1")
     Map<String, Object> selectNearestPoint(@Param("centerLat") Double centerLat,
-                                           @Param("centerLon") Double centerLon);
+                                           @Param("centerLon") Double centerLon,
+                                           @Param("fromDate") String fromDate);
 
     @Select("SELECT lat, lon, " +
             "SUM(CASE WHEN value > #{threshold} THEN 1 ELSE 0 END) / COUNT(*) AS probability " +
@@ -99,4 +100,40 @@ public interface ForecastGridMapper extends BaseMapper<ForecastGrid> {
                                             @Param("maxLon") Double maxLon,
                                             @Param("minLat") Double minLat,
                                             @Param("maxLat") Double maxLat);
+
+    @Select("SELECT AVG(value) AS avg_val, MAX(value) AS max_val " +
+            "FROM forecast_grid " +
+            "WHERE variable = #{variable} AND forecast_date = #{forecastDate} AND depth = 0 " +
+            "AND lat BETWEEN #{minLat} AND #{maxLat} " +
+            "AND lon BETWEEN #{minLon} AND #{maxLon}")
+    Map<String, Object> selectZoneStats(@Param("variable") String variable,
+                                         @Param("forecastDate") String forecastDate,
+                                         @Param("minLon") Double minLon,
+                                         @Param("maxLon") Double maxLon,
+                                         @Param("minLat") Double minLat,
+                                         @Param("maxLat") Double maxLat);
+
+    @Select("SELECT forecast_date AS date, AVG(value) AS avg_val " +
+            "FROM forecast_grid " +
+            "WHERE variable = 'sst' AND depth = 0 " +
+            "AND lat BETWEEN #{minLat} AND #{maxLat} " +
+            "AND lon BETWEEN #{minLon} AND #{maxLon} " +
+            "AND forecast_date <= #{endDate} AND forecast_date >= #{startDate} " +
+            "GROUP BY forecast_date ORDER BY forecast_date ASC")
+    List<Map<String, Object>> selectZoneDailyAvg(@Param("minLon") Double minLon,
+                                                   @Param("maxLon") Double maxLon,
+                                                   @Param("minLat") Double minLat,
+                                                   @Param("maxLat") Double maxLat,
+                                                   @Param("startDate") String startDate,
+                                                   @Param("endDate") String endDate);
+
+    @Select("SELECT AVG(value) AS avg_val " +
+            "FROM forecast_grid " +
+            "WHERE variable = 'sst' AND depth = 0 " +
+            "AND lat BETWEEN #{minLat} AND #{maxLat} " +
+            "AND lon BETWEEN #{minLon} AND #{maxLon}")
+    Double selectZoneSstBaseline(@Param("minLon") Double minLon,
+                                  @Param("maxLon") Double maxLon,
+                                  @Param("minLat") Double minLat,
+                                  @Param("maxLat") Double maxLat);
 }

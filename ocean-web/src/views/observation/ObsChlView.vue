@@ -6,9 +6,10 @@
     <div class="editorial-section" style="padding-bottom: 20px; margin-bottom: 20px;">
       <div class="editorial-filter-bar">
         <span class="editorial-form-label" style="margin: 0 8px 0 0;">数据筛选</span>
-        <el-date-picker v-model="filterDate" type="date" placeholder="选择观测日期" value-format="YYYY-MM-DD" style="width: 180px" />
+        <el-date-picker v-model="filterDate" type="date" placeholder="选择观测日期" value-format="YYYY-MM-DD" :default-value="systemDate ? new Date(systemDate) : undefined" style="width: 180px" />
         <el-select v-model="seaArea" placeholder="海域筛选" style="width: 160px" @change="onSeaAreaChange">
-          <el-option v-for="area in seaAreas" :key="area.name" :label="area.name" :value="area" />
+          <el-option label="全部海域" value="" />
+          <el-option v-for="area in seaAreas" :key="area.name" :label="area.name" :value="area.name" />
         </el-select>
         <button class="editorial-btn-outline" @click="handleSearch">查询</button>
         <button class="editorial-btn-outline" @click="handleReset">重置</button>
@@ -58,7 +59,7 @@ import { CHL_CONC_COLORS, CHL_COLORS } from '../../utils/chart-config'
 
 const filterDate = ref('')
 const systemDate = ref('')
-const seaArea = ref(null)
+const seaArea = ref('')
 const seaAreas = ref([])
 const gridData = ref([])
 const mapLoading = ref(false)
@@ -81,10 +82,13 @@ function buildBboxParams() {
     params.minLat = customBbox.value.south
     params.maxLat = customBbox.value.north
   } else if (seaArea.value) {
-    params.minLon = seaArea.value.minLon
-    params.maxLon = seaArea.value.maxLon
-    params.minLat = seaArea.value.minLat
-    params.maxLat = seaArea.value.maxLat
+    const area = seaAreas.value.find(a => a.name === seaArea.value)
+    if (area) {
+      params.minLon = area.minLon
+      params.maxLon = area.maxLon
+      params.minLat = area.minLat
+      params.maxLat = area.maxLat
+    }
   }
   return params
 }
@@ -141,7 +145,7 @@ async function handleSearch() { await fetchGridData() }
 
 function handleReset() {
   filterDate.value = ''
-  seaArea.value = null
+  seaArea.value = ''
   customBbox.value = null
   fetchGridData()
 }
@@ -151,6 +155,7 @@ function onSeaAreaChange() { customBbox.value = null }
 onMounted(async () => {
   const res = await getSystemDate()
   systemDate.value = res.data
+  filterDate.value = systemDate.value
   await loadSeaAreas()
   await fetchGridData()
 })

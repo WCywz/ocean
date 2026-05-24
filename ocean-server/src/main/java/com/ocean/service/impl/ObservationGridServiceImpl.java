@@ -1,6 +1,5 @@
 package com.ocean.service.impl;
 
-import com.ocean.mapper.ObservationDataMapper;
 import com.ocean.mapper.ObservationGridMapper;
 import com.ocean.service.ObservationGridService;
 import com.ocean.service.SystemConfigService;
@@ -17,8 +16,6 @@ public class ObservationGridServiceImpl implements ObservationGridService {
     @Autowired
     private ObservationGridMapper observationGridMapper;
     @Autowired
-    private ObservationDataMapper observationDataMapper;
-    @Autowired
     private SystemConfigService systemConfigService;
 
     @Override
@@ -31,10 +28,9 @@ public class ObservationGridServiceImpl implements ObservationGridService {
     @Override
     public List<Map<String, Object>> getPointTrend(String dataType, Double lon, Double lat,
                                                     String dateStart, String dateEnd) {
-        LocalDate systemDate = systemConfigService.getSystemDate();
-        String start = systemDate.minusDays(7).toString();
-        String end = systemDate.toString();
-        return observationDataMapper.selectRecentPointTrend(dataType, lat, lon, start, end);
+        LocalDate end = dateEnd != null ? LocalDate.parse(dateEnd) : systemConfigService.getSystemDate();
+        String start = end.minusDays(30).toString();
+        return observationGridMapper.selectPointTrend(dataType, lon, lat, start, end.toString());
     }
 
     @Override

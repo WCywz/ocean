@@ -8,7 +8,7 @@ import com.ocean.entity.ObservationData;
 import com.ocean.mapper.ObservationDataMapper;
 import com.ocean.service.ObservationService;
 import com.ocean.vo.OceanDataVO;
-import org.springframework.beans.BeanUtils;
+import com.ocean.service.SystemConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +21,8 @@ public class ObservationServiceImpl implements ObservationService {
 
     @Autowired
     private ObservationDataMapper observationDataMapper;
+    @Autowired
+    private SystemConfigService systemConfigService;
 
     @Override
     public IPage<OceanDataVO> getDataPage(OceanDataQueryDTO dto) {
@@ -40,6 +42,11 @@ public class ObservationServiceImpl implements ObservationService {
         }
         if (dto.getEndDate() != null && !dto.getEndDate().isEmpty()) {
             wrapper.le(ObservationData::getObsTime, LocalDate.parse(dto.getEndDate()));
+        }
+        // Default: last 30 days of data to avoid expensive COUNT on 34M+ rows
+        if ((dto.getStartDate() == null || dto.getStartDate().isEmpty())
+                && (dto.getEndDate() == null || dto.getEndDate().isEmpty())) {
+            wrapper.ge(ObservationData::getObsTime, systemConfigService.getSystemDate().minusDays(30));
         }
         if (dto.getDepthMin() != null) wrapper.ge(ObservationData::getDepth, dto.getDepthMin());
         if (dto.getDepthMax() != null) wrapper.le(ObservationData::getDepth, dto.getDepthMax());
@@ -70,7 +77,25 @@ public class ObservationServiceImpl implements ObservationService {
 
     private OceanDataVO toVO(ObservationData data) {
         OceanDataVO vo = new OceanDataVO();
-        BeanUtils.copyProperties(data, vo);
+        vo.setId(data.getId());
+        vo.setVariable(data.getVariable());
+        vo.setObsDate(data.getObsTime());
+        vo.setValue(data.getValue());
+        vo.setUnit(unitOf(data.getVariable()));
+        vo.setDepth(data.getDepth());
+        vo.setLat(data.getLat());
+        vo.setLon(data.getLon());
+        vo.setCreateTime(data.getCreateTime());
         return vo;
+    }
+
+    private static String unitOf(String variable) {
+        if (variable == null) return null;
+        switch (variable) {
+            case "thetao": return "degree_C";
+            case "chl": return "mg_m3";
+            case "so": return "psu";
+            default: return null;
+        }
     }
 }

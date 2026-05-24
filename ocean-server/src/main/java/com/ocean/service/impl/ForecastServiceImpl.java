@@ -35,7 +35,7 @@ public class ForecastServiceImpl implements ForecastService {
     @Autowired private SystemConfigService systemConfigService;
     @Autowired private ForecastConfig forecastConfig;
     @Autowired private ObservationDataMapper observationDataMapper;
-    // @Autowired private MonitoringStationMapper monitoringStationMapper;
+    @Autowired private MonitoringStationMapper monitoringStationMapper;
 
     @Override
     public DashboardVO getDashboard() {
@@ -47,21 +47,17 @@ public class ForecastServiceImpl implements ForecastService {
                 new LambdaQueryWrapper<ForecastGrid>().eq(ForecastGrid::getForecastDate, systemConfigService.getSystemDate())));
         vo.setAlertCount(alertEventMapper.selectCount(
                 new LambdaQueryWrapper<AlertEvent>().eq(AlertEvent::getStatus, "active")));
-        // 数据附录暂时停用
-        // vo.setLatestSstData(getStationObsData("sst"));
-        // vo.setLatestChlData(getStationObsData("chl"));
+
+        vo.setLatestSstData(getStationObsData("sst"));
+        vo.setLatestChlData(getStationObsData("chl"));
         return vo;
     }
 
-    // 数据附录暂时停用
-    /*
     private List<Map<String, Object>> getStationObsData(String variable) {
         String dbVariable = variable.equals("sst") ? "thetao" : "chl";
 
         List<MonitoringStation> stations = monitoringStationMapper.selectList(
                 new LambdaQueryWrapper<MonitoringStation>().eq(MonitoringStation::getIsActive, 1));
-
-        List<Map<String, Object>> rows = observationDataMapper.selectLatestStationObs(dbVariable);
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (MonitoringStation station : stations) {
@@ -70,18 +66,11 @@ public class ForecastServiceImpl implements ForecastService {
             m.put("lat", station.getLat());
             m.put("lon", station.getLon());
 
-            Map<String, Object> match = null;
-            for (Map<String, Object> row : rows) {
-                if (station.getLat().equals(((Number) row.get("lat")).doubleValue())
-                        && station.getLon().equals(((Number) row.get("lon")).doubleValue())) {
-                    match = row;
-                    break;
-                }
-            }
-
-            if (match != null) {
-                m.put("value", match.get("value"));
-                m.put("forecastDate", match.get("obsDate").toString());
+            Map<String, Object> row = observationDataMapper.selectLatestStationObsByPoint(
+                    dbVariable, station.getLat(), station.getLon());
+            if (row != null) {
+                m.put("value", row.get("value"));
+                m.put("forecastDate", row.get("obsDate").toString());
             } else {
                 m.put("value", null);
                 m.put("forecastDate", systemConfigService.getSystemDate().toString());
@@ -90,7 +79,6 @@ public class ForecastServiceImpl implements ForecastService {
         }
         return result;
     }
-    */
 
     @Override
     public IPage<ForecastVO> getRecordPage(ForecastQueryDTO dto) {
@@ -151,13 +139,14 @@ public class ForecastServiceImpl implements ForecastService {
 
     @Override
     public List<Map<String, Object>> getDashboardTrend(String dataType, Integer days) {
-        // Use map center point (29.8, 123.5) to find nearest grid point
-        Map<String, Object> nearest = forecastGridMapper.selectNearestPoint(29.8, 123.5);
-        Double ptLat = ((Number) nearest.get("lat")).doubleValue();
-        Double ptLon = ((Number) nearest.get("lon")).doubleValue();
-
         String startDate = systemConfigService.getSystemDate().plusDays(1).toString();
         String endDate = systemConfigService.getSystemDate().plusDays(days + 1).toString();
+
+        // Use map center point (29.8, 123.5) to find nearest grid point
+        // Filter by fromDate to only consider points with current forecast data
+        Map<String, Object> nearest = forecastGridMapper.selectNearestPoint(29.8, 123.5, startDate);
+        Double ptLat = ((Number) nearest.get("lat")).doubleValue();
+        Double ptLon = ((Number) nearest.get("lon")).doubleValue();
         List<Map<String, Object>> dataPoints = forecastGridMapper.selectDashboardTrend(
                 dataType.toLowerCase(), ptLat, ptLon, startDate, endDate);
 
@@ -212,33 +201,46 @@ public class ForecastServiceImpl implements ForecastService {
         log.info("Starting forecast: systemDate={}, dataRange=[{}, {}]", dateStr, startStr, endStr);
 
         try {
-            // 1. Query observation_data and write temp CSV
-            List<Map<String, Object>> rows = observationDataMapper.selectForecastInput(startStr, endStr);
-            log.info("Queried {} rows from observation_data", rows.size());
+            // 1. Generate forecast input CSV from interpolated CSVs
+            //    (interpolated = all variables on same grid, required by model)
+            String prepareScript = scriptDir + File.separator + "prepare_forecast_input.py";
 
-            if (rows.size() < 1000) {
+            ProcessBuilder pbPrepare = new ProcessBuilder(
+                    pythonPath, prepareScript,
+                    "--start", startStr,
+                    "--end", endStr,
+                    "--output", csvPath,
+                    "--data-dir", forecastConfig.getDataDir());
+            pbPrepare.redirectErrorStream(true);
+            Process procPrepare = pbPrepare.start();
+
+            StringBuilder prepareLog = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(procPrepare.getInputStream(), "UTF-8"))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    prepareLog.append(line).append("\n");
+                }
+            }
+
+            int prepareExit = procPrepare.waitFor();
+            if (prepareExit != 0) {
+                log.error("Prepare script failed (exit={}):\n{}", prepareExit, prepareLog);
                 result.put("success", false);
-                result.put("message", "Insufficient data: only " + rows.size() + " rows in date range");
+                result.put("message", "Prepare script failed with exit code " + prepareExit);
+                result.put("log", prepareLog.toString());
+                return result;
+            }
+            log.info("Prepare input CSV: {}", prepareLog.toString().replace("\n", " | "));
+
+            File csvFile = new File(csvPath);
+            if (!csvFile.exists() || csvFile.length() == 0) {
+                result.put("success", false);
+                result.put("message", "No data in date range: " + startStr + " ~ " + endStr);
                 return result;
             }
 
-            try (PrintWriter pw = new PrintWriter(
-                    new OutputStreamWriter(new FileOutputStream(csvPath), "UTF-8"))) {
-                pw.println("time,depth,latitude,longitude,chl,thetao,so");
-                for (Map<String, Object> row : rows) {
-                    pw.printf("%s,%.4f,%.6f,%.6f,%s,%s,%s%n",
-                            row.get("time"),
-                            ((Number) row.get("depth")).doubleValue(),
-                            ((Number) row.get("lat")).doubleValue(),
-                            ((Number) row.get("lon")).doubleValue(),
-                            nvl(row.get("chl")),
-                            nvl(row.get("thetao")),
-                            nvl(row.get("so")));
-                }
-            }
-            log.info("Wrote temp CSV: {}", csvPath);
-
-            // 2. Run Python script
+            // 2. Run model inference
             ProcessBuilder pb = new ProcessBuilder(
                     pythonPath, scriptPath,
                     "--date", dateStr,
@@ -333,7 +335,4 @@ public class ForecastServiceImpl implements ForecastService {
         }
     }
 
-    private static String nvl(Object v) {
-        return v == null ? "" : v.toString();
-    }
 }

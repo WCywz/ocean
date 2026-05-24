@@ -14,6 +14,7 @@
           placeholder="选择日期"
           format="YYYY-MM-DD"
           value-format="YYYY-MM-DD"
+          :default-value="forecastDate ? new Date(forecastDate) : undefined"
           @change="fetchData"
           :teleported="false"
           popper-class="health-date-popper"
@@ -98,9 +99,10 @@ import { ref, computed, onMounted } from 'vue'
 import { getZoneHealth } from '../../api/health'
 import { buildZoneAssessment, buildOverallSummary } from '../../utils/health-assessment'
 import { getAlerts } from '../../api/forecast'
+import { getSystemDate } from '../../api/system'
 import HealthAlertSection from './HealthAlertSection.vue'
 
-const forecastDate = ref('2026-01-01')
+const forecastDate = ref('')
 const loading = ref(false)
 const rawData = ref(null)
 const selectedIds = ref(new Set())
@@ -231,7 +233,9 @@ async function fetchAlerts() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  const res = await getSystemDate()
+  forecastDate.value = res.data
   fetchData()
 })
 </script>

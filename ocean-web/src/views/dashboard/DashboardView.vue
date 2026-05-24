@@ -72,8 +72,7 @@
       <div style="flex: 1;">
         <AlertPanel :alerts="alerts" :loading="loading.alerts" />
       </div>
-      <!-- 数据附录暂时停用 -->
-      <!-- <div style="flex: 2; display: flex; flex-direction: column; gap: 24px;">
+      <div style="flex: 2; display: flex; flex-direction: column; gap: 24px;">
         <LatestDataTable
           title="最新海表温度 (SST)"
           dataType="SST"
@@ -88,7 +87,7 @@
           :loading="loading.dashboard"
           @navigate="goOceanData"
         />
-      </div> -->
+      </div>
     </div>
   </div>
 </template>
@@ -156,7 +155,7 @@ async function fetchHealth() {
       centerLon: 122.5,
       centerLat: 29.5,
       coastLon: 121.5,
-      forecastDate: '2026-01-01'
+      forecastDate: systemDate.value
     })
     assessments.value = (res.data && res.data.zones || []).map(buildZoneAssessment)
   } catch (e) {
@@ -217,7 +216,7 @@ async function fetchTrend(dataType) {
 async function fetchAlerts() {
   loading.alerts = true
   try {
-    const res = await getAlerts('2026-01-01')
+    const res = await getAlerts(systemDate.value)
     alerts.value = res.data
   } finally {
     loading.alerts = false

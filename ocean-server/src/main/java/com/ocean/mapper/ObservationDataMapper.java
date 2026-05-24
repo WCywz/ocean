@@ -35,26 +35,26 @@ public interface ObservationDataMapper extends BaseMapper<ObservationData> {
                                                    @Param("lon") Double lon);
 
     @Select("SELECT depth, AVG(value) AS avg_value, MIN(value) AS min_value, MAX(value) AS max_value " +
-            "FROM observation_data WHERE variable = 'chl' GROUP BY depth ORDER BY depth ASC")
+            "FROM observation_data WHERE variable = 'chl' AND obs_time >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR) " +
+            "GROUP BY depth ORDER BY depth ASC")
     List<Map<String, Object>> selectChlByDepth();
 
     @Select("SELECT DISTINCT lat, lon FROM observation_grid_cache ORDER BY lat, lon")
     List<Map<String, Object>> selectDistinctLocations();
 
-    @Select("SELECT od.variable, od.obs_time AS obsDate, od.lat, od.lon, od.value " +
-            "FROM observation_data od " +
-            "WHERE od.variable = #{variable} " +
-            "AND od.depth = (SELECT MIN(d2.depth) FROM observation_data d2 WHERE d2.variable = #{variable} AND d2.lat = od.lat AND d2.lon = od.lon) " +
-            "AND od.obs_time = (SELECT MAX(d3.obs_time) FROM observation_data d3 WHERE d3.variable = #{variable} AND d3.lat = od.lat AND d3.lon = od.lon AND d3.depth = od.depth) " +
-            "AND (od.lat, od.lon) IN (SELECT lat, lon FROM monitoring_station WHERE is_active = 1)")
-    List<Map<String, Object>> selectLatestStationObs(@Param("variable") String variable);
+    @Select("SELECT variable, obs_time AS obsDate, lat, lon, value " +
+            "FROM observation_data " +
+            "WHERE variable = #{variable} AND lat = #{lat} AND lon = #{lon} " +
+            "ORDER BY depth ASC, obs_time DESC LIMIT 1")
+    Map<String, Object> selectLatestStationObsByPoint(@Param("variable") String variable,
+                                                        @Param("lat") Double lat,
+                                                        @Param("lon") Double lon);
 
     @Select("SELECT obs_time AS obsDate, value " +
             "FROM observation_data " +
-            "WHERE variable = #{variable} " +
-            "AND lat = #{lat} AND lon = #{lon} " +
-            "AND depth = (SELECT MIN(d2.depth) FROM observation_data d2 WHERE d2.variable = #{variable} AND d2.lat = #{lat} AND d2.lon = #{lon}) " +
-            "AND obs_time >= #{dateStart} AND obs_time <= #{dateEnd} " +
+            "WHERE variable = #{variable} AND lat = #{lat} AND lon = #{lon} " +
+            "  AND depth = (SELECT MIN(depth) FROM observation_data WHERE variable = #{variable} AND lat = #{lat} AND lon = #{lon}) " +
+            "  AND obs_time >= #{dateStart} AND obs_time <= #{dateEnd} " +
             "ORDER BY obs_time ASC")
     List<Map<String, Object>> selectRecentPointTrend(@Param("variable") String variable,
                                                      @Param("lat") Double lat,
@@ -72,4 +72,17 @@ public interface ObservationDataMapper extends BaseMapper<ObservationData> {
             "ORDER BY obs_time, lat, lon, depth")
     List<Map<String, Object>> selectForecastInput(@Param("startDate") String startDate,
                                                     @Param("endDate") String endDate);
+
+    @Select("SELECT AVG(value) AS avg_val " +
+            "FROM observation_data " +
+            "WHERE variable = #{variable} " +
+            "AND lat BETWEEN #{minLat} AND #{maxLat} " +
+            "AND lon BETWEEN #{minLon} AND #{maxLon} " +
+            "AND obs_time >= #{sinceDate}")
+    Double selectZoneHistoricalAvg(@Param("variable") String variable,
+                                    @Param("minLon") Double minLon,
+                                    @Param("maxLon") Double maxLon,
+                                    @Param("minLat") Double minLat,
+                                    @Param("maxLat") Double maxLat,
+                                    @Param("sinceDate") String sinceDate);
 }

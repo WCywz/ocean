@@ -10,7 +10,7 @@
           <el-radio-button value="concentration">浓度值</el-radio-button>
           <el-radio-button value="probability">超阈值概率</el-radio-button>
         </el-radio-group>
-        <el-date-picker v-if="chlMode === 'concentration'" v-model="filterDate" type="date" placeholder="选择预报日期" value-format="YYYY-MM-DD" style="width: 180px" />
+        <el-date-picker v-if="chlMode === 'concentration'" v-model="filterDate" type="date" placeholder="选择预报日期" value-format="YYYY-MM-DD" :default-value="systemDate ? new Date(systemDate) : undefined" style="width: 180px" />
         <template v-if="chlMode === 'probability'">
           <el-input-number v-model="probDays" :min="1" :max="90" style="width: 140px" />
           <span style="color: var(--color-text-secondary); font-size: 13px;">天</span>
@@ -18,7 +18,8 @@
           <span style="color: var(--color-text-secondary); font-size: 13px;">阈值 mg/m³</span>
         </template>
         <el-select v-model="seaArea" placeholder="海域筛选" style="width: 160px" @change="onSeaAreaChange">
-          <el-option v-for="area in seaAreas" :key="area.name" :label="area.name" :value="area" />
+          <el-option label="全部海域" value="" />
+          <el-option v-for="area in seaAreas" :key="area.name" :label="area.name" :value="area.name" />
         </el-select>
         <button class="editorial-btn-outline" @click="handleSearch">查询</button>
         <button class="editorial-btn-outline" @click="handleReset">重置</button>
@@ -69,7 +70,7 @@ const filterDate = ref('')
 const systemDate = ref('')
 const probDays = ref(7)
 const threshold = ref(3.0)
-const seaArea = ref(null)
+const seaArea = ref('')
 const seaAreas = ref([])
 const gridData = ref([])
 const mapLoading = ref(false)
@@ -92,6 +93,12 @@ function todayStr() {
   return systemDate.value
 }
 
+function defaultForecastDate() {
+  const d = new Date(systemDate.value)
+  d.setDate(d.getDate() + 1)
+  return d.toISOString().slice(0, 10)
+}
+
 function pastDate(days) {
   const d = new Date(systemDate.value)
   d.setDate(d.getDate() - days)
@@ -106,10 +113,13 @@ function buildBboxParams() {
     params.minLat = customBbox.value.south
     params.maxLat = customBbox.value.north
   } else if (seaArea.value) {
-    params.minLon = seaArea.value.minLon
-    params.maxLon = seaArea.value.maxLon
-    params.minLat = seaArea.value.minLat
-    params.maxLat = seaArea.value.maxLat
+    const area = seaAreas.value.find(a => a.name === seaArea.value)
+    if (area) {
+      params.minLon = area.minLon
+      params.maxLon = area.maxLon
+      params.minLat = area.minLat
+      params.maxLat = area.maxLat
+    }
   }
   return params
 }
@@ -124,7 +134,7 @@ async function fetchGridData() {
       ...buildBboxParams()
     }
     if (chlMode.value === 'concentration') {
-      params.forecastDate = filterDate.value || todayStr()
+      params.forecastDate = filterDate.value || defaultForecastDate()
     } else {
       params.dateStart = pastDate(probDays.value)
       params.dateEnd = todayStr()
@@ -173,7 +183,7 @@ async function loadSeaAreas() {
 function onModeChange() {
   customBbox.value = null
   if (chlMode.value === 'concentration') {
-    filterDate.value = todayStr()
+    filterDate.value = defaultForecastDate()
   }
   fetchGridData()
 }
@@ -184,7 +194,7 @@ function handleReset() {
   filterDate.value = ''
   probDays.value = 7
   threshold.value = 3.0
-  seaArea.value = null
+  seaArea.value = ''
   customBbox.value = null
   fetchGridData()
 }
@@ -194,6 +204,7 @@ function onSeaAreaChange() { customBbox.value = null }
 onMounted(async () => {
   const res = await getSystemDate()
   systemDate.value = res.data
+  filterDate.value = defaultForecastDate()
   await loadSeaAreas()
   await fetchGridData()
 })

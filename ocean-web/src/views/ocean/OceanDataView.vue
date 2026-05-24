@@ -23,6 +23,7 @@
             type="daterange" range-separator="至"
             start-placeholder="开始" end-placeholder="结束"
             value-format="YYYY-MM-DD" size="small" style="width: 260px"
+            :default-value="[new Date(systemDate), new Date(systemDate)]"
             @change="onDateRangeChange"
           />
           <el-button size="small" text @click="openSstFullscreen">
@@ -62,6 +63,7 @@
             type="daterange" range-separator="至"
             start-placeholder="开始" end-placeholder="结束"
             value-format="YYYY-MM-DD" size="small" style="width: 260px"
+            :default-value="[new Date(systemDate), new Date(systemDate)]"
             @change="onDateRangeChange"
           />
           <el-button size="small" text @click="openChlFullscreen">
@@ -162,7 +164,7 @@ const locationOptions = ref([])
 
 const dateRange = ref([])
 
-let systemDate = '2026-01-01'
+let systemDate = new Date().toISOString().split('T')[0]
 
 // ---- SST chart ----
 const sstChartRef = ref(null)

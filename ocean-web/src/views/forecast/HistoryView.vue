@@ -14,6 +14,7 @@
         type="daterange" range-separator="至"
         start-placeholder="开始日期" end-placeholder="结束日期"
         value-format="YYYY-MM-DD"
+        :default-value="systemDate ? [new Date(systemDate), new Date(systemDate)] : undefined"
         style="width: 280px"
       />
       <button class="editorial-btn-outline" @click="handleSearch">查询</button>
@@ -57,9 +58,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getRecordPage } from '../../api/forecast'
+import { getSystemDate } from '../../api/system'
 
 const tableQuery = ref({ pageNum: 1, pageSize: 10, dataType: '', locationName: '' })
 const dateRange = ref([])
+const systemDate = ref('')
 const tableData = ref([])
 const tableTotal = ref(0)
 const tableLoading = ref(false)
@@ -90,7 +93,11 @@ function handleReset() {
   loadTableData()
 }
 
-onMounted(() => { loadTableData() })
+onMounted(async () => {
+  const res = await getSystemDate()
+  systemDate.value = res.data
+  loadTableData()
+})
 </script>
 
 <style scoped>
