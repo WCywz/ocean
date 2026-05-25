@@ -5,6 +5,7 @@ import com.ocean.entity.HealthZone;
 import com.ocean.service.HealthService;
 import com.ocean.service.SystemConfigService;
 import com.ocean.task.HealthAssessmentTask;
+import com.ocean.task.HealthSmsTask;
 import com.ocean.vo.ZoneHealthVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,9 @@ public class HealthController {
 
     @Autowired
     private HealthAssessmentTask healthAssessmentTask;
+
+    @Autowired
+    private HealthSmsTask healthSmsTask;
 
     @GetMapping("/zones")
     public Result<List<HealthZone>> getZones() {
@@ -54,5 +58,11 @@ public class HealthController {
     public Result<Map<String, Object>> runAssessment(@RequestParam(required = false) String date) {
         LocalDate assessDate = date != null ? LocalDate.parse(date) : systemConfigService.getSystemDate();
         return Result.success(healthAssessmentTask.run(assessDate));
+    }
+
+    @PostMapping("/sms-test")
+    public Result<Map<String, Object>> testSms() {
+        healthSmsTask.sendDailySms();
+        return Result.success(Map.of("message", "SMS task triggered, check logs"));
     }
 }
