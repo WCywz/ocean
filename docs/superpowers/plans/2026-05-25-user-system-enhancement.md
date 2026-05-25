@@ -86,7 +86,7 @@ CREATE TABLE user_credential (
 - [ ] **Step 2: 执行迁移**
 
 ```bash
-mysql -u root -pyour_password ocean_forecast < database/migration/002-user-system-enhance.sql
+mysql -u root -p ocean_forecast < database/migration/002-user-system-enhance.sql
 ```
 
 - [ ] **Step 3: 验证**

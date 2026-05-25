@@ -47,11 +47,12 @@ scripts/            Python data ingestion (reads CSVs → MySQL)
 
 ## Environment notes
 
-- Local MySQL: `root/your_password`, `ocean_forecast` database
-- Production MySQL: `ocean_forecast/your_password` at your_server_ip
+- Local MySQL at `localhost:3306`, database `ocean_forecast`
+- Production MySQL: see `deploy/` directory (gitignored) for connection details
 - `application.yml` is gitignored (contains secrets). Template at `ocean-server/src/main/resources/application.yml.example`
 - `deploy/` is gitignored — contains production JAR, `.pt` model weights, frontend dist
 - Root `*.csv` files are gitignored — used by ingest scripts, do not commit
+- Scripts require `DB_PASSWORD` environment variable. See `.env.example` for all required env vars.
 
 ## Workflow
 

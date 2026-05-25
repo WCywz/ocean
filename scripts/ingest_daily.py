@@ -16,7 +16,7 @@ DB_CONFIG = {
     "host": os.environ.get("DB_HOST", "localhost"),
     "port": int(os.environ.get("DB_PORT", "3306")),
     "user": os.environ.get("DB_USER", "ocean_forecast"),
-    "password": os.environ.get("DB_PASSWORD", "your_password"),
+    "password": os.environ["DB_PASSWORD"],
     "database": os.environ.get("DB_NAME", "ocean_forecast"),
     "allow_local_infile": True,
     "charset": "utf8mb4",
