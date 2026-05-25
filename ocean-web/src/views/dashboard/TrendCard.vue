@@ -19,6 +19,10 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { SST_COLORS, CHL_COLORS, buildBaseOption, buildSeriesData } from '../../utils/chart-config'
+import { useTheme } from '../../composables/useTheme'
+
+const { resolved: themeResolved } = useTheme()
+const isDark = computed(() => themeResolved.value === 'dark')
 
 const props = defineProps({
   title: { type: String, default: '' },
@@ -72,7 +76,8 @@ function renderChart() {
     legendData,
     xAxisData,
     yAxisName: '',
-    yAxisUnit: unit
+    yAxisUnit: unit,
+    dark: isDark.value
   })
   base.dataZoom = [{ type: 'inside' }]
   base.grid.left = 50
@@ -91,10 +96,18 @@ watch(() => props.series, () => nextTick(() => renderChart()), { deep: true })
 
 onMounted(() => {
   nextTick(() => {
-    chart = echarts.init(chartRef.value)
+    chart = echarts.init(chartRef.value, isDark.value ? 'ocean-dark' : undefined)
     window.addEventListener('resize', handleResize)
     renderChart()
   })
+})
+
+watch(isDark, () => {
+  if (chart) {
+    chart.dispose()
+    chart = echarts.init(chartRef.value, isDark.value ? 'ocean-dark' : undefined)
+    renderChart()
+  }
 })
 
 onUnmounted(() => {

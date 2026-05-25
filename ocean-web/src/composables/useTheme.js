@@ -9,7 +9,17 @@ const mode = ref(localStorage.getItem(STORAGE_KEY) || 'system')
 const resolved = ref('light')
 
 let systemMq = null
-let registered = false
+
+echarts.registerTheme('ocean-dark', {
+  backgroundColor: '#0d1117',
+  textStyle: { color: '#8b949e' },
+  legend: { textStyle: { color: '#8b949e' } },
+  tooltip: {
+    backgroundColor: 'rgba(22,27,34,0.96)',
+    borderColor: '#30363d',
+    textStyle: { color: '#e6edf3' }
+  }
+})
 
 function computeResolved(modeValue) {
   if (modeValue === 'system') {
@@ -23,28 +33,10 @@ function applyTheme(theme) {
   document.documentElement.dataset.theme = theme
 }
 
-function registerEChartsTheme() {
-  if (registered) return
-  registered = true
-
-  echarts.registerTheme('ocean-dark', {
-    backgroundColor: '#0d1117',
-    textStyle: { color: '#8b949e' },
-    legend: { textStyle: { color: '#8b949e' } },
-    tooltip: {
-      backgroundColor: 'rgba(22,27,34,0.96)',
-      borderColor: '#30363d',
-      textStyle: { color: '#e6edf3' }
-    }
-  })
-}
-
 export function useTheme() {
   const userStore = useUserStore()
 
   async function init() {
-    registerEChartsTheme()
-
     if (userStore.token) {
       try {
         const res = await getSettings()
