@@ -43,6 +43,14 @@ jwt:
   secret: your_jwt_secret
   expiration: 1800000
 
+credential:
+  encrypt:
+    secret: your_aes_encrypt_secret_key
+
+upload:
+  avatar:
+    dir: /data/ocean/uploads/avatars/
+
 forecast:
   python:
     path: your_python_path
