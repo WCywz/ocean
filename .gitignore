@@ -6,5 +6,12 @@ target/
 .worktrees/
 .DS_Store
 *.log
+*.csv
 ocean-server/src/main/resources/application.yml
 .mcp.json
+ocean-model/data/
+ocean-model/__pycache__/
+__pycache__/
+deploy/
+*.pt
+ocean-model/*.pt

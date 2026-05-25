@@ -10,7 +10,11 @@
       "Bash(/d/nodejs/npx pnpm *)",
       "Bash(/d/nodejs/npm install *)",
       "Bash(pnpm test *)",
-      "Bash(bash \"C:/Users/chutaorui/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.7/skills/brainstorming/scripts/start-server.sh\" --project-dir \"C:/Users/chutaorui/Desktop/ocean\")"
+      "Bash(bash \"C:/Users/chutaorui/.claude/plugins/cache/superpowers-marketplace/superpowers/5.0.7/skills/brainstorming/scripts/start-server.sh\" --project-dir \"C:/Users/chutaorui/Desktop/ocean\")",
+      "mcp__mysql__analyze_query",
+      "mcp__mysql__list_indexes",
+      "mcp__mysql__get_table_size",
+      "Bash(curl -s http://localhost:*)"
     ]
   }
 }
