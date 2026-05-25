@@ -9,7 +9,7 @@
     <p class="editorial-narrative">{{ narrativeText }}</p>
     <div v-if="!series.length && !loading" class="editorial-narrative">暂无趋势数据</div>
     <div style="display: flex; align-items: stretch; width: 100%; height: 280px;">
-      <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: #666; padding: 0 8px; white-space: nowrap; flex-shrink: 0;">{{ yAxisLabel }}</div>
+      <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: var(--color-text-secondary); padding: 0 8px; white-space: nowrap; flex-shrink: 0;">{{ yAxisLabel }}</div>
       <div v-loading="loading" style="flex: 1; height: 100%; min-width: 0;" ref="chartRef"></div>
     </div>
   </div>

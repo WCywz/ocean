@@ -32,7 +32,7 @@
         </div>
       </div>
       <div v-loading="sstChartLoading" style="display: flex; align-items: stretch; position: relative; width: 100%; height: 320px;">
-        <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: #666; padding: 0 8px; white-space: nowrap; flex-shrink: 0;">海表温度 (°C)</div>
+        <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: var(--color-text-secondary); padding: 0 8px; white-space: nowrap; flex-shrink: 0;">海表温度 (°C)</div>
         <div ref="sstChartRef" style="flex: 1; height: 100%; min-width: 0;"></div>
         <div v-if="sstChartEmpty" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); font-size: 13px; pointer-events: none;">暂无符合条件的水温数据</div>
       </div>
@@ -72,7 +72,7 @@
         </div>
       </div>
       <div v-loading="chlChartLoading" style="display: flex; align-items: stretch; position: relative; width: 100%; height: 400px;">
-        <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: #666; padding: 0 8px; white-space: nowrap; flex-shrink: 0;">叶绿素浓度 (mg/m³)</div>
+        <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: var(--color-text-secondary); padding: 0 8px; white-space: nowrap; flex-shrink: 0;">叶绿素浓度 (mg/m³)</div>
         <div ref="chlChartRef" style="flex: 1; height: 100%; min-width: 0;"></div>
         <div v-if="chlChartEmpty" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); font-size: 13px; pointer-events: none;">暂无符合条件的观测数据</div>
       </div>

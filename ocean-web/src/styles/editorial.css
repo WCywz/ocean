@@ -168,7 +168,7 @@ body {
 }
 .editorial-table tbody td {
   padding: 10px 0;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--color-divider);
   color: var(--color-text);
 }
 .editorial-table tbody tr:last-child td {
@@ -182,7 +182,7 @@ body {
 .editorial-input {
   width: 100%;
   border: none;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
   padding: 10px 0;
   font-size: 14px;
   color: var(--color-text);
@@ -202,7 +202,7 @@ body {
 .editorial-select {
   width: 100%;
   border: none;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
   padding: 10px 0;
   font-size: 14px;
   color: var(--color-text);
@@ -216,7 +216,7 @@ body {
 .editorial-btn {
   padding: 10px 0;
   background: var(--color-text);
-  color: #fff;
+  color: var(--color-bg);
   border: none;
   font-family: var(--font-mono);
   font-size: 13px;
@@ -261,7 +261,7 @@ body {
   color: var(--color-text);
 }
 .editorial-link--muted {
-  color: #ddd;
+  color: var(--color-divider-strong);
 }
 
 /* --- Editorial form label --- */
@@ -337,4 +337,31 @@ body {
   box-shadow: none !important;
   border: 1px solid var(--color-divider-strong) !important;
   border-radius: 0 !important;
+}
+
+/* ===== Dark Mode (GitHub style) ===== */
+[data-theme="dark"] {
+  --color-bg: #0d1117;
+  --color-surface: #161b22;
+  --color-text: #e6edf3;
+  --color-text-secondary: #6e7681;
+  --color-text-muted: #8b949e;
+  --color-divider: #21262d;
+  --color-divider-strong: #30363d;
+  --color-border: #30363d;
+  --color-border-light: #21262d;
+  --color-alert: #f85149;
+
+  /* Element Plus dark overrides — align with editorial palette */
+  --el-bg-color: #0d1117;
+  --el-bg-color-overlay: #161b22;
+  --el-border-color: #30363d;
+  --el-border-color-light: #21262d;
+  --el-border-color-lighter: #21262d;
+  --el-text-color-primary: #e6edf3;
+  --el-text-color-regular: #e6edf3;
+  --el-text-color-secondary: #8b949e;
+  --el-text-color-placeholder: #6e7681;
+  --el-fill-color: #161b22;
+  --el-fill-color-light: #161b22;
 }

@@ -1,6 +1,6 @@
 <template>
   <div style="display: flex; align-items: stretch; width: 100%; height: 300px;">
-    <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: #666; padding: 0 8px; white-space: nowrap; flex-shrink: 0;">{{ yAxisLabel }}</div>
+    <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: var(--color-text-secondary); padding: 0 8px; white-space: nowrap; flex-shrink: 0;">{{ yAxisLabel }}</div>
     <div v-loading="loading" style="flex: 1; height: 100%; min-width: 0; position: relative;" ref="chartRef">
       <div v-show="empty" class="trend-chart-empty">点击地图上的网格以查看趋势</div>
     </div>
@@ -11,6 +11,7 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { buildBaseOption, buildTooltipFormatter } from '../utils/chart-config'
+import { useTheme } from '../composables/useTheme'
 
 const props = defineProps({
   seriesData: { type: Array, default: () => [] },
@@ -21,10 +22,13 @@ const props = defineProps({
   colors: { type: Array, default: () => ['#3498DB'] }
 })
 
+const { resolved: themeResolved } = useTheme()
+
 const chartRef = ref(null)
 const empty = ref(true)
 let chart = null
 
+const isDark = computed(() => themeResolved.value === 'dark')
 const yAxisLabel = computed(() => props.yAxisName || '')
 
 function render() {
@@ -37,16 +41,18 @@ function render() {
   empty.value = false
 
   const legendData = props.seriesData.map(s => s.name)
+  const dark = isDark.value
   const base = buildBaseOption({
     legendData,
     xAxisData: props.xAxisData,
     yAxisName: '',
-    yAxisUnit: props.yAxisUnit
+    yAxisUnit: props.yAxisUnit,
+    dark
   })
   base.dataZoom = [{ type: 'inside' }]
   base.grid.left = 50
   base.grid.bottom = 30
-  base.tooltip.formatter = buildTooltipFormatter(props.yAxisUnit)
+  base.tooltip.formatter = buildTooltipFormatter(props.yAxisUnit, {}, dark)
 
   const series = props.seriesData.map((s) => ({
     name: s.name,
@@ -65,9 +71,17 @@ watch(() => [props.seriesData, props.xAxisData, props.loading], () => {
   nextTick(() => render())
 }, { deep: true })
 
+watch(isDark, () => {
+  if (chart) {
+    chart.dispose()
+    chart = echarts.init(chartRef.value, isDark.value ? 'ocean-dark' : undefined)
+    render()
+  }
+})
+
 onMounted(() => {
   nextTick(() => {
-    chart = echarts.init(chartRef.value)
+    chart = echarts.init(chartRef.value, isDark.value ? 'ocean-dark' : undefined)
     render()
     window.addEventListener('resize', () => chart?.resize())
   })
@@ -85,7 +99,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: var(--color-text-muted);
   font-size: 14px;
   pointer-events: none;
 }

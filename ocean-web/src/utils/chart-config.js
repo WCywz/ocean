@@ -15,17 +15,24 @@ export const OCEAN_CHART_COLORS = SST_COLORS
 /**
  * Build base ECharts option with ocean-theme defaults.
  */
-export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yAxisUnit } = {}) {
+export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yAxisUnit, dark = false } = {}) {
   const seriesCount = legendData.length
   const useRightLegend = seriesCount >= 2 && seriesCount <= 8
+
+  const textColor = dark ? '#8b949e' : '#666'
+  const lineColor = dark ? '#30363d' : '#ccc'
+  const splitColor = dark ? '#21262d' : '#f0f0f0'
+  const tooltipBg = dark ? 'rgba(22,27,34,0.96)' : 'rgba(255,255,255,0.96)'
+  const tooltipBorder = dark ? '#30363d' : '#e0e0e0'
+  const tooltipText = dark ? '#e6edf3' : '#333'
 
   return {
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(255,255,255,0.96)',
-      borderColor: '#e0e0e0',
+      backgroundColor: tooltipBg,
+      borderColor: tooltipBorder,
       borderWidth: 1,
-      textStyle: { fontSize: 13, color: '#333' },
+      textStyle: { fontSize: 13, color: tooltipText },
       confine: true,
       extraCssText: 'box-shadow: 0 2px 12px rgba(0,0,0,0.1); border-radius: 6px;'
     },
@@ -56,7 +63,7 @@ export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yA
       axisLabel: {
         rotate: 0,
         fontSize: 11,
-        color: '#666',
+        color: textColor,
         formatter: (value) => {
           if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
             const parts = value.split('-')
@@ -65,18 +72,18 @@ export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yA
           return value
         }
       },
-      axisLine: { lineStyle: { color: '#ccc' } },
-      axisTick: { lineStyle: { color: '#ccc' } }
+      axisLine: { lineStyle: { color: lineColor } },
+      axisTick: { lineStyle: { color: lineColor } }
     },
     yAxis: {
       type: 'value',
       name: yAxisName || '',
-      nameTextStyle: { fontSize: 13, color: '#666' },
+      nameTextStyle: { fontSize: 13, color: textColor },
       axisLabel: {
         fontSize: 12,
         ...(yAxisUnit ? { formatter: `{value} ${yAxisUnit}` } : {})
       },
-      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }
+      splitLine: { lineStyle: { color: splitColor, type: 'dashed' } }
     }
   }
 }
@@ -84,11 +91,12 @@ export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yA
 /**
  * Build a tooltip formatter that shows location names, sorts by value desc.
  */
-export function buildTooltipFormatter(unit, locationMap = {}) {
+export function buildTooltipFormatter(unit, locationMap = {}, dark = false) {
+  const titleColor = dark ? '#e6edf3' : '#1a3a5c'
   return (params) => {
     if (!params || params.length === 0) return ''
     const sorted = [...params].sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
-    let html = `<b style="font-size:14px;color:#1a3a5c">${sorted[0].axisValue}</b><br/>`
+    let html = `<b style="font-size:14px;color:${titleColor}">${sorted[0].axisValue}</b><br/>`
     sorted.forEach(p => {
       const key = p.seriesName
       const label = locationMap[key] || key
