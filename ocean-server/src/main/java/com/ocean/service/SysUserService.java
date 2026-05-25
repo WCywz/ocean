@@ -33,4 +33,10 @@ public interface SysUserService {
 
     /** 删除用户 */
     void deleteUser(Long id);
+
+    /** 修改密码 */
+    void changePassword(Long userId, PasswordChangeDTO dto);
+
+    /** 更新头像 */
+    void updateAvatar(Long userId, String avatarUrl);
 }

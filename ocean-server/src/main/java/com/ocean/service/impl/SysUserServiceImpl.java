@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ocean.common.BusinessException;
 import com.ocean.dto.LoginDTO;
+import com.ocean.dto.PasswordChangeDTO;
 import com.ocean.dto.UserPageDTO;
 import com.ocean.dto.UserSaveDTO;
 import com.ocean.entity.SysUser;
@@ -157,6 +158,32 @@ public class SysUserServiceImpl implements SysUserService {
         }
         sysUserMapper.deleteById(id);
         redisTemplate.delete("user:info:" + id);
+    }
+
+    @Override
+    public void changePassword(Long userId, PasswordChangeDTO dto) {
+        if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
+            throw new RuntimeException("两次密码输入不一致");
+        }
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword())) {
+            throw new RuntimeException("旧密码错误");
+        }
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        sysUserMapper.updateById(user);
+    }
+
+    @Override
+    public void updateAvatar(Long userId, String avatarUrl) {
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+        user.setAvatarUrl(avatarUrl);
+        sysUserMapper.updateById(user);
     }
 
     private UserVO toVO(SysUser user) {
