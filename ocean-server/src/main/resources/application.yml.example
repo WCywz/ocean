@@ -49,12 +49,14 @@ forecast:
     script-dir: ../ocean-model
 
 sms:
-  provider: mock  # mock | aliyun — use 'mock' for dev, 'aliyun' for production
+  provider: mock  # mock | aliyun | serverchan
   aliyun:
     access-key-id:
     access-key-secret:
     sign-name:
     template-code:
+  serverchan:
+    send-key:
 
 springdoc:
   swagger-ui:
