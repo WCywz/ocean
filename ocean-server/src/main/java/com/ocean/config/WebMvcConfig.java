@@ -1,8 +1,10 @@
 package com.ocean.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -13,6 +15,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Autowired
     private JwtInterceptor jwtInterceptor;
+
+    @Autowired
+    private RoleInterceptor roleInterceptor;
+
+    @Value("${upload.avatar.dir:/data/ocean/uploads/avatars/}")
+    private String avatarDir;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -25,7 +33,22 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/webjars/**",
                         "/v3/api-docs/**",
                         "/swagger-ui/**",
-                        "/swagger-resources/**"
+                        "/swagger-resources/**",
+                        "/uploads/**"
                 );
+
+        registry.addInterceptor(roleInterceptor)
+                .addPathPatterns("/api/user/**")
+                .excludePathPatterns(
+                        "/api/user/login",
+                        "/api/user/register",
+                        "/api/user/current"
+                );
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/uploads/avatars/**")
+                .addResourceLocations("file:" + avatarDir);
     }
 }

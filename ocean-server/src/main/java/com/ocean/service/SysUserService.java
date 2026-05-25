@@ -2,6 +2,7 @@ package com.ocean.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.ocean.dto.LoginDTO;
+import com.ocean.dto.PasswordChangeDTO;
 import com.ocean.dto.UserPageDTO;
 import com.ocean.dto.UserSaveDTO;
 import com.ocean.entity.SysUser;
