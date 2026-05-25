@@ -7,6 +7,8 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.io.File;
+
 /**
  * Web MVC配置
  */
@@ -48,7 +50,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        File dir = new File(avatarDir);
+        if (!dir.isAbsolute()) {
+            dir = new File(System.getProperty("user.dir"), avatarDir);
+        }
+        String location = "file:" + dir.getAbsolutePath().replace("\\", "/");
+        if (!location.endsWith("/")) {
+            location += "/";
+        }
         registry.addResourceHandler("/uploads/avatars/**")
-                .addResourceLocations("file:" + avatarDir);
+                .addResourceLocations(location);
     }
 }

@@ -3,6 +3,7 @@ package com.ocean.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.ocean.dto.LoginDTO;
 import com.ocean.dto.PasswordChangeDTO;
+import com.ocean.dto.ProfileUpdateDTO;
 import com.ocean.dto.UserPageDTO;
 import com.ocean.dto.UserSaveDTO;
 import com.ocean.entity.SysUser;
@@ -40,4 +41,7 @@ public interface SysUserService {
 
     /** 更新头像 */
     void updateAvatar(Long userId, String avatarUrl);
+
+    /** 更新个人资料（用户名、真实姓名、手机号） */
+    void updateProfile(Long userId, ProfileUpdateDTO dto);
 }

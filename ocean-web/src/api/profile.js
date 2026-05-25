@@ -18,8 +18,7 @@ export function uploadAvatar(file) {
   return request({
     url: '/profile/avatar',
     method: 'post',
-    data: formData,
-    headers: { 'Content-Type': 'multipart/form-data' }
+    data: formData
   })
 }
 

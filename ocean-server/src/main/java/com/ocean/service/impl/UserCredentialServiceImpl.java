@@ -1,6 +1,7 @@
 package com.ocean.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ocean.common.BusinessException;
 import com.ocean.dto.CredentialSaveDTO;
 import com.ocean.entity.UserCredential;
 import com.ocean.mapper.UserCredentialMapper;
@@ -67,7 +68,7 @@ public class UserCredentialServiceImpl implements UserCredentialService {
     public void deleteCredential(Long userId, Long credentialId) {
         UserCredential uc = userCredentialMapper.selectById(credentialId);
         if (uc == null || !uc.getUserId().equals(userId)) {
-            throw new RuntimeException("密钥不存在或无权操作");
+            throw new BusinessException("密钥不存在或无权操作");
         }
         userCredentialMapper.deleteById(credentialId);
     }

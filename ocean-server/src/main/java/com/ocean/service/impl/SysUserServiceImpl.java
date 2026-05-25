@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ocean.common.BusinessException;
 import com.ocean.dto.LoginDTO;
 import com.ocean.dto.PasswordChangeDTO;
+import com.ocean.dto.ProfileUpdateDTO;
 import com.ocean.dto.UserPageDTO;
 import com.ocean.dto.UserSaveDTO;
 import com.ocean.entity.SysUser;
@@ -67,6 +68,7 @@ public class SysUserServiceImpl implements SysUserService {
         vo.setUsername(user.getUsername());
         vo.setRealName(user.getRealName());
         vo.setRole(user.getRole());
+        vo.setAvatarUrl(user.getAvatarUrl());
         return vo;
     }
 
@@ -163,14 +165,14 @@ public class SysUserServiceImpl implements SysUserService {
     @Override
     public void changePassword(Long userId, PasswordChangeDTO dto) {
         if (!dto.getNewPassword().equals(dto.getConfirmPassword())) {
-            throw new RuntimeException("两次密码输入不一致");
+            throw new BusinessException("两次密码输入不一致");
         }
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
-            throw new RuntimeException("用户不存在");
+            throw new BusinessException("用户不存在");
         }
         if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword())) {
-            throw new RuntimeException("旧密码错误");
+            throw new BusinessException("旧密码错误");
         }
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
         sysUserMapper.updateById(user);
@@ -180,10 +182,30 @@ public class SysUserServiceImpl implements SysUserService {
     public void updateAvatar(Long userId, String avatarUrl) {
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {
-            throw new RuntimeException("用户不存在");
+            throw new BusinessException("用户不存在");
         }
         user.setAvatarUrl(avatarUrl);
         sysUserMapper.updateById(user);
+    }
+
+    @Override
+    public void updateProfile(Long userId, ProfileUpdateDTO dto) {
+        SysUser user = sysUserMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        SysUser exist = sysUserMapper.selectOne(
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getUsername, dto.getUsername())
+                        .ne(SysUser::getId, userId));
+        if (exist != null) {
+            throw new BusinessException("用户名已存在");
+        }
+        user.setUsername(dto.getUsername());
+        user.setRealName(dto.getRealName());
+        user.setPhone(dto.getPhone());
+        sysUserMapper.updateById(user);
+        redisTemplate.delete("user:info:" + userId);
     }
 
     private UserVO toVO(SysUser user) {

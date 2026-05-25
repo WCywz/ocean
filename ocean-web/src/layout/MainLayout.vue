@@ -17,16 +17,13 @@
         <div
           class="editorial-nav__item"
           :class="{ 'editorial-nav__item--active': isActive('/app/forecast') }"
-          @mouseenter="showForecastMenu = true"
-          @mouseleave="showForecastMenu = false"
-          style="position: relative;"
+          @click.stop="toggleDropdown('forecast')"
+          style="position: relative; cursor: pointer;"
         >
           预报
           <div
-            v-show="showForecastMenu"
+            v-show="activeDropdown === 'forecast'"
             class="forecast-dropdown"
-            @mouseenter="showForecastMenu = true"
-            @mouseleave="showForecastMenu = false"
           >
             <router-link to="/app/forecast/sst" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/forecast/sst' }" active-class="" exact-active-class="">海表温度预测</router-link>
             <router-link to="/app/forecast/chl" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/forecast/chl' }" active-class="" exact-active-class="">叶绿素预测</router-link>
@@ -38,16 +35,13 @@
         <div
           class="editorial-nav__item"
           :class="{ 'editorial-nav__item--active': isActive('/app/observation') }"
-          @mouseenter="showObsMenu = true"
-          @mouseleave="showObsMenu = false"
-          style="position: relative;"
+          @click.stop="toggleDropdown('obs')"
+          style="position: relative; cursor: pointer;"
         >
           观测
           <div
-            v-show="showObsMenu"
+            v-show="activeDropdown === 'obs'"
             class="forecast-dropdown"
-            @mouseenter="showObsMenu = true"
-            @mouseleave="showObsMenu = false"
           >
             <router-link to="/app/observation/sst" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/observation/sst' }" active-class="" exact-active-class="">海表温度观测</router-link>
             <router-link to="/app/observation/chl" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/observation/chl' }" active-class="" exact-active-class="">叶绿素观测</router-link>
@@ -79,13 +73,12 @@
 
       <span v-if="isAdmin" class="editorial-tag" style="margin-right: 12px;">ADMIN</span>
 
-      <div class="nav-user-menu" @mouseenter="showUserMenu = true" @mouseleave="showUserMenu = false">
+      <div class="nav-user-menu" @click.stop="toggleDropdown('user')">
         <div class="nav-user-avatar">
           <img v-if="userInfo?.avatarUrl" :src="userInfo.avatarUrl" alt="" />
           <span v-else class="nav-user-avatar__placeholder">{{ avatarLetter }}</span>
         </div>
-        <div v-show="showUserMenu" class="nav-user-dropdown"
-             @mouseenter="showUserMenu = true" @mouseleave="showUserMenu = false">
+        <div v-show="activeDropdown === 'user'" class="nav-user-dropdown">
           <router-link to="/app/profile" class="nav-user-dropdown__item">个人中心</router-link>
           <a class="nav-user-dropdown__item" @click="handleLogout">退出登录</a>
         </div>
@@ -104,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
 import { ElMessageBox } from 'element-plus'
@@ -113,10 +106,18 @@ const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const showForecastMenu = ref(false)
-const showObsMenu = ref(false)
+const activeDropdown = ref(null)
 
-const showUserMenu = ref(false)
+function toggleDropdown(name) {
+  activeDropdown.value = activeDropdown.value === name ? null : name
+}
+
+function closeDropdowns() {
+  activeDropdown.value = null
+}
+
+onMounted(() => { document.addEventListener('click', closeDropdowns) })
+onUnmounted(() => { document.removeEventListener('click', closeDropdowns) })
 
 const avatarLetter = computed(() => {
   const name = userInfo.value?.realName || userInfo.value?.username || '?'

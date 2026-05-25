@@ -31,6 +31,7 @@ public class SysUser {
     private String phone;
 
     /** 头像URL路径 */
+    @TableField("avatar_url")
     private String avatarUrl;
 
     @TableField(fill = FieldFill.INSERT)

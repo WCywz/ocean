@@ -1,10 +1,12 @@
 package com.ocean.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.ocean.entity.UserSetting;
 import com.ocean.mapper.UserSettingMapper;
 import com.ocean.service.UserSettingService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.util.LinkedHashMap;
@@ -35,19 +37,21 @@ public class UserSettingServiceImpl implements UserSettingService {
     @Override
     public void updateSettings(Long userId, Map<String, String> settings) {
         for (Map.Entry<String, String> entry : settings.entrySet()) {
-            LambdaQueryWrapper<UserSetting> wrapper = new LambdaQueryWrapper<>();
+            LambdaUpdateWrapper<UserSetting> wrapper = new LambdaUpdateWrapper<>();
             wrapper.eq(UserSetting::getUserId, userId)
-                   .eq(UserSetting::getSettingKey, entry.getKey());
-            UserSetting existing = userSettingMapper.selectOne(wrapper);
-            if (existing != null) {
-                existing.setSettingValue(entry.getValue());
-                userSettingMapper.updateById(existing);
-            } else {
+                   .eq(UserSetting::getSettingKey, entry.getKey())
+                   .set(UserSetting::getSettingValue, entry.getValue());
+            int rows = userSettingMapper.update(null, wrapper);
+            if (rows == 0) {
                 UserSetting us = new UserSetting();
                 us.setUserId(userId);
                 us.setSettingKey(entry.getKey());
                 us.setSettingValue(entry.getValue());
-                userSettingMapper.insert(us);
+                try {
+                    userSettingMapper.insert(us);
+                } catch (DuplicateKeyException e) {
+                    userSettingMapper.update(null, wrapper);
+                }
             }
         }
     }

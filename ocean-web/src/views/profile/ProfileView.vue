@@ -121,6 +121,7 @@ const fileInput = ref(null)
 const saving = ref(false)
 const changingPwd = ref(false)
 const showCredentialDialog = ref(false)
+const loaded = ref(false)
 
 const form = ref({ username: '', realName: '', phone: '' })
 const pwdForm = ref({ oldPassword: '', newPassword: '', confirmPassword: '' })
@@ -140,18 +141,20 @@ onMounted(async () => {
     const u = res.data
     form.value = { username: u.username, realName: u.realName || '', phone: u.phone || '' }
     userStore.setUserInfo({ ...userStore.userInfo, ...u })
-  } catch {}
+  } catch (e) { console.error('获取用户信息失败', e) }
 
   try {
     const res = await getSettings()
     settingsForm.value = { sms_enabled: res.data.sms_enabled === 'true', push_enabled: res.data.push_enabled === 'true' }
-  } catch {}
+  } catch (e) { console.error('获取设置失败', e) }
 
   try {
     const res = await getCredentials()
     const list = res.data || []
     credential.value = list.find(c => c.credentialKey === 'serverchan_key') || null
-  } catch {}
+  } catch (e) { console.error('获取密钥失败', e) }
+
+  loaded.value = true
 })
 
 function triggerUpload() {
@@ -166,16 +169,20 @@ async function handleFileChange(e) {
     const res = await uploadAvatar(file)
     userStore.setAvatar(res.data.avatarUrl)
     ElMessage.success('头像已更新')
-  } catch {}
+  } catch (e) { console.error('头像上传失败', e) }
 }
 
 async function handleSave() {
+  if (form.value.phone && !/^1[3-9]\d{9}$/.test(form.value.phone)) {
+    ElMessage.error('手机号格式不正确')
+    return
+  }
   saving.value = true
   try {
     await updateProfile(form.value)
     userStore.setUserInfo({ ...userStore.userInfo, username: form.value.username, realName: form.value.realName, phone: form.value.phone })
     ElMessage.success('个人信息已更新')
-  } catch {} finally { saving.value = false }
+  } catch (e) { console.error('更新个人信息失败', e) } finally { saving.value = false }
 }
 
 async function handleChangePassword() {
@@ -192,10 +199,11 @@ async function handleChangePassword() {
     await changePassword(pwdForm.value)
     pwdForm.value = { oldPassword: '', newPassword: '', confirmPassword: '' }
     ElMessage.success('密码已修改')
-  } catch {} finally { changingPwd.value = false }
+  } catch (e) { console.error('密码修改失败', e) } finally { changingPwd.value = false }
 }
 
 watch([() => settingsForm.value.sms_enabled, () => settingsForm.value.push_enabled], () => {
+  if (!loaded.value) return
   updateSettings({
     settings: {
       sms_enabled: String(settingsForm.value.sms_enabled),
@@ -213,7 +221,7 @@ async function handleSaveCredential() {
     const res = await getCredentials()
     const list = res.data || []
     credential.value = list.find(c => c.credentialKey === 'serverchan_key') || null
-  } catch {}
+  } catch (e) { console.error('保存密钥失败', e) }
 }
 </script>
 

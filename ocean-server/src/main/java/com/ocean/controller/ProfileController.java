@@ -3,8 +3,8 @@ package com.ocean.controller;
 import com.ocean.common.Result;
 import com.ocean.dto.*;
 import com.ocean.service.SysUserService;
-import com.ocean.service.UserSettingService;
 import com.ocean.service.UserCredentialService;
+import com.ocean.service.UserSettingService;
 import com.ocean.vo.UserVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,11 +15,19 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/profile")
 public class ProfileController {
+
+    private static final Logger log = LoggerFactory.getLogger(ProfileController.class);
 
     @Autowired
     private SysUserService sysUserService;
@@ -37,7 +45,7 @@ public class ProfileController {
     private static final long MAX_SIZE = 2 * 1024 * 1024;
 
     private Long getUserId(HttpServletRequest request) {
-        return (Long) request.getAttribute("userId");
+        return ((Number) request.getAttribute("userId")).longValue();
     }
 
     @GetMapping
@@ -48,12 +56,7 @@ public class ProfileController {
     @PutMapping
     public Result<?> updateProfile(HttpServletRequest request,
                                    @Validated @RequestBody ProfileUpdateDTO dto) {
-        UserSaveDTO saveDto = new UserSaveDTO();
-        saveDto.setId(getUserId(request));
-        saveDto.setUsername(dto.getUsername());
-        saveDto.setRealName(dto.getRealName());
-        saveDto.setPhone(dto.getPhone());
-        sysUserService.updateUser(saveDto);
+        sysUserService.updateProfile(getUserId(request), dto);
         return Result.success("更新成功");
     }
 
@@ -80,13 +83,34 @@ public class ProfileController {
         }
 
         Long userId = getUserId(request);
+
+        // Resolve upload directory
         File dir = new File(avatarDir);
-        if (!dir.exists()) dir.mkdirs();
+        if (!dir.isAbsolute()) {
+            dir = new File(System.getProperty("user.dir"), avatarDir);
+        }
+        if (!dir.exists()) {
+            boolean created = dir.mkdirs();
+            if (!created) {
+                log.error("无法创建上传目录: {}", dir.getAbsolutePath());
+                return Result.error("上传目录创建失败");
+            }
+        }
+
+        // Delete old avatar file
+        UserVO currentUser = sysUserService.getUserById(userId);
+        if (currentUser.getAvatarUrl() != null && !currentUser.getAvatarUrl().isEmpty()) {
+            String oldPath = currentUser.getAvatarUrl().replace("/uploads/avatars/", "");
+            File oldFile = new File(dir, oldPath);
+            if (oldFile.isFile()) oldFile.delete();
+        }
 
         String fileName = userId + "_" + System.currentTimeMillis() + "." + ext;
+        Path dest = dir.toPath().resolve(fileName);
         try {
-            file.transferTo(new File(dir, fileName));
+            Files.copy(file.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
+            log.error("头像写入失败: {}", dest.toAbsolutePath(), e);
             return Result.error("头像上传失败");
         }
 
