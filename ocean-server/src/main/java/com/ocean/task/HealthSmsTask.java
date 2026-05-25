@@ -32,12 +32,10 @@ public class HealthSmsTask {
             var admins = sysUserMapper.selectList(
                     new LambdaQueryWrapper<SysUser>()
                             .eq(SysUser::getRole, "ADMIN")
-                            .eq(SysUser::getStatus, 1)
-                            .isNotNull(SysUser::getPhone)
-                            .ne(SysUser::getPhone, ""));
+                            .eq(SysUser::getStatus, 1));
 
             if (admins.isEmpty()) {
-                log.warn("无管理员手机号，跳过短信发送");
+                log.warn("无活跃管理员，跳过推送");
                 return;
             }
 
@@ -45,16 +43,16 @@ public class HealthSmsTask {
                 try {
                     boolean ok = smsService.send(admin.getPhone(), content);
                     if (ok) {
-                        log.info("健康短信已发送至 {} ({})", admin.getUsername(), admin.getPhone());
+                        log.info("健康日报已推送至 {} (微信)", admin.getUsername());
                     } else {
-                        log.error("健康短信发送失败 {} ({})", admin.getUsername(), admin.getPhone());
+                        log.error("健康日报推送失败 {}", admin.getUsername());
                     }
                 } catch (Exception e) {
-                    log.error("健康短信发送异常 {} ({})", admin.getUsername(), admin.getPhone(), e);
+                    log.error("健康日报推送异常 {}", admin.getUsername(), e);
                 }
             }
 
-            log.info("<<<<<< 健康短信任务完成，发送 {} 条", admins.size());
+            log.info("<<<<<< 健康短信任务完成，推送 {} 条", admins.size());
         } catch (Exception e) {
             log.error("<<<<<< 健康短信任务失败", e);
         }
