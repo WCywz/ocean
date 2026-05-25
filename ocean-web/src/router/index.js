@@ -83,6 +83,12 @@ const routes = [
         name: 'OceanHealth',
         component: () => import('../views/health/OceanHealthView.vue'),
         meta: { title: '海洋健康指数' }
+      },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('../views/profile/ProfileView.vue'),
+        meta: { title: '个人中心' }
       }
     ]
   },
