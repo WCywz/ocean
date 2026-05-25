@@ -1630,3 +1630,29 @@ Task 16 (MainLayout)        ├─ 依赖Task 14
 Task 17 (路由+Vite)         ─┘ 依赖Task 15
 Task 18 (端到端验证)       — 最后
 ```
+
+---
+
+## Code Review 待修复（2026-05-25）
+
+### 关键
+
+- [ ] **1. `SysUserServiceImpl.login()` 未设置 `LoginVO.avatarUrl`** — 一行修复：`vo.setAvatarUrl(user.getAvatarUrl())`
+- [ ] **2. `ProfileController.updateProfile()` 构造不完整的 `UserSaveDTO`** — `role`/`status` 为 null，靠 MyBatis-Plus NOT_NULL 策略碰巧跳过。建议新增专用 `updateProfile()` 方法，只更新 username/realName/phone
+
+### 重要
+
+- [ ] **3. 新代码抛 `RuntimeException` 而非 `BusinessException`** — 全局异常处理器只捕获 `BusinessException`，导致 `changePassword`/`updateAvatar`/`deleteCredential` 的错误提示变成通用"服务器内部错误"
+- [ ] **4. `UserSettingServiceImpl.updateSettings()` 存在读写竞争** — `selectOne` + `insert/update` 非原子操作，并发请求可能触发唯一约束冲突。改用 MyBatis-Plus `saveOrUpdate()` 或 `ON DUPLICATE KEY UPDATE`
+- [ ] **5. `AesUtil.padKey()` 密钥派生太弱** — 简单截断/补零，建议用 SHA-256 哈希后取前 16 字节
+- [ ] **6. `PasswordChangeDTO` 缺少 `@Size(min=6)` 密码长度校验（后端）**
+- [ ] **7. `ProfileView.vue` 中 9 个空 `catch {}` 块** — 至少加 `console.error()` 日志
+- [ ] **8. 设置 `watch` 在页面加载时触发无效 API 调用** — 加 `loaded` 标志位跳过初始触发
+
+### 轻微
+
+- [ ] **9. `SecureRandom` 每次加密都 new 实例** — 改为 `static final` 单例
+- [ ] **10. 手机号缺少格式校验** — 前后端均无
+- [ ] **11. 旧头像文件未清理** — `updateAvatar()` 可先获取旧 URL 并删除文件
+- [ ] **12. `SysUser.avatarUrl` 缺少 `@TableField("avatar_url")` 显式映射**
+- [ ] **13. `AesUtil.mask()` 对短字符串可能泄露前缀**
