@@ -13,7 +13,7 @@
         :style="{ borderLeftColor: item.value > (item.dataType === 'SST' ? 30 : 10) ? '#c0392b' : '#fa8c16' }"
       >
         <div style="font-size: 13px; font-weight: 600; color: var(--color-text);">{{ item.locationName }}</div>
-        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #666; margin-top: 4px;">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-secondary); margin-top: 4px;">
           <span class="editorial-tag" style="font-size: 10px;">{{ item.dataType }}</span>
           <span style="font-weight: 600; color: var(--color-alert);">{{ item.value }}{{ item.dataType === 'SST' ? '°C' : ' mg/m³' }}</span>
           <span style="color: var(--color-text-muted);">阈值 {{ item.threshold }}</span>

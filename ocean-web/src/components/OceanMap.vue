@@ -89,7 +89,6 @@ const HeatInterpLayer = L.Layer.extend({
     }
     if (lat < g.lats[0]) { i0 = 0; i1 = 0 }
     if (lat > g.lats[g.lats.length - 1]) { i0 = g.lats.length - 1; i1 = g.lats.length - 1 }
-    if (i0 === i1 && (lat < g.lats[0] || lat > g.lats[g.lats.length - 1])) return null
 
     let j0 = 0, j1 = 0
     for (let j = 0; j < g.lons.length - 1; j++) {
@@ -97,7 +96,6 @@ const HeatInterpLayer = L.Layer.extend({
     }
     if (lng < g.lons[0]) { j0 = 0; j1 = 0 }
     if (lng > g.lons[g.lons.length - 1]) { j0 = g.lons.length - 1; j1 = g.lons.length - 1 }
-    if (j0 === j1 && (lng < g.lons[0] || lng > g.lons[g.lons.length - 1])) return null
 
     const v00 = g.values[i0][j0], v10 = g.values[i1][j0]
     const v01 = g.values[i0][j1], v11 = g.values[i1][j1]
@@ -490,8 +488,9 @@ onUnmounted(() => {
   position: absolute;
   bottom: 12px;
   right: 12px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 8px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-divider-strong);
+  border-radius: 0;
   padding: 10px 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   font-size: 12px;
@@ -500,7 +499,7 @@ onUnmounted(() => {
 .legend-title {
   font-weight: 600;
   margin-bottom: 6px;
-  color: #1a3a5c;
+  color: var(--color-text);
 }
 .legend-item {
   display: flex;
@@ -515,7 +514,7 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .legend-label {
-  color: #555;
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 </style>

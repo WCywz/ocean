@@ -59,7 +59,7 @@ const valueLabel = computed(() => props.dataType === 'SST' ? '温度值' : '浓�
 .sticky-th {
   position: sticky;
   top: 0;
-  background: #fff;
+  background: var(--color-bg);
   z-index: 1;
 }
 </style>

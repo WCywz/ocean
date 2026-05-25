@@ -40,7 +40,7 @@
           <span class="model-card__chevron">{{ expandedModelId === row.id ? '▾' : '▸' }}</span>
           <span class="model-card__name">{{ row.modelName }}</span>
           <span class="editorial-tag" style="margin-left: auto; margin-right: 32px; min-width: 48px; text-align: center;">{{ row.modelType }}</span>
-          <span style="color: #666; font-size: 12px; margin-right: 32px; min-width: 40px; text-align: center;">{{ row.versionCount ?? 0 }} 个</span>
+          <span style="color: var(--color-text-secondary); font-size: 12px; margin-right: 32px; min-width: 40px; text-align: center;">{{ row.versionCount ?? 0 }} 个</span>
           <span style="font-size: 12px; margin-right: 32px; min-width: 52px; text-align: center;" :style="{ color: modelStatusColor(row) }">{{ modelStatusText(row) }}</span>
           <span style="display: flex; gap: 12px;" @click.stop>
             <a class="editorial-link" @click="handleAddVersion(row)">+ 版本</a>
@@ -64,7 +64,7 @@
             class="model-card__version-row"
           >
             <span class="version-label">{{ v.versionLabel }}</span>
-            <span style="color: #666; font-size: 12px; min-width: 80px;">{{ v.cronExpression }}</span>
+            <span style="color: var(--color-text-secondary); font-size: 12px; min-width: 80px;">{{ v.cronExpression }}</span>
             <span style="font-size: 12px; min-width: 44px;" :style="{ color: v.status === 'RUNNING' ? '#22c55e' : '#ef4444' }">{{ statusMap[v.status] }}</span>
             <span class="version-meta" :title="v.dataSource">{{ v.dataSource || '-' }}</span>
             <span style="display: flex; gap: 10px;">
@@ -378,7 +378,7 @@ async function handleOverviewStop(v) {
   gap: 12px;
   border-left: 3px solid;
   padding: 10px 14px;
-  background: #fafafa;
+  background: var(--color-surface);
   font-size: 13px;
   margin-bottom: 24px;
 }
@@ -394,13 +394,13 @@ async function handleOverviewStop(v) {
 }
 
 .page-status-bar__desc {
-  color: #666;
+  color: var(--color-text-secondary);
   flex: 1;
 }
 
 .model-card {
-  border: 1px solid #ebebeb;
-  background: #fff;
+  border: 1px solid var(--color-divider-strong);
+  background: var(--color-bg);
   overflow: hidden;
   margin-bottom: 6px;
 }
@@ -409,18 +409,18 @@ async function handleOverviewStop(v) {
   display: flex;
   align-items: center;
   padding: 10px 14px;
-  border-left: 3px solid #ccc;
+  border-left: 3px solid var(--color-border);
   cursor: pointer;
   user-select: none;
 }
 
 .model-card__header:hover {
-  background: #fafafa;
+  background: var(--color-surface);
 }
 
 .model-card__chevron {
   font-size: 15px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-right: 10px;
   font-weight: 600;
 }
@@ -435,12 +435,12 @@ async function handleOverviewStop(v) {
 .model-card__desc {
   padding: 0 14px 10px 42px;
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-muted);
   line-height: 1.7;
 }
 
 .model-card__versions {
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-divider);
 }
 
 .model-card__version-row {
@@ -448,7 +448,7 @@ async function handleOverviewStop(v) {
   align-items: center;
   padding: 8px 14px 8px 42px;
   font-size: 13px;
-  border-bottom: 1px solid #fafafa;
+  border-bottom: 1px solid var(--color-divider);
 }
 
 .model-card__version-row:last-child {
@@ -456,8 +456,8 @@ async function handleOverviewStop(v) {
 }
 
 .version-label {
-  background: #e0e7ff;
-  color: #4f46e5;
+  background: var(--color-border-light);
+  color: var(--color-text-secondary);
   padding: 1px 7px;
   font-size: 11px;
   font-weight: 500;
@@ -467,7 +467,7 @@ async function handleOverviewStop(v) {
 }
 
 .version-meta {
-  color: #999;
+  color: var(--color-text-muted);
   font-size: 12px;
   flex: 1;
   overflow: hidden;

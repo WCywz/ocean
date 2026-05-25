@@ -244,7 +244,7 @@ onMounted(async () => {
 .dashboard-row {
   padding-bottom: 28px;
   margin-bottom: 32px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--color-divider-strong);
 }
 .dashboard-row--last {
   border-bottom: none;
@@ -259,7 +259,7 @@ onMounted(async () => {
   gap: 12px;
   border-left: 3px solid;
   padding: 10px 14px;
-  background: #fafafa;
+  background: var(--color-surface);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -275,7 +275,7 @@ onMounted(async () => {
 }
 
 .health-status-bar__desc {
-  color: #666;
+  color: var(--color-text-secondary);
   flex: 1;
 }
 
@@ -293,11 +293,11 @@ onMounted(async () => {
 }
 
 .dh-card {
-  background: #fff;
+  background: var(--color-bg);
   padding: 14px 16px;
-  border-top: 1px solid #f0f0f0;
-  border-right: 1px solid #f0f0f0;
-  border-bottom: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-divider);
+  border-right: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--color-divider);
   border-left: 3px solid;
 }
 
@@ -323,7 +323,7 @@ onMounted(async () => {
 }
 
 .dh-card__level--warn {
-  color: #92400e;
+  color: #d29922;
 }
 
 .dh-card__level--bad {
@@ -339,7 +339,7 @@ onMounted(async () => {
   display: flex;
   gap: 14px;
   padding-top: 8px;
-  border-top: 1px solid #f5f5f5;
+  border-top: 1px solid var(--color-divider);
   font-size: 11px;
   color: var(--color-text-muted);
 }

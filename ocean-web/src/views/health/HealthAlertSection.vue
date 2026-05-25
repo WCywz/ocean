@@ -192,7 +192,7 @@ onUnmounted(() => {
   align-items: center;
   border-left: 3px solid;
   padding: 10px 14px;
-  background: #fafafa;
+  background: var(--color-surface);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -228,20 +228,20 @@ onUnmounted(() => {
 .alert-card {
   padding: 8px 12px;
   border-left: 3px solid;
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
-  border-right: 1px solid #f0f0f0;
-  border-bottom: 1px solid #f0f0f0;
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-divider);
+  border-right: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--color-divider);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .alert-card:hover {
-  background: #fafafa;
+  background: var(--color-surface);
 }
 
 .alert-card--active {
-  background: #f5f5f5;
+  background: var(--color-surface);
 }
 
 .alert-card__name {
@@ -255,7 +255,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-top: 2px;
 }
 
@@ -281,7 +281,7 @@ onUnmounted(() => {
 .drilldown-links {
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-divider);
   font-size: 13px;
 }
 
@@ -295,7 +295,7 @@ onUnmounted(() => {
   cursor: pointer;
   margin-right: 20px;
   text-decoration: none;
-  border-bottom: 1px dashed #ccc;
+  border-bottom: 1px dashed var(--color-border);
 }
 
 .drilldown-link:hover {

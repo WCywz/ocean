@@ -248,7 +248,7 @@ onMounted(async () => {
   gap: 12px;
   border-left: 3px solid;
   padding: 10px 14px;
-  background: #fafafa;
+  background: var(--color-surface);
   font-size: 13px;
   margin-bottom: 28px;
   cursor: pointer;
@@ -266,7 +266,7 @@ onMounted(async () => {
 }
 
 .health-status-bar__desc {
-  color: #666;
+  color: var(--color-text-secondary);
   flex: 1;
 }
 
@@ -281,7 +281,7 @@ onMounted(async () => {
   box-shadow: none;
   padding: 0;
   background: transparent;
-  border-bottom: 1px dashed #ccc;
+  border-bottom: 1px dashed var(--color-border);
   border-radius: 0;
 }
 
@@ -296,11 +296,11 @@ onMounted(async () => {
 
 /* ---- card ---- */
 .health-card {
-  background: #fff;
+  background: var(--color-bg);
   padding: 14px 16px;
-  border-top: 1px solid #f0f0f0;
-  border-right: 1px solid #f0f0f0;
-  border-bottom: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-divider);
+  border-right: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--color-divider);
   border-left: 3px solid;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -332,7 +332,7 @@ onMounted(async () => {
 }
 
 .health-card__level--warn {
-  color: #92400e;
+  color: #d29922;
 }
 
 .health-card__level--bad {
@@ -348,7 +348,7 @@ onMounted(async () => {
   display: flex;
   gap: 14px;
   padding-top: 8px;
-  border-top: 1px solid #f5f5f5;
+  border-top: 1px solid var(--color-divider);
   font-size: 11px;
   color: var(--color-text-muted);
 }
@@ -361,7 +361,7 @@ onMounted(async () => {
 
 .health-card__interpretation {
   font-size: 13px;
-  color: #555;
+  color: var(--color-text-secondary);
   line-height: 1.8;
   margin: 6px 0 14px 0;
 }
@@ -390,9 +390,8 @@ onMounted(async () => {
 
 .health-card__advice li {
   margin-bottom: 4px;
-  color: #555;
+  color: var(--color-text-secondary);
 }
-
 .health-empty {
   grid-column: 1 / -1;
   text-align: center;
