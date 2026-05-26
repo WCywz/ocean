@@ -47,7 +47,7 @@ public class  UserController {
      */
     @GetMapping("/current")
     public Result<UserVO> getCurrentUser(HttpServletRequest request) {
-        Long userId = (Long) request.getAttribute("userId");
+        Long userId = ((Number) request.getAttribute("userId")).longValue();
         UserVO vo = sysUserService.getUserById(userId);
         return Result.success(vo);
     }

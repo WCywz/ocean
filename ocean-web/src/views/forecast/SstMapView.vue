@@ -24,7 +24,7 @@
       <h3 class="editorial-section-heading">预报热力地图</h3>
       <OceanMap
         :grid-data="gridData"
-        :color-ranges="SST_MAP_COLORS"
+        :color-ranges="mapColors"
         :legend-labels="legendLabels"
         legend-title="温度 (°C)"
         :loading="mapLoading"
@@ -53,12 +53,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import OceanMap from '../../components/OceanMap.vue'
 import TrendChart from '../../components/TrendChart.vue'
 import { getMapGrid, getPointTrend, getSeaAreas } from '../../api/forecast'
 import { getSystemDate } from '../../api/system'
-import { SST_MAP_COLORS, SST_COLORS } from '../../utils/chart-config'
+import { SST_MAP_COLORS, SST_MAP_COLORS_DARK, SST_COLORS } from '../../utils/chart-config'
+import { useTheme } from '../../composables/useTheme'
 
 const filterDate = ref('')
 const systemDate = ref('')
@@ -71,6 +72,10 @@ const trendDates = ref([])
 const trendLoading = ref(false)
 
 const customBbox = ref(null)
+
+const { resolved } = useTheme()
+const isDark = computed(() => resolved.value === 'dark')
+const mapColors = computed(() => isDark.value ? SST_MAP_COLORS_DARK : SST_MAP_COLORS)
 
 function defaultForecastDate() {
   const d = new Date(systemDate.value)

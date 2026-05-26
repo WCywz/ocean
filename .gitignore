@@ -15,3 +15,26 @@ __pycache__/
 deploy/
 *.pt
 ocean-model/*.pt
+
+# IDE
+.vscode/
+
+# Claude Code (local)
+.claude/settings.local.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Accidental commits
+ocean-server/query
+
+# Database exports (auto-generated dumps)
+database/export/
+
+# Uploads
+ocean-server/uploads/
+
+# Spring Boot build output
+BOOT-INF/

@@ -47,5 +47,9 @@ const cards = computed(() => [
   margin-left: auto;
   align-self: center;
   white-space: nowrap;
+  transition: color 0.15s;
+}
+.stats-nav-hint:hover {
+  color: var(--color-text);
 }
 </style>

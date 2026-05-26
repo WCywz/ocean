@@ -2,7 +2,7 @@
   <el-dialog v-model="visible" :title="isEdit ? '编辑版本' : `新增版本 — ${modelName}`" width="520px" :close-on-click-modal="false">
     <div style="margin-bottom: 18px;">
       <label class="editorial-form-label">版本号</label>
-      <input class="editorial-input" :value="form.versionLabel" disabled style="color: #999;" />
+      <input class="editorial-input" :value="form.versionLabel" disabled style="color: var(--color-text-muted);" />
     </div>
     <div style="margin-bottom: 18px;">
       <label class="editorial-form-label">运行周期 (Cron)</label>

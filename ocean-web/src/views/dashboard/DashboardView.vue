@@ -22,7 +22,7 @@
         <span class="health-status-bar__level">{{ statusLabel }}</span>
         <span class="health-status-bar__dot">&middot;</span>
         <span class="health-status-bar__desc">{{ healthSummary }}</span>
-        <span class="health-status-bar__hint">点击查看详情 →</span>
+        <span class="section-jump" @click.stop="goHealth">海洋健康 &rarr;</span>
       </div>
       <div v-loading="healthLoading" class="dashboard-health-grid">
         <div
@@ -32,21 +32,43 @@
           :style="{ borderLeftColor: zone.overall.color }"
         >
           <div class="dh-card__label">{{ zone.label }}</div>
+
+          <div class="dh-card__trend">
+            <span class="dh-card__trend-label">近5日</span>
+            <span class="dh-card__dots">
+              <span
+                v-for="(d, i) in zone.recent"
+                :key="i"
+                class="dh-card__dot"
+                :style="{ background: dotColor(d.overallGrade) }"
+              ></span>
+            </span>
+            <span class="dh-card__trend-text">{{ zone.trendText }}</span>
+          </div>
+
           <div class="dh-card__body">
             <span class="dh-card__level" :class="{ 'dh-card__level--warn': zone.overall.level === 'warn', 'dh-card__level--bad': zone.overall.level === 'bad' }">{{ levelText[zone.overall.level] }}</span>
             <span class="dh-card__hint">&ensp;&middot;&ensp;{{ primaryConcern(zone) }}</span>
           </div>
-          <div class="dh-card__tags">
-            <span>SST {{ trendSymbol(zone.sst.trend) }}</span>
-            <span>Chl {{ trendSymbol(zone.chl.trend) }}</span>
+
+          <div class="dh-card__metrics">
+            <span>SST 异常 {{ fmtAnomaly(zone.sst.anomaly) }}</span>
+            <span>Chl {{ zone.chl.value != null ? zone.chl.value.toFixed(1) : '--' }} mg/m³</span>
             <span>热浪 {{ zone.heatwave.active ? '有' : '无' }}</span>
+          </div>
+
+          <div class="dh-card__tomorrow">
+            明日 预计 {{ levelText[zone.forecast[0]?.overallGrade || zone.overall.level] }}
           </div>
         </div>
       </div>
     </div>
 
     <!-- Row 2: Trend Charts -->
-    <div class="dashboard-row" style="display: flex; gap: 40px;">
+    <div class="dashboard-row">
+      <p class="editorial-section-label">Trends</p>
+      <h3 class="editorial-section-heading" style="margin: 0 0 12px 0;">近期趋势</h3>
+      <div style="display: flex; gap: 40px;">
       <div style="flex: 1;">
         <TrendCard
           title="海表温度 SST"
@@ -65,14 +87,53 @@
           @navigate="goChl"
         />
       </div>
+      </div>
     </div>
 
-    <!-- Row 3: Alerts + Data Tables -->
+    <!-- Row 3: Point Monitoring + Data Tables -->
     <div class="dashboard-row dashboard-row--last" style="display: flex; gap: 40px; align-items: flex-start;">
-      <div style="flex: 1;">
-        <AlertPanel :alerts="alerts" :loading="loading.alerts" />
+      <div style="flex: 1.3;">
+        <div class="editorial-section">
+          <div style="display: flex; align-items: baseline; justify-content: space-between;">
+            <div>
+              <p class="editorial-section-label">Monitoring</p>
+              <h3 class="editorial-section-heading">点位监测</h3>
+            </div>
+            <span class="section-jump" @click="goSst">查看点位 &rarr;</span>
+          </div>
+          <div class="alert-summary-bar" @click="goHealth">{{ alertSummary }}</div>
+          <div v-loading="loading.alertMap">
+            <p class="list-label">监测站点</p>
+            <div
+              v-for="s in alertStations"
+              :key="s.stationName"
+              class="point-item"
+              @click="goHealth"
+            >
+              <span class="point-dot" :style="{ background: gradeColor(s.overallGrade) }"></span>
+              <span class="point-name">{{ s.stationName }}</span>
+              <span class="point-meta">{{ gradeLabel[s.overallGrade] }} · SST {{ fmtAnomaly(s.sstAnomaly) }}</span>
+            </div>
+
+            <template v-if="alertHotspots.length">
+              <p class="list-label" style="margin-top: 12px;">聚焦点位</p>
+              <div
+                v-for="(h, i) in alertHotspots"
+                :key="'h-' + i"
+                class="point-item"
+                @click="goHealth"
+              >
+                <span class="point-dot point-dot--pulse" :style="{ background: gradeColor(h.grade) }"></span>
+                <span class="point-name">{{ h.lat.toFixed(2) }}°, {{ h.lon.toFixed(2) }}°</span>
+                <span class="point-meta">{{ fmtAnomaly(h.anomaly) }}</span>
+              </div>
+            </template>
+
+            <div v-if="!alertStations.length && !loading.alertMap" class="dh-empty">暂无数据</div>
+          </div>
+        </div>
       </div>
-      <div style="flex: 2; display: flex; flex-direction: column; gap: 24px;">
+      <div style="flex: 1.7; display: flex; flex-direction: column; gap: 24px;">
         <LatestDataTable
           title="最新海表温度 (SST)"
           dataType="SST"
@@ -95,13 +156,12 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getDashboard, getDashboardTrend, getAlerts } from '../../api/forecast'
+import { getDashboard, getDashboardTrend } from '../../api/forecast'
 import { getSystemDate } from '../../api/system'
-import { getZoneHealth } from '../../api/health'
+import { getZoneHealthV2, getAlertMap } from '../../api/health'
 import { buildZoneAssessment, buildOverallSummary } from '../../utils/health-assessment'
 import StatCards from './StatCards.vue'
 import TrendCard from './TrendCard.vue'
-import AlertPanel from './AlertPanel.vue'
 import LatestDataTable from './LatestDataTable.vue'
 
 const router = useRouter()
@@ -135,28 +195,22 @@ const statusLabel = computed(() => {
   return levelText[worst]
 })
 
-function trendSymbol(trend) {
-  if (trend === 'rising') return '↑'
-  if (trend === 'falling') return '↓'
-  return '→'
+function dotColor(grade) {
+  const colors = { good: '#22c55e', fine: '#22c55e', warn: '#f59e0b', bad: '#ef4444' }
+  return colors[grade || 'good'] || '#22c55e'
 }
 
 function primaryConcern(zone) {
   if (zone.heatwave.active) return '海洋热浪活跃'
-  if (zone.sst.level === 'bad' || zone.sst.level === 'warn') return `SST 偏高 ${zone.sst.anomaly.toFixed(1)}°C`
-  if (zone.chl.level === 'bad' || zone.chl.level === 'warn') return `Chl ${zone.chl.value.toFixed(1)} mg/m³`
+  if (zone.sst.level === 'bad' || zone.sst.level === 'warn') return 'SST 偏高 ' + (zone.sst.anomaly != null ? zone.sst.anomaly.toFixed(1) + '°C' : '')
+  if (zone.chl.level === 'bad' || zone.chl.level === 'warn') return 'Chl ' + (zone.chl.value != null ? zone.chl.value.toFixed(1) + ' mg/m³' : '偏高')
   return '各项正常'
 }
 
 async function fetchHealth() {
   healthLoading.value = true
   try {
-    const res = await getZoneHealth({
-      centerLon: 122.5,
-      centerLat: 29.5,
-      coastLon: 121.5,
-      forecastDate: systemDate.value
-    })
+    const res = await getZoneHealthV2({ date: systemDate.value, lookback: 5, lookahead: 3 })
     assessments.value = (res.data && res.data.zones || []).map(buildZoneAssessment)
   } catch (e) {
     console.error('Failed to fetch zone health', e)
@@ -176,13 +230,24 @@ const data = ref({
 
 const sstTrend = ref([])
 const chlTrend = ref([])
-const alerts = ref([])
+const alertStations = ref([])
+const alertHotspots = ref([])
+const alertSummary = ref('')
+
+const gradeColor = (g) => ({ good: '#22c55e', fine: '#22c55e', warn: '#f59e0b', bad: '#ef4444' }[g || 'good'])
+const gradeLabel = { good: '优', fine: '良', warn: '中', bad: '差' }
+
+function fmtAnomaly(val) {
+  if (val == null) return '--'
+  const sign = val > 0 ? '+' : ''
+  return sign + val.toFixed(1) + '°C'
+}
 
 const loading = reactive({
   dashboard: false,
   trendSst: false,
   trendChl: false,
-  alerts: false
+  alertMap: false
 })
 
 const systemDate = ref('')
@@ -213,13 +278,17 @@ async function fetchTrend(dataType) {
   }
 }
 
-async function fetchAlerts() {
-  loading.alerts = true
+async function fetchAlertMap() {
+  loading.alertMap = true
   try {
-    const res = await getAlerts(systemDate.value)
-    alerts.value = res.data
+    const res = await getAlertMap({ date: systemDate.value })
+    alertStations.value = (res.data && res.data.stations) || []
+    alertHotspots.value = (res.data && res.data.hotspots) || []
+    alertSummary.value = (res.data && res.data.summary) || ''
+  } catch (e) {
+    console.error('Failed to fetch alert map', e)
   } finally {
-    loading.alerts = false
+    loading.alertMap = false
   }
 }
 
@@ -236,7 +305,7 @@ onMounted(async () => {
   fetchDashboard()
   fetchTrend('SST')
   fetchTrend('CHL')
-  fetchAlerts()
+  fetchAlertMap()
 })
 </script>
 
@@ -244,7 +313,7 @@ onMounted(async () => {
 .dashboard-row {
   padding-bottom: 28px;
   margin-bottom: 32px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--color-divider-strong);
 }
 .dashboard-row--last {
   border-bottom: none;
@@ -259,7 +328,7 @@ onMounted(async () => {
   gap: 12px;
   border-left: 3px solid;
   padding: 10px 14px;
-  background: #fafafa;
+  background: var(--color-surface);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -275,7 +344,7 @@ onMounted(async () => {
 }
 
 .health-status-bar__desc {
-  color: #666;
+  color: var(--color-text-secondary);
   flex: 1;
 }
 
@@ -293,11 +362,11 @@ onMounted(async () => {
 }
 
 .dh-card {
-  background: #fff;
+  background: var(--color-bg);
   padding: 14px 16px;
-  border-top: 1px solid #f0f0f0;
-  border-right: 1px solid #f0f0f0;
-  border-bottom: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-divider);
+  border-right: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--color-divider);
   border-left: 3px solid;
 }
 
@@ -312,7 +381,7 @@ onMounted(async () => {
 .dh-card__body {
   display: flex;
   align-items: baseline;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .dh-card__level {
@@ -323,7 +392,7 @@ onMounted(async () => {
 }
 
 .dh-card__level--warn {
-  color: #92400e;
+  color: #d29922;
 }
 
 .dh-card__level--bad {
@@ -335,13 +404,145 @@ onMounted(async () => {
   color: var(--color-text-secondary);
 }
 
+/* ---- trend strip ---- */
+.dh-card__trend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.dh-card__trend-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+}
+
+.dh-card__dots {
+  display: flex;
+  gap: 3px;
+}
+
+.dh-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dh-card__trend-text {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+
+.dh-card__metrics {
+  display: flex;
+  gap: 12px;
+  padding: 6px 0 4px 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.dh-card__tomorrow {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding-top: 4px;
+  border-top: 1px solid var(--color-divider);
+}
+
 .dh-card__tags {
   display: flex;
   gap: 14px;
   padding-top: 8px;
-  border-top: 1px solid #f5f5f5;
+  border-top: 1px solid var(--color-divider);
   font-size: 11px;
   color: var(--color-text-muted);
+}
+
+/* ---- point monitoring ---- */
+.alert-summary-bar {
+  display: flex;
+  align-items: center;
+  border-left: 3px solid #f59e0b;
+  padding: 12px 16px;
+  background: var(--color-surface);
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin-bottom: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.list-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 8px 0;
+}
+
+.point-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-left: 3px solid transparent;
+}
+
+.point-item:hover {
+  background: var(--color-surface);
+  border-left-color: var(--color-text);
+}
+
+.point-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.point-dot--pulse {
+  width: 13px;
+  height: 13px;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.point-name {
+  font-size: 13px;
+  color: var(--color-text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.point-meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.dh-empty {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.section-jump {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.section-jump:hover {
+  color: var(--color-text);
 }
 
 </style>

@@ -27,7 +27,7 @@ ALTER TABLE sys_user ADD COLUMN phone VARCHAR(20) DEFAULT NULL COMMENT '手机�
 
 Run:
 ```bash
-mysql -u root -pyour_password ocean_forecast < database/export/migration-add-phone.sql
+mysql -u root -p ocean_forecast < database/export/migration-add-phone.sql
 ```
 Expected: Query OK, 0 rows affected (or column already exists warning if re-run)
 
@@ -35,7 +35,7 @@ Expected: Query OK, 0 rows affected (or column already exists warning if re-run)
 
 Run:
 ```bash
-mysql -u root -pyour_password ocean_forecast -e "DESCRIBE sys_user;"
+mysql -u root -p ocean_forecast -e "DESCRIBE sys_user;"
 ```
 Expected: `phone` column listed with type `varchar(20)`
 
@@ -43,7 +43,7 @@ Expected: `phone` column listed with type `varchar(20)`
 
 Run:
 ```bash
-mysql -u root -pyour_password ocean_forecast -e "UPDATE sys_user SET phone = '13800138000' WHERE username = 'admin';"
+mysql -u root -p ocean_forecast -e "UPDATE sys_user SET phone = '13800138000' WHERE username = 'admin';"
 ```
 
 - [ ] **Step 5: Commit**

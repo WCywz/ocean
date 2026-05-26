@@ -264,7 +264,7 @@ function nextPage() {
   gap: 12px;
   border-left: 3px solid;
   padding: 10px 14px;
-  background: #fafafa;
+  background: var(--color-surface);
   font-size: 13px;
   margin-bottom: 24px;
 }
@@ -280,7 +280,7 @@ function nextPage() {
 }
 
 .page-status-bar__desc {
-  color: #666;
+  color: var(--color-text-secondary);
   flex: 1;
 }
 

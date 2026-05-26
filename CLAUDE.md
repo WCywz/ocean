@@ -47,13 +47,52 @@ scripts/            Python data ingestion (reads CSVs → MySQL)
 
 ## Environment notes
 
-- Local MySQL: `root/your_password`, `ocean_forecast` database
-- Production MySQL: `ocean_forecast/your_password` at your_server_ip
+- Local MySQL at `localhost:3306`, database `ocean_forecast`
+- Production MySQL: see `deploy/` directory (gitignored) for connection details
 - `application.yml` is gitignored (contains secrets). Template at `ocean-server/src/main/resources/application.yml.example`
 - `deploy/` is gitignored — contains production JAR, `.pt` model weights, frontend dist
 - Root `*.csv` files are gitignored — used by ingest scripts, do not commit
+- Scripts require `DB_PASSWORD` environment variable. See `.env.example` for all required env vars.
 
 ## Workflow
 
-- **Destructive operations** (file deletion, directory restructuring, database changes): list affected files first, wait for confirmation before executing. Do not mix analysis and execution in the same round.
-- **Autopilot mode:** When the user says "继续执行" / "keep going" / "不用等我" / "不用确认", continue executing the agreed-upon plan without asking for confirmations. The user may also pre-authorize at the start: "接下来 2 小时我不在，你继续按方案执行，不用确认". Autopilot does NOT override the framework's hard-gated confirmations (rm -rf outside project, ssh, etc.) — those will still pause, but the session will resume when possible. In autopilot mode, skill-level checkpoints (e.g., executing-plans pausing between steps, writing-plans waiting for approval) are also skipped — self-review each step, fix minor issues silently, log major issues for later and continue. For blocking issues (e.g., build failure): retry 2-3 times with diagnosis between attempts, if still failing skip dependent steps and continue with independent work, revisit later, and if still unfixable leave it for the user.
+**全局优先级：临时变更需求 > 本文规则**
+- 用户在当前会话中明确给出的临时指令，优先级高于本文所有规则
+- 例如：临时要求直接改 master、临时允许某次 push、临时放宽某操作权限
+
+**危险操作定义（需要确认）：**
+- 删除文件/目录（`rm`、`git rm`、递归删除）
+- 数据库结构变更（DDL：ALTER、DROP、TRUNCATE）和大范围数据修改（无 WHERE 的 UPDATE/DELETE）
+- 破坏性 git 操作（`force push`、`hard reset`、`checkout -- .`）
+- 除以上外，创建文件、编辑代码、运行测试、构建等操作直接放行
+
+**自主工作模式（"继续执行" / "不用等我"）：**
+
+触发条件：用户明确表示"继续执行"/"不用等我"/"不用确认"等
+
+触发后流程：
+- → 先大 commit（`快照：开始 所有XXX`）
+- → 按方案推进所有任务
+- → 遇到危险操作需要确认时，等待 3 分钟无响应 → 触发安全快照：
+    - 先小 commit 当前状态作为快照
+    - 自动放宽操作权限继续执行
+    - 操作完成后验证 2-3 轮
+    - 发现严重结构错误或数据删除/缺失：
+      → 立即 git revert，小 commit 和 revert commit 保留在历史中（记录失败过程）
+      → 记录文档（`docs/rollback/YYYY-MM-DD-<简述>.md`），写明：
+        - 执行了什么操作
+        - 造成了什么影响（文件丢失、数据变化、结构破坏）
+        - 涉及哪些模块/文件
+      → 跳过该任务，先推进后续任务
+    - 没有发现严重错误 → git reset --soft 撤销小 commit（不留下记录），改动保留继续
+- → 继续推进任务，遇到危险操作同上
+- → 全部完成后大 commit（`完成：所有XXX`）
+- → 提供 git diff 和改动摘要，用户回来后决定 push、回退、或丢弃
+- 遇到构建失败：重试 2-3 次并诊断，仍失败则跳过，最终未解决留给用户处理
+
+**Git 规范：**
+- master 禁止直接开发和 commit，仅通过 feature 分支 merge 引入变更
+- 所有开发在 `feature/<功能名>` 分支进行，从 master 拉出
+- `git merge --squash` 合并到 master，所有变更压成一个干净 commit，不带入中间 commit
+- Commit 用中文，格式：`feat:` / `fix:` / `chore:` / `docs:` / `refactor:` + 简述
+- 不自动 push——由用户验收后自己推

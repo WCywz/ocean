@@ -3,9 +3,10 @@ package com.ocean.task;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ocean.entity.HealthRecord;
 import com.ocean.entity.HealthZone;
-import com.ocean.mapper.ForecastGridMapper;
 import com.ocean.mapper.HealthRecordMapper;
 import com.ocean.mapper.HealthZoneMapper;
+import com.ocean.mapper.ObservationGridMapper;
+import com.ocean.service.PipelineLockService;
 import com.ocean.service.SystemConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,23 +22,37 @@ public class HealthAssessmentTask {
 
     @Autowired private HealthZoneMapper healthZoneMapper;
     @Autowired private HealthRecordMapper healthRecordMapper;
-    @Autowired private ForecastGridMapper forecastGridMapper;
+    @Autowired private ObservationGridMapper observationGridMapper;
     @Autowired private SystemConfigService systemConfigService;
+    @Autowired private PipelineLockService pipelineLock;
 
     private static final double SST_TREND_THRESHOLD = 0.2;
     private static final double CHL_TREND_THRESHOLD = 0.1;
     private static final double HEATWAVE_SST_THRESHOLD = 28.0;
     private static final int HEATWAVE_MIN_DAYS = 5;
+    private static final String TEMP_VAR = "thetao";
+    private static final String CHL_VAR = "chl";
 
     @Scheduled(cron = "0 30 2 * * ?")
     public void assess() {
         LocalDate assessDate = systemConfigService.getSystemDate();
-        log.info(">>>>>> 健康评估任务开始: {}", assessDate);
+        log.info(">>>>>> 健康评估兜底检查: {}", assessDate);
+
+        if (pipelineLock.isHealthAssessed(assessDate)) {
+            log.info("健康评估已存在，跳过: {}", assessDate);
+            return;
+        }
+        if (!pipelineLock.tryLock()) {
+            log.info("流水线正在执行中，跳过: {}", assessDate);
+            return;
+        }
         try {
             run(assessDate);
-            log.info("<<<<<< 健康评估任务完成: {}", assessDate);
+            log.info("<<<<<< 健康评估完成: {}", assessDate);
         } catch (Exception e) {
-            log.error("<<<<<< 健康评估任务失败: {}", assessDate, e);
+            log.error("<<<<<< 健康评估失败: {}", assessDate, e);
+        } finally {
+            pipelineLock.unlock();
         }
     }
 
@@ -55,41 +70,42 @@ public class HealthAssessmentTask {
 
         for (HealthZone zone : zones) {
             try {
-                // SST stats for current date
-                Map<String, Object> sstStats = forecastGridMapper.selectZoneStats(
-                        "sst", dateStr, zone.getMinLon(), zone.getMaxLon(), zone.getMinLat(), zone.getMaxLat());
+                // Temperature stats from observation_grid (thetao as SST proxy)
+                Map<String, Object> tempStats = observationGridMapper.selectZoneStats(
+                        TEMP_VAR, dateStr, zone.getMinLon(), zone.getMaxLon(), zone.getMinLat(), zone.getMaxLat());
 
-                // CHL stats for current date
-                Map<String, Object> chlStats = forecastGridMapper.selectZoneStats(
-                        "chl", dateStr, zone.getMinLon(), zone.getMaxLon(), zone.getMinLat(), zone.getMaxLat());
+                // CHL stats from observation_grid
+                Map<String, Object> chlStats = observationGridMapper.selectZoneStats(
+                        CHL_VAR, dateStr, zone.getMinLon(), zone.getMaxLon(), zone.getMinLat(), zone.getMaxLat());
 
-                if (sstStats == null || sstStats.get("avg_val") == null) {
-                    log.debug("{} 无预报数据，跳过分区 {}", dateStr, zone.getZoneName());
+                if (tempStats == null || tempStats.get("avg_val") == null) {
+                    log.debug("{} 无观测数据，跳过分区 {}", dateStr, zone.getZoneName());
                     continue;
                 }
 
-                double sstAvg = ((Number) sstStats.get("avg_val")).doubleValue();
-                double sstMax = ((Number) sstStats.get("max_val")).doubleValue();
+                double sstAvg = ((Number) tempStats.get("avg_val")).doubleValue();
+                double sstMax = ((Number) tempStats.get("max_val")).doubleValue();
                 double chlAvg = chlStats != null && chlStats.get("avg_val") != null
                         ? ((Number) chlStats.get("avg_val")).doubleValue() : 0;
                 double chlMax = chlStats != null && chlStats.get("max_val") != null
                         ? ((Number) chlStats.get("max_val")).doubleValue() : 0;
 
-                // anomaly: compare with all available forecast_grid SST for this zone
-                Double baseline = forecastGridMapper.selectZoneSstBaseline(
+                // anomaly: compare with all available observation_grid thetao for this zone
+                Double baseline = observationGridMapper.selectZoneBaseline(
+                        TEMP_VAR, assessDate.getMonthValue(),
                         zone.getMinLon(), zone.getMaxLon(), zone.getMinLat(), zone.getMaxLat());
                 double anomaly = baseline != null ? sstAvg - baseline : 0;
 
-                // trend: compare with previous day
-                Map<String, Object> prevSstStats = forecastGridMapper.selectZoneStats(
-                        "sst", prevDateStr, zone.getMinLon(), zone.getMaxLon(), zone.getMinLat(), zone.getMaxLat());
-                Map<String, Object> prevChlStats = forecastGridMapper.selectZoneStats(
-                        "chl", prevDateStr, zone.getMinLon(), zone.getMaxLon(), zone.getMinLat(), zone.getMaxLat());
+                // trend: compare with previous day observation
+                Map<String, Object> prevTempStats = observationGridMapper.selectZoneStats(
+                        TEMP_VAR, prevDateStr, zone.getMinLon(), zone.getMaxLon(), zone.getMinLat(), zone.getMaxLat());
+                Map<String, Object> prevChlStats = observationGridMapper.selectZoneStats(
+                        CHL_VAR, prevDateStr, zone.getMinLon(), zone.getMaxLon(), zone.getMinLat(), zone.getMaxLat());
 
-                String sstTrend = calcTrend(sstAvg, prevSstStats, SST_TREND_THRESHOLD);
+                String sstTrend = calcTrend(sstAvg, prevTempStats, SST_TREND_THRESHOLD);
                 String chlTrend = calcTrend(chlAvg, prevChlStats, CHL_TREND_THRESHOLD);
 
-                // heatwave detection
+                // heatwave detection from observation_grid thetao
                 int[] hw = detectHeatwave(zone, dateStr);
 
                 // grades
@@ -152,13 +168,14 @@ public class HealthAssessmentTask {
 
     private int[] detectHeatwave(HealthZone zone, String endDate) {
         String startDate = LocalDate.parse(endDate).minusDays(30).toString();
-        List<Map<String, Object>> dailyAvgs = forecastGridMapper.selectZoneDailyAvg(
+        List<Map<String, Object>> dailyAvgs = observationGridMapper.selectZoneDailyAvg(
+                TEMP_VAR,
                 zone.getMinLon(), zone.getMaxLon(), zone.getMinLat(), zone.getMaxLat(),
                 startDate, endDate);
 
         int consecutive = 0;
         int maxConsecutive = 0;
-        for (int i = dailyAvgs.size() - 1; i >= 0; i--) {
+        for (int i = 0; i < dailyAvgs.size(); i++) {
             double avg = ((Number) dailyAvgs.get(i).get("avg_val")).doubleValue();
             if (avg > HEATWAVE_SST_THRESHOLD) {
                 consecutive++;

@@ -63,7 +63,8 @@ import OceanMap from '../../components/OceanMap.vue'
 import TrendChart from '../../components/TrendChart.vue'
 import { getMapGrid, getPointTrend, getSeaAreas } from '../../api/forecast'
 import { getSystemDate } from '../../api/system'
-import { CHL_CONC_COLORS, CHL_PROB_COLORS, CHL_COLORS } from '../../utils/chart-config'
+import { CHL_CONC_COLORS, CHL_CONC_COLORS_DARK, CHL_PROB_COLORS, CHL_PROB_COLORS_DARK, CHL_COLORS } from '../../utils/chart-config'
+import { useTheme } from '../../composables/useTheme'
 
 const chlMode = ref('concentration')
 const filterDate = ref('')
@@ -79,9 +80,15 @@ const trendDates = ref([])
 const trendLoading = ref(false)
 const customBbox = ref(null)
 
-const currentColorRanges = computed(() =>
-  chlMode.value === 'concentration' ? CHL_CONC_COLORS : CHL_PROB_COLORS
-)
+const { resolved } = useTheme()
+const isDark = computed(() => resolved.value === 'dark')
+
+const currentColorRanges = computed(() => {
+  if (chlMode.value === 'concentration') {
+    return isDark.value ? CHL_CONC_COLORS_DARK : CHL_CONC_COLORS
+  }
+  return isDark.value ? CHL_PROB_COLORS_DARK : CHL_PROB_COLORS
+})
 
 const currentLegendLabels = computed(() =>
   chlMode.value === 'concentration'

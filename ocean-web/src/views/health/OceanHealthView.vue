@@ -22,7 +22,7 @@
       </span>
     </div>
 
-    <HealthAlertSection :alerts="alerts" :loading="alertsLoading" />
+    <HealthAlertSection :stations="alertStations" :hotspots="alertHotspots" :summary="alertSummary" :loading="alertsLoading" />
 
     <p class="editorial-section-label">区域健康评估 &middot; 东海</p>
 
@@ -36,19 +36,46 @@
           @click="selectZone(zone.id)"
         >
           <div class="health-card__label">{{ zone.label }}</div>
-          <div class="health-card__body">
-            <span class="health-card__level" :class="{ 'health-card__level--warn': zone.overall.level === 'warn', 'health-card__level--bad': zone.overall.level === 'bad' }">{{ levelText[zone.overall.level] }}</span>
-            <span class="health-card__hint">&ensp;&middot;&ensp;{{ primaryConcern(zone) }}</span>
-          </div>
-          <div class="health-card__tags">
-            <span>SST {{ trendSymbol(zone.sst.trend) }}</span>
-            <span>Chl {{ trendSymbol(zone.chl.trend) }}</span>
-            <span>热浪 {{ zone.heatwave.active ? '有' : '无' }}</span>
+
+          <!-- 收拢态摘要 -->
+          <div v-if="!selectedIds.has(zone.id)" class="health-card__summary">
+            <div class="health-card__trend">
+              <span class="health-card__trend-label">近5日</span>
+              <span class="health-card__dots">
+                <span
+                  v-for="(d, i) in zone.recent"
+                  :key="i"
+                  class="health-card__dot"
+                  :style="{ background: dotColor(d.overallGrade) }"
+                  :title="d.date + ' ' + levelText[d.overallGrade]"
+                ></span>
+              </span>
+              <span class="health-card__trend-text">{{ zone.trendText }}</span>
+            </div>
+
+            <div class="health-card__metrics">
+              <span>SST 异常 {{ fmtAnomaly(zone.sst.anomaly) }}</span>
+              <span>Chl {{ zone.chl.value != null ? zone.chl.value.toFixed(1) : '--' }} mg/m³</span>
+              <span>热浪 {{ zone.heatwave.active ? '有' : '无' }}</span>
+            </div>
+
+            <div class="health-card__tomorrow">
+              明日 预计 {{ levelText[zone.forecast[0]?.overallGrade || zone.overall.level] }}
+              <span v-if="zone.forecast[0]">{{ changeArrow(zone.overall.level, zone.forecast[0].overallGrade) }}</span>
+            </div>
           </div>
 
+          <div class="health-card__body">
+            <span class="health-card__level" :class="{ 'health-card__level--warn': zone.overall.level === 'warn', 'health-card__level--bad': zone.overall.level === 'bad' }">{{ levelText[zone.overall.level] }}</span>
+            <span v-if="!selectedIds.has(zone.id)" class="health-card__hint">&ensp;&middot;&ensp;{{ primaryConcern(zone) }}</span>
+          </div>
+
+          <!-- 展开态 -->
           <div v-if="selectedIds.has(zone.id)" class="health-card__detail" :style="{ borderColor: zone.overall.color }">
-            <span class="editorial-section-label">Detail &middot; {{ zone.label }}</span>
-            <p class="health-card__interpretation">{{ buildInterpretation(zone) }}</p>
+
+            <p class="health-card__narrative">{{ zone.trendNarrative }}</p>
+            <p class="health-card__narrative">{{ zone.outlookNarrative }}</p>
+
             <table class="editorial-table health-detail-table">
               <thead>
                 <tr>
@@ -70,7 +97,7 @@
                 </tr>
                 <tr>
                   <td>Chl 浓度</td>
-                  <td>{{ zone.chl.value.toFixed(1) }} mg/m³</td>
+                  <td>{{ zone.chl.value != null ? zone.chl.value.toFixed(1) + ' mg/m³' : '--' }}</td>
                   <td><span class="level-badge" :style="{ background: zone.chl.color }">{{ zone.chl.label }}</span></td>
                 </tr>
                 <tr>
@@ -80,11 +107,35 @@
                 </tr>
               </tbody>
             </table>
-            <div class="health-card__advice">
-              <strong>建议：</strong>
-              <ul>
-                <li v-for="(item, i) in zone.advice" :key="i">{{ item }}</li>
-              </ul>
+
+            <div class="health-card__forecast-strip">
+              <span
+                v-for="(f, i) in zone.forecast"
+                :key="i"
+                class="health-card__fc-day"
+              >
+                <span class="health-card__fc-date">{{ f.date.slice(5) }}</span>
+                <span class="health-card__fc-grade" :style="{ color: dotColor(f.overallGrade) }">{{ levelText[f.overallGrade || 'good'] }}</span>
+                <span v-if="i < zone.forecast.length - 1" class="health-card__fc-arrow">&rarr;</span>
+              </span>
+            </div>
+
+            <div class="health-card__timeline">
+              <span
+                v-for="(d, i) in zone.recent"
+                :key="'r' + i"
+                class="health-card__tl-dot"
+                :style="{ background: dotColor(d.overallGrade) }"
+                :title="d.date + ' ' + levelText[d.overallGrade]"
+              ></span>
+              <span class="health-card__tl-divider"></span>
+              <span
+                v-for="(f, i) in zone.forecast"
+                :key="'f' + i"
+                class="health-card__tl-dot health-card__tl-dot--fc"
+                :style="{ borderColor: dotColor(f.overallGrade) }"
+                :title="f.date + ' 预报 ' + levelText[f.overallGrade || 'good']"
+              ></span>
             </div>
           </div>
         </div>
@@ -96,18 +147,18 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getZoneHealth } from '../../api/health'
+import { getZoneHealthV2, getAlertMap } from '../../api/health'
 import { buildZoneAssessment, buildOverallSummary } from '../../utils/health-assessment'
-import { getAlerts } from '../../api/forecast'
 import { getSystemDate } from '../../api/system'
 import HealthAlertSection from './HealthAlertSection.vue'
 
 const forecastDate = ref('')
 const loading = ref(false)
-const rawData = ref(null)
 const selectedIds = ref(new Set())
 const assessments = ref([])
-const alerts = ref([])
+const alertStations = ref([])
+const alertHotspots = ref([])
+const alertSummary = ref('')
 const alertsLoading = ref(false)
 
 const levelText = { good: '优良', fine: '良好', warn: '中等', bad: '较差' }
@@ -136,9 +187,17 @@ const statusLabel = computed(() => {
   return levelText[worst]
 })
 
-function trendSymbol(trend) {
-  if (trend === 'rising') return '↑'
-  if (trend === 'falling') return '↓'
+function dotColor(grade) {
+  const colors = { good: '#22c55e', fine: '#22c55e', warn: '#f59e0b', bad: '#ef4444' }
+  return colors[grade || 'good'] || '#22c55e'
+}
+
+function changeArrow(currentGrade, nextGrade) {
+  const order = ['good', 'fine', 'warn', 'bad']
+  const cur = order.indexOf(currentGrade)
+  const nxt = order.indexOf(nextGrade)
+  if (nxt < cur) return '↑'
+  if (nxt > cur) return '↓'
   return '→'
 }
 
@@ -155,32 +214,14 @@ function fmtTemp(val) {
 function fmtAnomaly(val) {
   if (val == null) return '--'
   const sign = val > 0 ? '+' : ''
-  return `${sign}${val.toFixed(1)}°C`
+  return sign + val.toFixed(1) + '°C'
 }
 
 function primaryConcern(zone) {
   if (zone.heatwave.active) return '海洋热浪活跃'
-  if (zone.sst.level === 'bad' || zone.sst.level === 'warn') return `SST 偏高 ${zone.sst.anomaly.toFixed(1)}°C`
-  if (zone.chl.level === 'bad' || zone.chl.level === 'warn') return `Chl ${zone.chl.value.toFixed(1)} mg/m³`
+  if (zone.sst.level === 'bad' || zone.sst.level === 'warn') return 'SST 偏高 ' + (zone.sst.anomaly != null ? zone.sst.anomaly.toFixed(1) + '°C' : '')
+  if (zone.chl.level === 'bad' || zone.chl.level === 'warn') return 'Chl ' + (zone.chl.value != null ? zone.chl.value.toFixed(1) + ' mg/m³' : '偏高')
   return '各项正常'
-}
-
-function buildInterpretation(zone) {
-  const parts = []
-  parts.push(`${zone.label}海域`)
-  if (zone.sst.anomaly && Math.abs(zone.sst.anomaly) > 0.1) {
-    const sign = zone.sst.anomaly > 0 ? '偏高' : '偏低'
-    parts.push(`SST 较常年同期${sign} ${Math.abs(zone.sst.anomaly).toFixed(1)}°C`)
-  }
-  if (zone.heatwave.active) {
-    parts.push(`海洋热浪持续活跃，已维持 ${zone.heatwave.days} 天`)
-  }
-  if (zone.chl.level === 'bad' || zone.chl.level === 'warn') {
-    parts.push('叶绿素浓度偏高，赤潮风险需关注')
-  } else {
-    parts.push('叶绿素浓度正常，暂无赤潮风险')
-  }
-  return parts.join('，') + '。'
 }
 
 function selectZone(id) {
@@ -204,13 +245,7 @@ function toggleAll() {
 async function fetchData() {
   loading.value = true
   try {
-    const res = await getZoneHealth({
-      centerLon: 122.5,
-      centerLat: 29.5,
-      coastLon: 121.5,
-      forecastDate: forecastDate.value
-    })
-    rawData.value = res.data
+    const res = await getZoneHealthV2({ date: forecastDate.value, lookback: 5, lookahead: 3 })
     assessments.value = (res.data && res.data.zones || []).map(buildZoneAssessment)
     selectedIds.value = new Set(assessments.value.map(z => z.id))
     fetchAlerts()
@@ -224,10 +259,12 @@ async function fetchData() {
 async function fetchAlerts() {
   alertsLoading.value = true
   try {
-    const res = await getAlerts(forecastDate.value)
-    alerts.value = res.data || []
+    const res = await getAlertMap({ date: forecastDate.value })
+    alertStations.value = (res.data && res.data.stations) || []
+    alertHotspots.value = (res.data && res.data.hotspots) || []
+    alertSummary.value = (res.data && res.data.summary) || ''
   } catch (e) {
-    console.error('Failed to fetch alerts', e)
+    console.error('Failed to fetch alert map', e)
   } finally {
     alertsLoading.value = false
   }
@@ -248,7 +285,7 @@ onMounted(async () => {
   gap: 12px;
   border-left: 3px solid;
   padding: 10px 14px;
-  background: #fafafa;
+  background: var(--color-surface);
   font-size: 13px;
   margin-bottom: 28px;
   cursor: pointer;
@@ -266,7 +303,7 @@ onMounted(async () => {
 }
 
 .health-status-bar__desc {
-  color: #666;
+  color: var(--color-text-secondary);
   flex: 1;
 }
 
@@ -281,7 +318,7 @@ onMounted(async () => {
   box-shadow: none;
   padding: 0;
   background: transparent;
-  border-bottom: 1px dashed #ccc;
+  border-bottom: 1px dashed var(--color-border);
   border-radius: 0;
 }
 
@@ -290,17 +327,15 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  row-gap: 64px;
-  align-items: start;
 }
 
 /* ---- card ---- */
 .health-card {
-  background: #fff;
+  background: var(--color-bg);
   padding: 14px 16px;
-  border-top: 1px solid #f0f0f0;
-  border-right: 1px solid #f0f0f0;
-  border-bottom: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-divider);
+  border-right: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--color-divider);
   border-left: 3px solid;
   cursor: pointer;
   transition: opacity 0.2s;
@@ -315,13 +350,46 @@ onMounted(async () => {
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
+/* ---- trend strip ---- */
+.health-card__trend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.health-card__trend-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  letter-spacing: 0.05em;
+}
+
+.health-card__dots {
+  display: flex;
+  gap: 3px;
+}
+
+.health-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.health-card__trend-text {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+}
+
+/* ---- body ---- */
 .health-card__body {
   display: flex;
   align-items: baseline;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .health-card__level {
@@ -332,7 +400,7 @@ onMounted(async () => {
 }
 
 .health-card__level--warn {
-  color: #92400e;
+  color: #d29922;
 }
 
 .health-card__level--bad {
@@ -344,26 +412,34 @@ onMounted(async () => {
   color: var(--color-text-secondary);
 }
 
-.health-card__tags {
+/* ---- metrics ---- */
+.health-card__metrics {
   display: flex;
-  gap: 14px;
-  padding-top: 8px;
-  border-top: 1px solid #f5f5f5;
+  gap: 12px;
+  padding: 6px 0 4px 0;
   font-size: 11px;
   color: var(--color-text-muted);
 }
 
-/* ---- detail panel ---- */
+/* ---- tomorrow ---- */
+.health-card__tomorrow {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+/* ---- detail ---- */
 .health-card__detail {
-  margin: 14px -16px -14px -16px;
+  margin: 10px -16px -14px -16px;
   padding: 16px 20px;
 }
 
-.health-card__interpretation {
+.health-card__narrative {
   font-size: 13px;
-  color: #555;
-  line-height: 1.8;
-  margin: 6px 0 14px 0;
+  line-height: 1.9;
+  color: var(--color-text-secondary);
+  margin: 0 0 10px 0;
 }
 
 .health-detail-table {
@@ -377,22 +453,64 @@ onMounted(async () => {
   font-size: 11px;
 }
 
-.health-card__advice {
-  background: var(--color-surface);
-  padding: 10px 12px;
+/* ---- forecast strip ---- */
+.health-card__forecast-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
+  padding: 8px 0 12px 0;
+  color: var(--color-text-muted);
 }
 
-.health-card__advice ul {
-  margin: 4px 0 0;
-  padding-left: 16px;
+.health-card__fc-day {
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
-.health-card__advice li {
-  margin-bottom: 4px;
-  color: #555;
+.health-card__fc-date {
+  color: var(--color-text-muted);
 }
 
+.health-card__fc-grade {
+  font-weight: 500;
+}
+
+.health-card__fc-arrow {
+  color: var(--color-text-muted);
+  margin: 0 2px;
+}
+
+/* ---- timeline ---- */
+.health-card__timeline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 8px;
+  position: relative;
+}
+
+.health-card__tl-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.health-card__tl-dot--fc {
+  background: transparent;
+  border: 1.5px solid;
+}
+
+.health-card__tl-divider {
+  width: 12px;
+  height: 1px;
+  background: var(--color-border);
+  margin: 0 4px;
+}
+
+/* ---- empty ---- */
 .health-empty {
   grid-column: 1 / -1;
   text-align: center;
@@ -403,6 +521,10 @@ onMounted(async () => {
 
 .health-date-popper {
   font-family: var(--font-sans);
+}
+
+.text-muted {
+  color: var(--color-text-muted);
 }
 
 @media (max-width: 800px) {

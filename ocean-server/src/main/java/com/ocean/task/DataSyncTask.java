@@ -1,17 +1,19 @@
 package com.ocean.task;
 
 import com.ocean.service.ForecastService;
+import com.ocean.service.PipelineLockService;
+import com.ocean.service.SystemConfigService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 /**
- * 数据同步定时任务：每天运行模型预报，结果写入 forecast_grid。
- * <p>
- * 启用方式：在 OceanApplication 类上添加 {@code @EnableScheduling} 注解。
+ * 每日模型预报（02:00）。
+ * 主链路已由 SystemDateTask 在 00:05 执行，此处作为兜底补录。
  */
 @Slf4j
 @Component
@@ -20,15 +22,32 @@ public class DataSyncTask {
     @Autowired
     private ForecastService forecastService;
 
-    /** 每天凌晨 2 点执行（系统日期推进后再跑预报） */
+    @Autowired
+    private SystemConfigService systemConfigService;
+
+    @Autowired
+    private PipelineLockService pipelineLock;
+
     @Scheduled(cron = "0 0 2 * * ?")
     public void syncData() {
-        log.info(">>>>>> 定时预报任务开始");
+        LocalDate today = systemConfigService.getSystemDate();
+        log.info(">>>>>> 模型预报兜底检查: {}", today);
+
+        if (pipelineLock.isForecastComplete(today)) {
+            log.info("预报数据已存在，跳过: {}", today);
+            return;
+        }
+        if (!pipelineLock.tryLock()) {
+            log.info("流水线正在执行中，跳过: {}", today);
+            return;
+        }
         try {
             Map<String, Object> result = forecastService.runForecast();
-            log.info("<<<<<< 定时预报任务完成: {}", result);
+            log.info("<<<<<< 模型预报完成: {}", result);
         } catch (Exception e) {
-            log.error("<<<<<< 定时预报任务失败", e);
+            log.error("<<<<<< 模型预报失败", e);
+        } finally {
+            pipelineLock.unlock();
         }
     }
 }
