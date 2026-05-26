@@ -20,9 +20,6 @@ public class DashboardVO {
     /** 今日预报记录数 */
     private Long todayRecordCount;
 
-    /** 今日告警数 */
-    private Long alertCount;
-
     /** 各观测点最新SST数据 */
     private List<Map<String, Object>> latestSstData;
 

@@ -9,7 +9,6 @@
         :modelCount="data.modelCount"
         :runningModelCount="data.runningModelCount"
         :todayRecordCount="data.todayRecordCount"
-        :alertCount="data.alertCount"
         @navigate="goModel"
       />
     </div>
@@ -223,7 +222,6 @@ const data = ref({
   modelCount: 0,
   runningModelCount: 0,
   todayRecordCount: 0,
-  alertCount: 0,
   latestSstData: [],
   latestChlData: []
 })

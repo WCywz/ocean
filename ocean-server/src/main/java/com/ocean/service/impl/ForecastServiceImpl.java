@@ -34,7 +34,6 @@ public class ForecastServiceImpl implements ForecastService {
     @Autowired private ForecastGridMapper forecastGridMapper;
     @Autowired private ModelMapper modelMapper;
     @Autowired private ModelVersionMapper modelVersionMapper;
-    @Autowired private AlertEventMapper alertEventMapper;
     @Autowired private HealthZoneMapper healthZoneMapper;
     @Autowired private SystemConfigService systemConfigService;
     @Autowired private ForecastConfig forecastConfig;
@@ -49,9 +48,6 @@ public class ForecastServiceImpl implements ForecastService {
                 new LambdaQueryWrapper<ModelVersion>().eq(ModelVersion::getStatus, "RUNNING")));
         vo.setTodayRecordCount(forecastGridMapper.selectCount(
                 new LambdaQueryWrapper<ForecastGrid>().eq(ForecastGrid::getForecastDate, systemConfigService.getSystemDate())));
-        vo.setAlertCount(alertEventMapper.selectCount(
-                new LambdaQueryWrapper<AlertEvent>().eq(AlertEvent::getStatus, "active")));
-
         vo.setLatestSstData(getStationObsData("sst"));
         vo.setLatestChlData(getStationObsData("chl"));
         return vo;
