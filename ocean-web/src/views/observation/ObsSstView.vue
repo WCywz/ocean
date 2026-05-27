@@ -22,10 +22,11 @@
       <h3 class="editorial-section-heading">观测热力地图</h3>
       <OceanMap
         :grid-data="gridData"
-        :color-ranges="SST_MAP_COLORS"
+        :color-ranges="mapColors"
         :legend-labels="legendLabels"
         legend-title="温度 (°C)"
         :loading="mapLoading"
+        :center="mapCenter"
         @bbox-change="onBboxChange"
         @grid-click="onGridClick"
       />
@@ -49,13 +50,26 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import OceanMap from '../../components/OceanMap.vue'
 import TrendChart from '../../components/TrendChart.vue'
 import { getObsMapGrid, getObsPointTrend } from '../../api/ocean-data'
 import { getSeaAreas } from '../../api/forecast'
 import { getSystemDate } from '../../api/system'
-import { SST_MAP_COLORS, SST_COLORS } from '../../utils/chart-config'
+import { SST_MAP_COLORS, SST_MAP_COLORS_DARK, SST_COLORS } from '../../utils/chart-config'
+import { useTheme } from '../../composables/useTheme'
+
+const route = useRoute()
+
+const mapCenter = computed(() => {
+  const qLat = route.query.lat
+  const qLon = route.query.lon
+  if (qLat != null && qLon != null) {
+    return [Number(qLat), Number(qLon)]
+  }
+  return [29.8, 123.5]
+})
 
 const filterDate = ref('')
 const systemDate = ref('')
@@ -68,6 +82,10 @@ const trendDates = ref([])
 const trendLoading = ref(false)
 
 const customBbox = ref(null)
+
+const { resolved } = useTheme()
+const isDark = computed(() => resolved.value === 'dark')
+const mapColors = computed(() => isDark.value ? SST_MAP_COLORS_DARK : SST_MAP_COLORS)
 
 const legendLabels = ['<10°C', '10-13°C', '13-16°C', '16-19°C', '19-22°C', '22-25°C', '25-28°C', '28-31°C', '31-34°C', '>34°C']
 
@@ -165,6 +183,12 @@ onMounted(async () => {
   filterDate.value = systemDate.value
   await loadSeaAreas()
   await fetchGridData()
+
+  const qLat = route.query.lat
+  const qLon = route.query.lon
+  if (qLat != null && qLon != null) {
+    fetchTrendData(Number(qLon), Number(qLat))
+  }
 })
 </script>
 

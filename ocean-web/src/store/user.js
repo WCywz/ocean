@@ -15,6 +15,13 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('userInfo', JSON.stringify(val))
   }
 
+  function setAvatar(url) {
+    if (userInfo.value) {
+      userInfo.value.avatarUrl = url
+      localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+    }
+  }
+
   function logout() {
     token.value = ''
     userInfo.value = null
@@ -24,5 +31,5 @@ export const useUserStore = defineStore('user', () => {
 
   const isAdmin = () => userInfo.value?.role === 'ADMIN'
 
-  return { token, userInfo, setToken, setUserInfo, logout, isAdmin }
+  return { token, userInfo, setToken, setUserInfo, setAvatar, logout, isAdmin }
 })

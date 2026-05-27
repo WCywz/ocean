@@ -9,7 +9,7 @@
     <p class="editorial-narrative">{{ narrativeText }}</p>
     <div v-if="!series.length && !loading" class="editorial-narrative">暂无趋势数据</div>
     <div style="display: flex; align-items: stretch; width: 100%; height: 280px;">
-      <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: #666; padding: 0 8px; white-space: nowrap; flex-shrink: 0;">{{ yAxisLabel }}</div>
+      <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: var(--color-text-secondary); padding: 0 8px; white-space: nowrap; flex-shrink: 0;">{{ yAxisLabel }}</div>
       <div v-loading="loading" style="flex: 1; height: 100%; min-width: 0;" ref="chartRef"></div>
     </div>
   </div>
@@ -19,6 +19,10 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import { SST_COLORS, CHL_COLORS, buildBaseOption, buildSeriesData } from '../../utils/chart-config'
+import { useTheme } from '../../composables/useTheme'
+
+const { resolved: themeResolved } = useTheme()
+const isDark = computed(() => themeResolved.value === 'dark')
 
 const props = defineProps({
   title: { type: String, default: '' },
@@ -72,7 +76,8 @@ function renderChart() {
     legendData,
     xAxisData,
     yAxisName: '',
-    yAxisUnit: unit
+    yAxisUnit: unit,
+    dark: isDark.value
   })
   base.dataZoom = [{ type: 'inside' }]
   base.grid.left = 50
@@ -91,10 +96,18 @@ watch(() => props.series, () => nextTick(() => renderChart()), { deep: true })
 
 onMounted(() => {
   nextTick(() => {
-    chart = echarts.init(chartRef.value)
+    chart = echarts.init(chartRef.value, isDark.value ? 'ocean-dark' : undefined)
     window.addEventListener('resize', handleResize)
     renderChart()
   })
+})
+
+watch(isDark, () => {
+  if (chart) {
+    chart.dispose()
+    chart = echarts.init(chartRef.value, isDark.value ? 'ocean-dark' : undefined)
+    renderChart()
+  }
 })
 
 onUnmounted(() => {
@@ -110,6 +123,10 @@ onUnmounted(() => {
   font-weight: 400;
   font-family: var(--font-sans);
   white-space: nowrap;
+  transition: color 0.15s;
+}
+.trend-nav-hint:hover {
+  color: var(--color-text);
 }
 
 .trend-card-wrapper {

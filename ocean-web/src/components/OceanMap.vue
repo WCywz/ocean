@@ -24,6 +24,7 @@ import 'leaflet-draw'
 import { feature } from 'topojson-client'
 import landTopo from 'world-atlas/land-50m.json'
 import countriesTopo from 'world-atlas/countries-50m.json'
+import { useTheme } from '../composables/useTheme'
 
 
 const props = defineProps({
@@ -47,6 +48,43 @@ let heatLayer = null
 let drawControl = null
 let drawnItems = null
 let selectedMarker = null
+let landLayer = null
+let countryLayer = null
+let gridLines = []
+let cityCircleMarkers = []
+
+const { resolved } = useTheme()
+const isDark = computed(() => resolved.value === 'dark')
+
+function getLandStyle(dark) {
+  return dark
+    ? { fillColor: '#1e2a26', fillOpacity: 1, color: '#2e3a34', weight: 0.8 }
+    : { fillColor: '#f5f0e8', fillOpacity: 1, color: '#c8c0b0', weight: 0.8 }
+}
+
+function getCountryStyle(dark) {
+  return dark
+    ? { fill: false, color: '#3a4050', weight: 1.2, dashArray: '6 3' }
+    : { fill: false, color: '#b8a88a', weight: 1.2, dashArray: '6 3' }
+}
+
+function getGridStyle(dark) {
+  return dark
+    ? { color: 'rgba(140,170,200,0.12)', weight: 0.5 }
+    : { color: 'rgba(120,160,180,0.25)', weight: 0.5 }
+}
+
+function getCityStyle(dark) {
+  return dark
+    ? { radius: 3, fillColor: '#f0883e', color: '#1e2a26', weight: 1, fillOpacity: 0.9 }
+    : { radius: 3, fillColor: '#e87d5c', color: '#fff', weight: 1, fillOpacity: 0.9 }
+}
+
+function getSelectedStyle(dark) {
+  return dark
+    ? { radius: 6, fillColor: '#58a6ff', color: '#e6edf3', weight: 2, fillOpacity: 0.9 }
+    : { radius: 6, fillColor: '#1a3a5c', color: '#fff', weight: 2, fillOpacity: 0.9 }
+}
 
 const legendColors = computed(() => props.colorRanges.map(r => r.color))
 
@@ -83,13 +121,22 @@ const HeatInterpLayer = L.Layer.extend({
     const g = this._grid
     if (!g) return null
 
+    // Buffer margin: allow interpolation slightly beyond grid extent
+    // so the heatmap reaches the land mask without visible edge gap,
+    // but prevents infinite color bleeding across the open ocean.
+    const latExtent = g.lats[g.lats.length - 1] - g.lats[0]
+    const lonExtent = g.lons[g.lons.length - 1] - g.lons[0]
+    const latBuf = latExtent * 0.08
+    const lonBuf = lonExtent * 0.08
+    if (lat < g.lats[0] - latBuf || lat > g.lats[g.lats.length - 1] + latBuf) return null
+    if (lng < g.lons[0] - lonBuf || lng > g.lons[g.lons.length - 1] + lonBuf) return null
+
     let i0 = 0, i1 = 0
     for (let i = 0; i < g.lats.length - 1; i++) {
       if (lat >= g.lats[i] && lat <= g.lats[i + 1]) { i0 = i; i1 = i + 1; break }
     }
     if (lat < g.lats[0]) { i0 = 0; i1 = 0 }
     if (lat > g.lats[g.lats.length - 1]) { i0 = g.lats.length - 1; i1 = g.lats.length - 1 }
-    if (i0 === i1 && (lat < g.lats[0] || lat > g.lats[g.lats.length - 1])) return null
 
     let j0 = 0, j1 = 0
     for (let j = 0; j < g.lons.length - 1; j++) {
@@ -97,7 +144,6 @@ const HeatInterpLayer = L.Layer.extend({
     }
     if (lng < g.lons[0]) { j0 = 0; j1 = 0 }
     if (lng > g.lons[g.lons.length - 1]) { j0 = g.lons.length - 1; j1 = g.lons.length - 1 }
-    if (j0 === j1 && (lng < g.lons[0] || lng > g.lons[g.lons.length - 1])) return null
 
     const v00 = g.values[i0][j0], v10 = g.values[i1][j0]
     const v01 = g.values[i0][j1], v11 = g.values[i1][j1]
@@ -220,8 +266,9 @@ const HeatInterpLayer = L.Layer.extend({
     ctx.drawImage(off, 0, 0, w, h, 0, 0, size.x, size.y)
   },
 
-  updateData(gridData) {
+  updateData(gridData, colorRanges) {
     this._rawData = gridData
+    if (colorRanges) this._colorRanges = colorRanges
     this._buildGrid()
     if (this._map) {
       this._resize()
@@ -264,11 +311,7 @@ function findNearestGridPoint(lat, lng) {
 function placeSelectedMarker(pt) {
   clearSelectedMarker()
   selectedMarker = L.circleMarker([pt.lat, pt.lon], {
-    radius: 6,
-    fillColor: '#1a3a5c',
-    color: '#fff',
-    weight: 2,
-    fillOpacity: 0.9,
+    ...getSelectedStyle(isDark.value),
     pane: 'labels',
     interactive: false
   }).addTo(map)
@@ -365,27 +408,28 @@ function initBaseLayers() {
   const countriesGeojson = feature(countriesTopo, countriesTopo.objects.countries)
 
   // Land fill
-  L.geoJSON(landGeojson, {
+  landLayer = L.geoJSON(landGeojson, {
     pane: 'basemap',
-    style: { fillColor: '#f5f0e8', fillOpacity: 1, color: '#c8c0b0', weight: 0.8 },
+    style: getLandStyle(isDark.value),
   }).addTo(map)
 
   // Country borders
-  L.geoJSON(countriesGeojson, {
+  countryLayer = L.geoJSON(countriesGeojson, {
     pane: 'basemap',
-    style: { fill: false, color: '#b8a88a', weight: 1.2, dashArray: '6 3' },
+    style: getCountryStyle(isDark.value),
   }).addTo(map)
 
   // Grid lines (every 5°)
+  const gridStyle = getGridStyle(isDark.value)
   for (let lat = 10; lat <= 45; lat += 5) {
-    L.polyline([[lat, 105], [lat, 135]], {
-      pane: 'basemap', color: 'rgba(120,160,180,0.25)', weight: 0.5, interactive: false,
-    }).addTo(map)
+    gridLines.push(L.polyline([[lat, 105], [lat, 135]], {
+      pane: 'basemap', ...gridStyle, interactive: false,
+    }).addTo(map))
   }
   for (let lon = 105; lon <= 135; lon += 5) {
-    L.polyline([[5, lon], [45, lon]], {
-      pane: 'basemap', color: 'rgba(120,160,180,0.25)', weight: 0.5, interactive: false,
-    }).addTo(map)
+    gridLines.push(L.polyline([[5, lon], [45, lon]], {
+      pane: 'basemap', ...gridStyle, interactive: false,
+    }).addTo(map))
   }
 
   // Country labels
@@ -426,17 +470,27 @@ function initBaseLayers() {
     ['首尔', 37.57, 126.98], ['东京', 35.68, 139.76], ['马尼拉', 14.60, 120.98],
     ['胡志明', 10.82, 106.63],
   ]
+  const cityStyle = getCityStyle(isDark.value)
   for (const [name, lat, lon] of cities) {
-    L.circleMarker([lat, lon], {
-      radius: 3, fillColor: '#e87d5c', color: '#fff', weight: 1, fillOpacity: 0.9,
-      pane: 'labels', interactive: false,
-    }).addTo(map)
+    cityCircleMarkers.push(L.circleMarker([lat, lon], {
+      ...cityStyle, pane: 'labels', interactive: false,
+    }).addTo(map))
     L.marker([lat, lon], {
       pane: 'labels',
       icon: L.divIcon({ className: 'city-label', html: name, iconSize: [40, 16], iconAnchor: [-8, 4] }),
     }).addTo(map)
   }
 }
+
+watch(isDark, (dark) => {
+  if (landLayer) landLayer.setStyle(getLandStyle(dark))
+  if (countryLayer) countryLayer.setStyle(getCountryStyle(dark))
+  const gs = getGridStyle(dark)
+  for (const line of gridLines) line.setStyle(gs)
+  const cs = getCityStyle(dark)
+  for (const m of cityCircleMarkers) m.setStyle(cs)
+  if (selectedMarker) selectedMarker.setStyle(getSelectedStyle(dark))
+})
 
 onMounted(() => {
   nextTick(() => {
@@ -470,6 +524,12 @@ watch(() => props.gridData, () => {
   })
 }, { deep: true })
 
+watch(() => props.colorRanges, (newRanges) => {
+  if (heatLayer && props.gridData.length) {
+    heatLayer.updateData(props.gridData, newRanges)
+  }
+})
+
 onUnmounted(() => {
   map?.remove()
 })
@@ -484,14 +544,15 @@ onUnmounted(() => {
   width: 100%;
   border-radius: 8px;
   overflow: hidden;
-  background: #a8d8ea;
+  background: var(--map-ocean-bg);
 }
 .map-legend {
   position: absolute;
   bottom: 12px;
   right: 12px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 8px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-divider-strong);
+  border-radius: 0;
   padding: 10px 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   font-size: 12px;
@@ -500,7 +561,7 @@ onUnmounted(() => {
 .legend-title {
   font-weight: 600;
   margin-bottom: 6px;
-  color: #1a3a5c;
+  color: var(--color-text);
 }
 .legend-item {
   display: flex;
@@ -515,7 +576,7 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 .legend-label {
-  color: #555;
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 </style>
@@ -523,19 +584,19 @@ onUnmounted(() => {
 <style>
 /* Basemap labels (unscoped so Leaflet divIcon classes work) */
 .country-label {
-  font-size: 15px; font-weight: 700; color: #5d5348;
-  text-shadow: 0 0 4px rgba(245,240,232,0.8);
+  font-size: 15px; font-weight: 700; color: var(--map-label-country);
+  text-shadow: 0 0 4px var(--map-label-country-shadow);
   white-space: nowrap; pointer-events: none;
   text-align: center;
 }
 .city-label {
-  font-size: 12px; color: #555;
-  text-shadow: 0 0 3px rgba(255,255,255,0.9);
+  font-size: 12px; color: var(--map-label-city);
+  text-shadow: 0 0 3px var(--map-label-city-shadow);
   white-space: nowrap; pointer-events: none;
 }
 .sea-label {
-  font-size: 14px; font-style: italic; color: #4a8faa;
-  text-shadow: 0 0 4px rgba(168,216,234,0.7);
+  font-size: 14px; font-style: italic; color: var(--map-label-sea);
+  text-shadow: 0 0 4px var(--map-label-sea-shadow);
   white-space: nowrap; pointer-events: none;
   text-align: center; letter-spacing: 4px;
 }

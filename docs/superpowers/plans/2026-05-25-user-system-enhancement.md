@@ -86,7 +86,7 @@ CREATE TABLE user_credential (
 - [ ] **Step 2: 执行迁移**
 
 ```bash
-mysql -u root -pyour_password ocean_forecast < database/migration/002-user-system-enhance.sql
+mysql -u root -p ocean_forecast < database/migration/002-user-system-enhance.sql
 ```
 
 - [ ] **Step 3: 验证**
@@ -1630,3 +1630,29 @@ Task 16 (MainLayout)        ├─ 依赖Task 14
 Task 17 (路由+Vite)         ─┘ 依赖Task 15
 Task 18 (端到端验证)       — 最后
 ```
+
+---
+
+## Code Review 已修复（2026-05-25）
+
+### 关键
+
+- [x] **1. `SysUserServiceImpl.login()` 未设置 `LoginVO.avatarUrl`** — 添加 `vo.setAvatarUrl(user.getAvatarUrl())`
+- [x] **2. `ProfileController.updateProfile()` 构造不完整的 `UserSaveDTO`** — 新增 `SysUserService.updateProfile(Long, ProfileUpdateDTO)` 专用方法，只更新 username/realName/phone
+
+### 重要
+
+- [x] **3. 新代码抛 `RuntimeException` 而非 `BusinessException`** — `SysUserServiceImpl` (3处)、`UserCredentialServiceImpl` (1处) 全部改为 `BusinessException`
+- [x] **4. `UserSettingServiceImpl.updateSettings()` 存在读写竞争** — 改为 `LambdaUpdateWrapper` 原子更新 + `DuplicateKeyException` 兜底重试
+- [x] **5. `AesUtil.padKey()` 密钥派生太弱** — 用 SHA-256 哈希后取前 16 字节
+- [x] **6. `PasswordChangeDTO` 缺少 `@Size(min=6)` 密码长度校验（后端）**
+- [x] **7. `ProfileView.vue` 中 9 个空 `catch {}` 块** — 全部添加 `console.error()` 日志
+- [x] **8. 设置 `watch` 在页面加载时触发无效 API 调用** — 添加 `loaded` 标志位，`onMounted` 完成后才启用 watch
+
+### 轻微
+
+- [x] **9. `SecureRandom` 每次加密都 new 实例** — 改为 `static final` 单例
+- [x] **10. 手机号缺少格式校验** — 前端 `handleSave()` 添加 `/^1[3-9]\d{9}$/` 格式校验
+- [x] **11. 旧头像文件未清理** — `uploadAvatar()` 先删除旧头像文件再保存新文件
+- [x] **12. `SysUser.avatarUrl` 缺少 `@TableField("avatar_url")` 显式映射**
+- [x] **13. `AesUtil.mask()` 对短字符串可能泄露前缀** — 6字符以下全掩码，8字符以下只显示首尾各2字符

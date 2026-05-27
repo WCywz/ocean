@@ -130,10 +130,12 @@ public interface ForecastGridMapper extends BaseMapper<ForecastGrid> {
     @Select("SELECT AVG(value) AS avg_val " +
             "FROM forecast_grid " +
             "WHERE variable = 'sst' AND depth = 0 " +
+            "AND MONTH(forecast_date) = #{month} " +
             "AND lat BETWEEN #{minLat} AND #{maxLat} " +
             "AND lon BETWEEN #{minLon} AND #{maxLon}")
     Double selectZoneSstBaseline(@Param("minLon") Double minLon,
                                   @Param("maxLon") Double maxLon,
                                   @Param("minLat") Double minLat,
-                                  @Param("maxLat") Double maxLat);
+                                  @Param("maxLat") Double maxLat,
+                                  @Param("month") int month);
 }

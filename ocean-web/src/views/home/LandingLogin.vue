@@ -69,7 +69,8 @@ async function handleLogin() {
       userId: res.data.userId,
       username: res.data.username,
       realName: res.data.realName,
-      role: res.data.role
+      role: res.data.role,
+      avatarUrl: res.data.avatarUrl || ''
     })
     ElMessage.success('登录成功')
     router.push('/app/dashboard')

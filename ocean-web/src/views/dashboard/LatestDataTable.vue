@@ -50,6 +50,10 @@ const valueLabel = computed(() => props.dataType === 'SST' ? '温度值' : '浓�
   font-size: 11px;
   color: var(--color-text-muted);
   white-space: nowrap;
+  transition: color 0.15s;
+}
+.table-nav-hint:hover {
+  color: var(--color-text);
 }
 
 .table-scroll-wrap {
@@ -59,7 +63,7 @@ const valueLabel = computed(() => props.dataType === 'SST' ? '温度值' : '浓�
 .sticky-th {
   position: sticky;
   top: 0;
-  background: #fff;
+  background: var(--color-bg);
   z-index: 1;
 }
 </style>

@@ -32,7 +32,7 @@
         </div>
       </div>
       <div v-loading="sstChartLoading" style="display: flex; align-items: stretch; position: relative; width: 100%; height: 320px;">
-        <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: #666; padding: 0 8px; white-space: nowrap; flex-shrink: 0;">海表温度 (°C)</div>
+        <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: var(--color-text-secondary); padding: 0 8px; white-space: nowrap; flex-shrink: 0;">海表温度 (°C)</div>
         <div ref="sstChartRef" style="flex: 1; height: 100%; min-width: 0;"></div>
         <div v-if="sstChartEmpty" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); font-size: 13px; pointer-events: none;">暂无符合条件的水温数据</div>
       </div>
@@ -72,7 +72,7 @@
         </div>
       </div>
       <div v-loading="chlChartLoading" style="display: flex; align-items: stretch; position: relative; width: 100%; height: 400px;">
-        <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: #666; padding: 0 8px; white-space: nowrap; flex-shrink: 0;">叶绿素浓度 (mg/m³)</div>
+        <div style="display: flex; align-items: center; justify-content: center; writing-mode: vertical-lr; text-orientation: mixed; font-size: 13px; color: var(--color-text-secondary); padding: 0 8px; white-space: nowrap; flex-shrink: 0;">叶绿素浓度 (mg/m³)</div>
         <div ref="chlChartRef" style="flex: 1; height: 100%; min-width: 0;"></div>
         <div v-if="chlChartEmpty" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); font-size: 13px; pointer-events: none;">暂无符合条件的观测数据</div>
       </div>
@@ -144,7 +144,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import { getChlTimeSeries, getSstTimeSeries, getOceanDataPage, getOceanLocations } from '../../api/ocean-data'
 import { getSystemDate } from '../../api/system'
@@ -152,6 +152,10 @@ import {
   SST_COLORS, CHL_COLORS,
   buildBaseOption, buildTooltipFormatter, buildSeriesData
 } from '../../utils/chart-config'
+import { useTheme } from '../../composables/useTheme'
+
+const { resolved: themeResolved } = useTheme()
+const isDark = computed(() => themeResolved.value === 'dark')
 
 function toLocalDateStr(date) {
   const y = date.getFullYear()
@@ -215,8 +219,9 @@ let isAlive = true
 onMounted(async () => {
   await nextTick()
   if (!isAlive) return
-  if (sstChartRef.value) sstChart = echarts.init(sstChartRef.value)
-  if (chlChartRef.value) chlChart = echarts.init(chlChartRef.value)
+  const theme = isDark.value ? 'ocean-dark' : undefined
+  if (sstChartRef.value) sstChart = echarts.init(sstChartRef.value, theme)
+  if (chlChartRef.value) chlChart = echarts.init(chlChartRef.value, theme)
 
   // 获取系统日期作为默认值
   try {
@@ -235,6 +240,12 @@ onMounted(async () => {
   loadTableData()
 
   window.addEventListener('resize', handleResize)
+
+  watch(isDark, () => {
+    const t = isDark.value ? 'ocean-dark' : undefined
+    if (sstChart) { sstChart.dispose(); sstChart = echarts.init(sstChartRef.value, t); renderSstTimeSeries() }
+    if (chlChart) { chlChart.dispose(); chlChart = echarts.init(chlChartRef.value, t); renderChlTimeSeries() }
+  })
 })
 
 onUnmounted(() => {
@@ -321,13 +332,15 @@ function renderTimeSeries(chart, allData, selectedKeys, colors, unit, setEmpty) 
   const { allDates, seriesMap } = buildLocationMap(filtered, valueKey)
   const seriesData = buildSeriesData(seriesMap, colors, { area: true, markLine: true })
 
+  const dark = isDark.value
   const base = buildBaseOption({
     legendData: Object.keys(seriesMap),
     xAxisData: allDates,
     yAxisName: '',
-    yAxisUnit: unit
+    yAxisUnit: unit,
+    dark
   })
-  base.tooltip.formatter = buildTooltipFormatter(unit, {})
+  base.tooltip.formatter = buildTooltipFormatter(unit, {}, dark)
 
   chart.setOption({ ...base, series: seriesData, color: colors }, true)
 }
@@ -344,7 +357,7 @@ function renderChlTimeSeries() {
 function openSstFullscreen() { sstFullscreenVisible.value = true }
 function onSstFullscreenOpened() {
   nextTick(() => {
-    sstFullscreenChart = echarts.init(sstFullscreenChartRef.value)
+    sstFullscreenChart = echarts.init(sstFullscreenChartRef.value, isDark.value ? 'ocean-dark' : undefined)
     if (sstChart) sstFullscreenChart.setOption(sstChart.getOption(), true)
   })
 }
@@ -353,7 +366,7 @@ function onSstFullscreenClosed() { sstFullscreenChart?.dispose(); sstFullscreenC
 function openChlFullscreen() { chlFullscreenVisible.value = true }
 function onChlFullscreenOpened() {
   nextTick(() => {
-    chlFullscreenChart = echarts.init(chlFullscreenChartRef.value)
+    chlFullscreenChart = echarts.init(chlFullscreenChartRef.value, isDark.value ? 'ocean-dark' : undefined)
     if (chlChart) chlFullscreenChart.setOption(chlChart.getOption(), true)
   })
 }

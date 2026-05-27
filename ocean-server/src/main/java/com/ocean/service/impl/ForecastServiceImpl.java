@@ -22,15 +22,18 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
 public class ForecastServiceImpl implements ForecastService {
 
+    private static final long PREPARE_TIMEOUT_SECONDS = 120;
+    private static final long INFERENCE_TIMEOUT_SECONDS = 300;
+
     @Autowired private ForecastGridMapper forecastGridMapper;
     @Autowired private ModelMapper modelMapper;
     @Autowired private ModelVersionMapper modelVersionMapper;
-    @Autowired private AlertEventMapper alertEventMapper;
     @Autowired private HealthZoneMapper healthZoneMapper;
     @Autowired private SystemConfigService systemConfigService;
     @Autowired private ForecastConfig forecastConfig;
@@ -45,9 +48,6 @@ public class ForecastServiceImpl implements ForecastService {
                 new LambdaQueryWrapper<ModelVersion>().eq(ModelVersion::getStatus, "RUNNING")));
         vo.setTodayRecordCount(forecastGridMapper.selectCount(
                 new LambdaQueryWrapper<ForecastGrid>().eq(ForecastGrid::getForecastDate, systemConfigService.getSystemDate())));
-        vo.setAlertCount(alertEventMapper.selectCount(
-                new LambdaQueryWrapper<AlertEvent>().eq(AlertEvent::getStatus, "active")));
-
         vo.setLatestSstData(getStationObsData("sst"));
         vo.setLatestChlData(getStationObsData("chl"));
         return vo;
@@ -215,15 +215,35 @@ public class ForecastServiceImpl implements ForecastService {
             Process procPrepare = pbPrepare.start();
 
             StringBuilder prepareLog = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(procPrepare.getInputStream(), "UTF-8"))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    prepareLog.append(line).append("\n");
+            Thread prepareReader = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(procPrepare.getInputStream(), "UTF-8"))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        prepareLog.append(line).append("\n");
+                    }
+                } catch (IOException ignored) {
+                    // stream closed by process exit or destroy
                 }
-            }
+            }, "forecast-prepare-reader");
+            prepareReader.start();
 
-            int prepareExit = procPrepare.waitFor();
+            boolean prepareFinished = procPrepare.waitFor(PREPARE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            if (!prepareFinished) {
+                procPrepare.destroyForcibly();
+                prepareReader.interrupt();
+                log.error("Prepare script timed out after {}s", PREPARE_TIMEOUT_SECONDS);
+                result.put("success", false);
+                result.put("message", "Prepare script timed out");
+                return result;
+            }
+            try {
+                prepareReader.join(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("等待prepare输出线程被中断", e);
+            }
+            int prepareExit = procPrepare.exitValue();
             if (prepareExit != 0) {
                 log.error("Prepare script failed (exit={}):\n{}", prepareExit, prepareLog);
                 result.put("success", false);
@@ -250,15 +270,35 @@ public class ForecastServiceImpl implements ForecastService {
             Process process = pb.start();
 
             StringBuilder logBuf = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), "UTF-8"))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    logBuf.append(line).append("\n");
+            Thread inferenceReader = new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(process.getInputStream(), "UTF-8"))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        logBuf.append(line).append("\n");
+                    }
+                } catch (IOException ignored) {
+                    // stream closed by process exit or destroy
                 }
-            }
+            }, "forecast-inference-reader");
+            inferenceReader.start();
 
-            int exitCode = process.waitFor();
+            boolean finished = process.waitFor(INFERENCE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+                inferenceReader.interrupt();
+                log.error("Model inference timed out after {}s", INFERENCE_TIMEOUT_SECONDS);
+                result.put("success", false);
+                result.put("message", "Model inference timed out");
+                return result;
+            }
+            try {
+                inferenceReader.join(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("等待推理输出线程被中断", e);
+            }
+            int exitCode = process.exitValue();
             if (exitCode != 0) {
                 log.error("Python script failed (exit={}):\n{}", exitCode, logBuf);
                 result.put("success", false);
@@ -331,7 +371,14 @@ public class ForecastServiceImpl implements ForecastService {
             result.put("message", e.getMessage());
             return result;
         } finally {
-            try { new File(csvPath).delete(); } catch (Exception ignored) {}
+            try {
+                File csvFile = new File(csvPath);
+                if (csvFile.exists() && !csvFile.delete()) {
+                    log.warn("无法删除临时CSV文件: {}", csvPath);
+                }
+            } catch (Exception e) {
+                log.warn("删除临时CSV文件异常: {}", csvPath, e);
+            }
         }
     }
 

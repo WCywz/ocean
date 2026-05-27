@@ -44,8 +44,3 @@ export function getSeaAreas() {
 export function getDashboardTrend(dataType = 'SST', days = 7) {
   return request({ url: '/forecast/trend/dashboard', method: 'get', params: { dataType, days } })
 }
-
-/** 获取阈值告警 */
-export function getAlerts(alertDate) {
-  return request({ url: '/alert/events', method: 'get', params: { alertDate, status: 'active' } })
-}

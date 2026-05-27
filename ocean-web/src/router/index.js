@@ -83,6 +83,49 @@ const routes = [
         name: 'OceanHealth',
         component: () => import('../views/health/OceanHealthView.vue'),
         meta: { title: '海洋健康指数' }
+      },
+      {
+        path: 'profile',
+        component: () => import('../views/profile/ProfileLayout.vue'),
+        redirect: '/app/profile/info',
+        children: [
+          {
+            path: 'info',
+            name: 'ProfileInfo',
+            component: () => import('../views/profile/ProfileInfo.vue'),
+            meta: { title: '个人信息' }
+          },
+          {
+            path: 'security',
+            name: 'ProfileSecurity',
+            component: () => import('../views/profile/ProfileSecurity.vue'),
+            meta: { title: '账户安全' }
+          },
+          {
+            path: 'notifications',
+            name: 'ProfileNotifications',
+            component: () => import('../views/profile/ProfileNotifications.vue'),
+            meta: { title: '通知设置' }
+          },
+          {
+            path: 'preferences',
+            name: 'ProfilePreferences',
+            component: () => import('../views/profile/ProfilePreferences.vue'),
+            meta: { title: '显示偏好' }
+          },
+          {
+            path: 'announcements',
+            name: 'ProfileAnnouncements',
+            component: () => import('../views/profile/ProfileAnnouncements.vue'),
+            meta: { title: '系统公告' }
+          },
+          {
+            path: 'settings',
+            name: 'ProfileSettings',
+            component: () => import('../views/profile/ProfileSettings.vue'),
+            meta: { title: '系统设置' }
+          }
+        ]
       }
     ]
   },

@@ -15,6 +15,7 @@ public class UserVO {
     private String realName;
     private String role;
     private String phone;
+    private String avatarUrl;
     private Integer status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

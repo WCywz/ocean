@@ -1,38 +1,37 @@
 <template>
   <div class="editorial-section">
-    <p class="editorial-section-label">Alerts</p>
-    <h3 class="editorial-section-heading">阈值告警</h3>
+    <p class="editorial-section-label">Alert Map</p>
+    <h3 class="editorial-section-heading">点位监测</h3>
 
-    <div class="health-status-bar" :style="{ borderLeftColor: accentColor }">
-      <span class="health-status-bar__level">{{ summaryText }}</span>
-    </div>
+    <div class="alert-summary-bar" @click="resetView" title="点击重置视图">{{ summaryText }}</div>
 
-    <div v-if="!alerts.length && !loading" class="alert-empty">
-      所选日期无阈值告警
-    </div>
-
-    <div v-else class="alert-split" v-loading="loading">
-      <div class="alert-cards">
+    <div class="alert-split" v-loading="loading">
+      <div class="alert-list">
+        <p class="list-label">监测站点</p>
         <div
-          v-for="(item, idx) in alerts.slice(0, 10)"
-          :key="idx"
-          :class="['alert-card', { 'alert-card--active': selectedIdx === idx }]"
-          :style="{ borderLeftColor: item.dataType === 'SST' ? '#c0392b' : '#e67e22' }"
-          @click="selectAlert(idx)"
+          v-for="s in stations"
+          :key="s.stationName"
+          :class="['point-item', { 'point-item--active': selectedKey === 's-' + s.stationName }]"
+          @click="selectStation(s)"
         >
-          <div class="alert-card__name">{{ item.locationName }}</div>
-          <div class="alert-card__meta">
-            <span class="editorial-tag alert-card__tag">{{ item.dataType }}</span>
-            <span class="alert-card__value">{{ item.value }}{{ item.dataType === 'SST' ? '°C' : ' mg/m³' }}</span>
-            <span class="alert-card__threshold">阈值 {{ item.threshold }}</span>
-          </div>
+          <span class="point-dot" :style="{ background: gradeColor(s.overallGrade) }"></span>
+          <span class="point-name">{{ s.stationName }}</span>
+          <span class="point-meta">{{ gradeLabel[s.overallGrade] }} · SST {{ fmtAnomaly(s.sstAnomaly) }}</span>
         </div>
 
-        <div class="drilldown-links" v-if="alerts.length">
-          <span class="drilldown-label">查看详情：</span>
-          <router-link to="/app/forecast/sst" class="drilldown-link">海表温度预测地图 →</router-link>
-          <router-link to="/app/forecast/chl" class="drilldown-link">叶绿素浓度预测地图 →</router-link>
-        </div>
+        <template v-if="hotspots.length">
+          <p class="list-label" style="margin-top: 20px;">聚焦点位</p>
+          <div
+            v-for="(h, i) in hotspots"
+            :key="'h-' + i"
+            :class="['point-item', { 'point-item--active': selectedKey === 'h-' + i }]"
+            @click="selectHotspot(h, i)"
+          >
+            <span class="point-dot point-dot--pulse" :style="{ background: gradeColor(h.grade) }"></span>
+            <span class="point-name">{{ h.lat.toFixed(2) }}°, {{ h.lon.toFixed(2) }}°</span>
+            <span class="point-meta">{{ fmtAnomaly(h.anomaly) }}</span>
+          </div>
+        </template>
       </div>
 
       <div class="alert-map" ref="mapContainer"></div>
@@ -41,75 +40,188 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import L from 'leaflet'
+import { ElMessageBox } from 'element-plus'
 import { feature } from 'topojson-client'
+import { useTheme } from '../../composables/useTheme'
 import landTopo from 'world-atlas/land-50m.json'
 import countriesTopo from 'world-atlas/countries-50m.json'
 
 const props = defineProps({
-  alerts: { type: Array, default: () => [] },
+  stations: { type: Array, default: () => [] },
+  hotspots: { type: Array, default: () => [] },
+  summary: { type: String, default: '' },
   loading: { type: Boolean, default: false }
 })
 
+const router = useRouter()
 const mapContainer = ref(null)
-const selectedIdx = ref(-1)
+const selectedKey = ref('')
+const { resolved } = useTheme()
+const isDark = computed(() => resolved.value === 'dark')
 
-let map = null
-let pulseMarker = null
+function getLandStyle(dark) {
+  return dark
+    ? { fillColor: '#1e2a26', fillOpacity: 1, color: '#2e3a34', weight: 0.8 }
+    : { fillColor: '#f5f0e8', fillOpacity: 1, color: '#c8c0b0', weight: 0.8 }
+}
+function getCountryStyle(dark) {
+  return dark
+    ? { fill: false, color: '#3a4050', weight: 1.2, dashArray: '6 3' }
+    : { fill: false, color: '#b8a88a', weight: 1.2, dashArray: '6 3' }
+}
+function getCityStyle(dark) {
+  return dark
+    ? { radius: 3, fillColor: '#f0883e', color: '#1e2a26', weight: 1, fillOpacity: 0.9 }
+    : { radius: 3, fillColor: '#e87d5c', color: '#fff', weight: 1, fillOpacity: 0.9 }
+}
 
-const sstCount = computed(() => props.alerts.filter(a => a.dataType === 'SST').length)
-const chlCount = computed(() => props.alerts.filter(a => a.dataType === 'CHL').length)
+const gradeColor = (g) => ({ good: '#22c55e', fine: '#22c55e', warn: '#f59e0b', bad: '#ef4444' }[g || 'good'])
+const gradeLabel = { good: '优', fine: '良', warn: '中', bad: '差' }
 
 const summaryText = computed(() => {
-  if (!props.alerts.length) return '暂无告警'
-  const parts = []
-  if (sstCount.value) parts.push(`${sstCount.value} 个区域超过 SST 阈值`)
-  if (chlCount.value) parts.push(`${chlCount.value} 个区域超过 Chl 阈值`)
-  return parts.join('，')
+  if (!props.stations.length && !props.loading) return '暂无站点数据'
+  return props.summary || '加载中...'
 })
 
-const accentColor = computed(() => {
-  if (!props.alerts.length) return '#22c55e'
-  if (sstCount.value && chlCount.value) return '#ef4444'
-  if (sstCount.value) return '#c0392b'
-  return '#e67e22'
-})
+function fmtAnomaly(val) {
+  if (val == null) return '--'
+  const sign = val > 0 ? '+' : ''
+  return sign + val.toFixed(1) + '°C'
+}
 
-function selectAlert(idx) {
-  if (selectedIdx.value === idx) {
-    selectedIdx.value = -1
-    clearMarker()
+const COASTAL_CITIES = [
+  ['上海', 31.23, 121.47], ['宁波', 29.87, 121.55], ['舟山', 30.02, 122.11],
+  ['温州', 28.02, 120.65], ['福州', 26.07, 119.30],
+]
+
+let map = null
+let landLayer = null
+let countryLayer = null
+let cityCircleMarkers = []
+let stationMarkers = []
+let hotspotMarkers = []
+let hotspotLabelMarkers = []
+let stationLabelMarkers = []
+
+function selectStation(s) {
+  const key = 's-' + s.stationName
+  if (selectedKey.value === key) {
+    selectedKey.value = ''
     return
   }
-  selectedIdx.value = idx
-  flyToAlert(props.alerts[idx])
+  selectedKey.value = key
+  map.flyTo([s.lat, s.lon], Math.max(map.getZoom(), 8), { duration: 0.6 })
 }
 
-function flyToAlert(item) {
-  if (!map) { console.warn('[HealthAlert] map not ready'); return }
-  if (item.longitude == null || item.latitude == null) { console.warn('[HealthAlert] missing coords', item); return }
-  map.flyTo([item.latitude, item.longitude], map.getZoom(), { duration: 0.8 })
-  placeMarker(item)
-}
-
-function placeMarker(item) {
-  clearMarker()
-  const color = item.dataType === 'SST' ? '#c0392b' : '#e67e22'
-  const icon = L.divIcon({
-    className: 'alert-pulse-marker',
-    html: `<div class="pulse-dot" style="background:${color}; width:16px; height:16px;"></div>`,
-    iconSize: [48, 48],
-    iconAnchor: [24, 24]
-  })
-  pulseMarker = L.marker([item.latitude, item.longitude], { icon }).addTo(map)
-}
-
-function clearMarker() {
-  if (pulseMarker) {
-    map.removeLayer(pulseMarker)
-    pulseMarker = null
+function selectHotspot(h, i) {
+  const key = 'h-' + i
+  if (selectedKey.value === key) {
+    selectedKey.value = ''
+    return
   }
+  selectedKey.value = key
+  map.flyTo([h.lat, h.lon], Math.max(map.getZoom(), 8), { duration: 0.6 })
+}
+
+function resetView() {
+  selectedKey.value = ''
+  if (map) {
+    map.flyTo([29.5, 122.5], 7, { duration: 0.6 })
+  }
+}
+
+function updateHotspotLabelOpacity() {
+  const zoom = map ? map.getZoom() : 7
+  const sel = selectedKey.value
+  const visible = zoom >= 8
+  hotspotLabelMarkers.forEach((m, i) => {
+    const key = 'h-' + i
+    const el = m.getElement()
+    if (el) {
+      if (!visible) {
+        el.style.display = 'none'
+      } else {
+        el.style.display = ''
+        el.style.opacity = sel && sel !== key ? '0.25' : '1'
+      }
+    }
+  })
+}
+
+async function onMarkerClick(lat, lon, name) {
+  try {
+    const action = await ElMessageBox.confirm(
+      `坐标 ${lat.toFixed(2)}°, ${lon.toFixed(2)}°`,
+      name || '点位详情',
+      { confirmButtonText: '温度', cancelButtonText: '叶绿素', distinguishCancelAndClose: true, type: 'info' }
+    )
+    router.push({ path: '/app/observation/sst', query: { lat: lat.toFixed(4), lon: lon.toFixed(4) } })
+  } catch (e) {
+    if (e === 'cancel') {
+      router.push({ path: '/app/observation/chl', query: { lat: lat.toFixed(4), lon: lon.toFixed(4) } })
+    }
+  }
+}
+
+function renderMarkers() {
+  clearMarkers()
+
+  const markerBorder = isDark.value ? '#1e2a26' : '#fff'
+  props.stations.forEach(s => {
+    const color = gradeColor(s.overallGrade)
+    const icon = L.divIcon({
+      className: 'alert-station-marker',
+      html: `<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid ${markerBorder};box-shadow:0 0 4px rgba(0,0,0,0.3);"></div>`,
+      iconSize: [16, 16],
+      iconAnchor: [8, 8]
+    })
+    const marker = L.marker([s.lat, s.lon], { icon, pane: 'labels' })
+      .bindTooltip(`<b>${s.stationName}</b><br>${gradeLabel[s.overallGrade]} · SST ${fmtAnomaly(s.sstAnomaly)}`, { direction: 'top', permanent: true, className: 'station-label' })
+      .on('click', () => onMarkerClick(s.lat, s.lon, s.stationName))
+      .addTo(map)
+    stationMarkers.push(marker)
+  })
+
+  props.hotspots.forEach((h, i) => {
+    const color = gradeColor(h.grade)
+    const icon = L.divIcon({
+      className: 'alert-hotspot-marker',
+      html: `<div class="hotspot-pulse" style="--pulse-color:${color};"></div>`,
+      iconSize: [22, 22],
+      iconAnchor: [11, 11]
+    })
+    const marker = L.marker([h.lat, h.lon], { icon, pane: 'labels' })
+      .bindTooltip(`热点 · 异常 ${fmtAnomaly(h.anomaly)}`, { direction: 'top' })
+      .on('click', () => onMarkerClick(h.lat, h.lon, '热点'))
+      .addTo(map)
+    hotspotMarkers.push(marker)
+
+    const coordLabel = `${h.lat.toFixed(2)}°, ${h.lon.toFixed(2)}°`
+    const labelIcon = L.divIcon({
+      className: 'hotspot-coord-label',
+      html: coordLabel,
+      iconSize: [80, 14],
+      iconAnchor: [-7, 7]
+    })
+    const labelMarker = L.marker([h.lat, h.lon], { icon: labelIcon, pane: 'labels', interactive: false }).addTo(map)
+    hotspotLabelMarkers.push(labelMarker)
+  })
+
+  updateHotspotLabelOpacity()
+}
+
+function clearMarkers() {
+  stationMarkers.forEach(m => map.removeLayer(m))
+  hotspotMarkers.forEach(m => map.removeLayer(m))
+  hotspotLabelMarkers.forEach(m => map.removeLayer(m))
+  stationLabelMarkers.forEach(m => map.removeLayer(m))
+  stationMarkers = []
+  hotspotMarkers = []
+  hotspotLabelMarkers = []
+  stationLabelMarkers = []
 }
 
 function initMap() {
@@ -128,217 +240,248 @@ function initMap() {
     attributionControl: false
   })
 
-  // Vector basemap (same as OceanMap)
   map.createPane('basemap')
   map.getPane('basemap').style.zIndex = 250
+  map.createPane('labels')
+  map.getPane('labels').style.zIndex = 650
 
-  const landGeojson = feature(landTopo, landTopo.objects.land)
-  L.geoJSON(landGeojson, {
+  const dark = isDark.value
+  landLayer = L.geoJSON(feature(landTopo, landTopo.objects.land), {
     pane: 'basemap',
-    style: { fillColor: '#f5f0e8', fillOpacity: 1, color: '#c8c0b0', weight: 0.8 },
+    style: getLandStyle(dark),
   }).addTo(map)
 
-  L.geoJSON(feature(countriesTopo, countriesTopo.objects.countries), {
+  countryLayer = L.geoJSON(feature(countriesTopo, countriesTopo.objects.countries), {
     pane: 'basemap',
-    style: { fill: false, color: '#b8a88a', weight: 1.2, dashArray: '6 3' },
+    style: getCountryStyle(dark),
   }).addTo(map)
+
+  COASTAL_CITIES.forEach(([name, lat, lon]) => {
+    const cm = L.circleMarker([lat, lon], {
+      ...getCityStyle(dark),
+      pane: 'labels', interactive: false,
+    }).addTo(map)
+    cityCircleMarkers.push(cm)
+    L.marker([lat, lon], {
+      pane: 'labels',
+      icon: L.divIcon({ className: 'city-label', html: name, iconSize: [40, 16], iconAnchor: [-8, 4] }),
+      interactive: false,
+    }).addTo(map)
+  })
+
+  renderMarkers()
+
+  map.on('zoomend', updateHotspotLabelOpacity)
 }
 
 function destroyMap() {
-  clearMarker()
+  clearMarkers()
   if (map) {
     map.remove()
     map = null
   }
+  landLayer = null
+  countryLayer = null
+  cityCircleMarkers = []
 }
 
-onMounted(() => {
-  nextTick(initMap)
+let resizeObserver = null
+
+watch(selectedKey, () => {
+  updateHotspotLabelOpacity()
 })
 
-watch(() => props.alerts, () => {
-  selectedIdx.value = -1
-  clearMarker()
-})
-
-watch([() => props.alerts, () => props.loading], async ([alertList, loading]) => {
+watch([() => props.stations, () => props.hotspots, () => props.loading], async ([sts, hots, loading]) => {
   await nextTick()
-
-  // Empty state: destroy map
-  if (!alertList.length && !loading) {
+  if (!sts.length && !hots.length && !loading) {
     destroyMap()
     return
   }
-
-  // Non-empty state: ensure map exists
   if (!map && mapContainer.value) {
     initMap()
+    if (mapContainer.value && !resizeObserver) {
+      resizeObserver = new ResizeObserver(() => { if (map) map.invalidateSize() })
+      resizeObserver.observe(mapContainer.value)
+    }
+    return
   }
-
-  // After loading overlay is removed, Leaflet needs size recalculation
-  if (map && !loading) {
-    map.invalidateSize()
+  if (map) {
+    renderMarkers()
+    if (!loading) map.invalidateSize()
   }
 })
 
+watch(isDark, () => {
+  if (!map) return
+  const dark = isDark.value
+  if (landLayer) landLayer.setStyle(getLandStyle(dark))
+  if (countryLayer) countryLayer.setStyle(getCountryStyle(dark))
+  const cs = getCityStyle(dark)
+  cityCircleMarkers.forEach(m => m.setStyle(cs))
+  renderMarkers()
+})
+
 onUnmounted(() => {
+  if (resizeObserver) { resizeObserver.disconnect(); resizeObserver = null }
   destroyMap()
 })
 </script>
 
 <style scoped>
-.health-status-bar {
+.alert-summary-bar {
   display: flex;
   align-items: center;
-  border-left: 3px solid;
+  border-left: 3px solid #f59e0b;
   padding: 10px 14px;
-  background: #fafafa;
+  background: var(--color-surface);
   font-size: 13px;
+  color: var(--color-text-secondary);
   margin-bottom: 16px;
-}
-
-.health-status-bar__level {
-  font-family: var(--font-serif);
-  font-size: 15px;
-  color: var(--color-text);
-}
-
-.alert-empty {
-  min-height: 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-muted);
-  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
 }
 
 .alert-split {
   display: flex;
   gap: 24px;
-  min-height: 360px;
+  min-height: 380px;
 }
 
-.alert-cards {
-  flex: 0 0 38%;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.alert-list {
+  flex: 0 0 34%;
 }
 
-.alert-card {
-  padding: 8px 12px;
-  border-left: 3px solid;
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
-  border-right: 1px solid #f0f0f0;
-  border-bottom: 1px solid #f0f0f0;
-  cursor: pointer;
-  transition: background 0.15s;
+.list-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 8px 0;
 }
 
-.alert-card:hover {
-  background: #fafafa;
-}
-
-.alert-card--active {
-  background: #f5f5f5;
-}
-
-.alert-card__name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.alert-card__meta {
+.point-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
-  color: #666;
-  margin-top: 2px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-left: 3px solid transparent;
 }
 
-.alert-card__tag {
-  font-size: 10px;
+.point-item:hover {
+  background: var(--color-surface);
 }
 
-.alert-card__value {
-  font-weight: 600;
-  color: var(--color-alert);
+.point-item--active {
+  background: var(--color-surface);
+  border-left-color: var(--color-text);
 }
 
-.alert-card__threshold {
+.point-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.point-dot--pulse {
+  width: 14px;
+  height: 14px;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.point-name {
+  font-size: 13px;
+  color: var(--color-text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.point-meta {
+  font-size: 11px;
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 .alert-map {
   flex: 1;
-  min-height: 360px;
-  background: #a8d8ea;
-}
-
-.drilldown-links {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid #f0f0f0;
-  font-size: 13px;
-}
-
-.drilldown-label {
-  color: var(--color-text-muted);
-  margin-right: 16px;
-}
-
-.drilldown-link {
-  color: var(--color-text);
-  cursor: pointer;
-  margin-right: 20px;
-  text-decoration: none;
-  border-bottom: 1px dashed #ccc;
-}
-
-.drilldown-link:hover {
-  color: var(--color-alert);
-  border-bottom-color: var(--color-alert);
+  min-height: 380px;
+  background: var(--map-ocean-bg);
 }
 </style>
 
 <style>
-.alert-pulse-marker {
+.alert-station-marker {
   background: transparent !important;
   border: none !important;
 }
 
-.pulse-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  position: relative;
-  box-shadow: 0 0 6px rgba(0,0,0,0.3);
+.alert-hotspot-marker {
+  background: transparent !important;
+  border: none !important;
 }
 
-.pulse-dot::after {
+.hotspot-pulse {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--pulse-color);
+  position: relative;
+  box-shadow: 0 0 4px var(--pulse-color);
+}
+
+.hotspot-pulse::after {
   content: '';
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 48px;
-  height: 48px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: inherit;
-  opacity: 0.35;
-  animation: alert-pulse 1.5s cubic-bezier(0.2, 0.6, 0.35, 1) infinite;
+  background: var(--pulse-color);
+  opacity: 0.4;
+  transform: translate(-50%, -50%);
+  animation: hotspot-pulse 1.8s cubic-bezier(0.2, 0.6, 0.35, 1) infinite;
 }
 
-@keyframes alert-pulse {
-  0% {
-    transform: translate(-50%, -50%) scale(0.2);
-    opacity: 0.5;
-  }
-  80%, 100% {
-    transform: translate(-50%, -50%) scale(1.4);
-    opacity: 0;
-  }
+@keyframes hotspot-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0.6; }
+  80%, 100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+
+.station-label {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-size: 11px;
+  color: var(--map-label-country);
+  text-shadow: 0 0 3px var(--map-label-country-shadow);
+}
+
+.station-label::before {
+  display: none;
+}
+
+.city-label {
+  font-size: 12px;
+  color: var(--map-label-city);
+  text-shadow: 0 0 3px var(--map-label-city-shadow);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.hotspot-coord-label {
+  font-size: 10px;
+  color: var(--map-label-city);
+  text-shadow: 0 0 2px var(--map-label-city-shadow);
+  white-space: nowrap;
+  pointer-events: none;
+  background: transparent !important;
+  border: none !important;
+  transition: opacity 0.3s;
 }
 </style>

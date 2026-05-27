@@ -15,17 +15,24 @@ export const OCEAN_CHART_COLORS = SST_COLORS
 /**
  * Build base ECharts option with ocean-theme defaults.
  */
-export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yAxisUnit } = {}) {
+export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yAxisUnit, dark = false } = {}) {
   const seriesCount = legendData.length
   const useRightLegend = seriesCount >= 2 && seriesCount <= 8
+
+  const textColor = dark ? '#8b949e' : '#666'
+  const lineColor = dark ? '#30363d' : '#ccc'
+  const splitColor = dark ? '#21262d' : '#f0f0f0'
+  const tooltipBg = dark ? 'rgba(22,27,34,0.96)' : 'rgba(255,255,255,0.96)'
+  const tooltipBorder = dark ? '#30363d' : '#e0e0e0'
+  const tooltipText = dark ? '#e6edf3' : '#333'
 
   return {
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(255,255,255,0.96)',
-      borderColor: '#e0e0e0',
+      backgroundColor: tooltipBg,
+      borderColor: tooltipBorder,
       borderWidth: 1,
-      textStyle: { fontSize: 13, color: '#333' },
+      textStyle: { fontSize: 13, color: tooltipText },
       confine: true,
       extraCssText: 'box-shadow: 0 2px 12px rgba(0,0,0,0.1); border-radius: 6px;'
     },
@@ -56,7 +63,7 @@ export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yA
       axisLabel: {
         rotate: 0,
         fontSize: 11,
-        color: '#666',
+        color: textColor,
         formatter: (value) => {
           if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
             const parts = value.split('-')
@@ -65,18 +72,18 @@ export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yA
           return value
         }
       },
-      axisLine: { lineStyle: { color: '#ccc' } },
-      axisTick: { lineStyle: { color: '#ccc' } }
+      axisLine: { lineStyle: { color: lineColor } },
+      axisTick: { lineStyle: { color: lineColor } }
     },
     yAxis: {
       type: 'value',
       name: yAxisName || '',
-      nameTextStyle: { fontSize: 13, color: '#666' },
+      nameTextStyle: { fontSize: 13, color: textColor },
       axisLabel: {
         fontSize: 12,
         ...(yAxisUnit ? { formatter: `{value} ${yAxisUnit}` } : {})
       },
-      splitLine: { lineStyle: { color: '#f0f0f0', type: 'dashed' } }
+      splitLine: { lineStyle: { color: splitColor, type: 'dashed' } }
     }
   }
 }
@@ -84,11 +91,12 @@ export function buildBaseOption({ legendData = [], xAxisData = [], yAxisName, yA
 /**
  * Build a tooltip formatter that shows location names, sorts by value desc.
  */
-export function buildTooltipFormatter(unit, locationMap = {}) {
+export function buildTooltipFormatter(unit, locationMap = {}, dark = false) {
+  const titleColor = dark ? '#e6edf3' : '#1a3a5c'
   return (params) => {
     if (!params || params.length === 0) return ''
     const sorted = [...params].sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
-    let html = `<b style="font-size:14px;color:#1a3a5c">${sorted[0].axisValue}</b><br/>`
+    let html = `<b style="font-size:14px;color:${titleColor}">${sorted[0].axisValue}</b><br/>`
     sorted.forEach(p => {
       const key = p.seriesName
       const label = locationMap[key] || key
@@ -150,6 +158,37 @@ export const CHL_PROB_COLORS = [
   { min: 40,       max: 60,  color: '#F39C12', label: '40-60%' },
   { min: 60,       max: 80,  color: '#E67E22', label: '60-80%' },
   { min: 80,       max: Infinity, color: '#E74C3C', label: '>80%' }
+]
+
+// ── Dark mode map color configs ──
+
+export const SST_MAP_COLORS_DARK = [
+  { min: -Infinity, max: 10,  color: '#0c1e48' },
+  { min: 10,        max: 13,  color: '#183878' },
+  { min: 13,        max: 16,  color: '#2858a8' },
+  { min: 16,        max: 19,  color: '#3d78c0' },
+  { min: 19,        max: 22,  color: '#60a0d0' },
+  { min: 22,        max: 25,  color: '#a8c060' },
+  { min: 25,        max: 28,  color: '#e8c030' },
+  { min: 28,        max: 31,  color: '#e88820' },
+  { min: 31,        max: 34,  color: '#d04018' },
+  { min: 34,        max: Infinity, color: '#881818' }
+]
+
+export const CHL_CONC_COLORS_DARK = [
+  { min: -Infinity, max: 0.5,  color: '#0a3028', label: '<0.5 mg/m³' },
+  { min: 0.5,      max: 1.5,  color: '#0f5a40', label: '0.5-1.5' },
+  { min: 1.5,      max: 3.0,  color: '#1a7d58', label: '1.5-3.0' },
+  { min: 3.0,      max: 5.0,  color: '#2ea870', label: '3.0-5.0' },
+  { min: 5.0,      max: Infinity, color: '#48c880', label: '>5.0' }
+]
+
+export const CHL_PROB_COLORS_DARK = [
+  { min: -Infinity, max: 20,  color: '#1a6e3a', label: '<20%' },
+  { min: 20,       max: 40,  color: '#8a8820', label: '20-40%' },
+  { min: 40,       max: 60,  color: '#d49818', label: '40-60%' },
+  { min: 60,       max: 80,  color: '#d06820', label: '60-80%' },
+  { min: 80,       max: Infinity, color: '#c83828', label: '>80%' }
 ]
 
 /**

@@ -17,16 +17,13 @@
         <div
           class="editorial-nav__item"
           :class="{ 'editorial-nav__item--active': isActive('/app/forecast') }"
-          @mouseenter="showForecastMenu = true"
-          @mouseleave="showForecastMenu = false"
-          style="position: relative;"
+          @click.stop="toggleDropdown('forecast')"
+          style="position: relative; cursor: pointer;"
         >
           预报
           <div
-            v-show="showForecastMenu"
+            v-show="activeDropdown === 'forecast'"
             class="forecast-dropdown"
-            @mouseenter="showForecastMenu = true"
-            @mouseleave="showForecastMenu = false"
           >
             <router-link to="/app/forecast/sst" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/forecast/sst' }" active-class="" exact-active-class="">海表温度预测</router-link>
             <router-link to="/app/forecast/chl" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/forecast/chl' }" active-class="" exact-active-class="">叶绿素预测</router-link>
@@ -38,16 +35,13 @@
         <div
           class="editorial-nav__item"
           :class="{ 'editorial-nav__item--active': isActive('/app/observation') }"
-          @mouseenter="showObsMenu = true"
-          @mouseleave="showObsMenu = false"
-          style="position: relative;"
+          @click.stop="toggleDropdown('obs')"
+          style="position: relative; cursor: pointer;"
         >
           观测
           <div
-            v-show="showObsMenu"
+            v-show="activeDropdown === 'obs'"
             class="forecast-dropdown"
-            @mouseenter="showObsMenu = true"
-            @mouseleave="showObsMenu = false"
           >
             <router-link to="/app/observation/sst" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/observation/sst' }" active-class="" exact-active-class="">海表温度观测</router-link>
             <router-link to="/app/observation/chl" class="forecast-dropdown__item" :class="{ 'forecast-dropdown__item--active': $route.path === '/app/observation/chl' }" active-class="" exact-active-class="">叶绿素观测</router-link>
@@ -78,19 +72,32 @@
       <span class="editorial-nav__spacer"></span>
 
       <span v-if="isAdmin" class="editorial-tag" style="margin-right: 12px;">ADMIN</span>
-      <span class="editorial-nav__user">{{ userInfo?.realName || userInfo?.username }}</span>
-      <a class="editorial-link" style="margin-left: 16px;" @click="handleLogout">退出</a>
+
+      <div class="nav-user-menu" @click.stop="toggleDropdown('user')">
+        <div class="nav-user-avatar">
+          <img v-if="userInfo?.avatarUrl" :src="userInfo.avatarUrl" alt="" />
+          <span v-else class="nav-user-avatar__placeholder">{{ avatarLetter }}</span>
+        </div>
+        <div v-show="activeDropdown === 'user'" class="nav-user-dropdown">
+          <router-link to="/app/profile" class="nav-user-dropdown__item">个人中心</router-link>
+          <a class="nav-user-dropdown__item" @click="handleLogout">退出登录</a>
+        </div>
+      </div>
     </nav>
 
     <!-- Content area -->
     <main class="editorial-content">
       <router-view />
     </main>
+
+    <footer class="editorial-footer">
+      <span>海洋环境预报系统 v{{ __APP_VERSION__ }}</span>
+    </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
 import { ElMessageBox } from 'element-plus'
@@ -98,9 +105,22 @@ import { ElMessageBox } from 'element-plus'
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const activeDropdown = ref(null)
+function toggleDropdown(name) {
+  activeDropdown.value = activeDropdown.value === name ? null : name
+}
 
-const showForecastMenu = ref(false)
-const showObsMenu = ref(false)
+function closeDropdowns() {
+  activeDropdown.value = null
+}
+
+onMounted(() => { document.addEventListener('click', closeDropdowns) })
+onUnmounted(() => { document.removeEventListener('click', closeDropdowns) })
+
+const avatarLetter = computed(() => {
+  const name = userInfo.value?.realName || userInfo.value?.username || '?'
+  return name.charAt(0).toUpperCase()
+})
 const userInfo = computed(() => userStore.userInfo)
 const isAdmin = computed(() => userStore.isAdmin())
 
@@ -153,5 +173,60 @@ function handleLogout() {
 .forecast-dropdown__item--active {
   color: var(--color-text);
   font-weight: 600;
+}
+
+.nav-user-menu {
+  position: relative;
+}
+.nav-user-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--color-divider-strong);
+}
+.nav-user-avatar img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.nav-user-avatar__placeholder {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%;
+  font-family: var(--font-serif); font-size: 14px;
+  color: var(--color-text-muted); background: var(--color-surface);
+}
+.nav-user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-divider-strong);
+  min-width: 120px;
+  z-index: 200;
+  padding: 8px 0;
+  margin-top: 4px;
+}
+.nav-user-dropdown__item {
+  display: block;
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-user-dropdown__item:hover {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.editorial-footer {
+  padding: 16px 40px;
+  border-top: 1px solid var(--color-divider);
+  text-align: right;
+}
+.editorial-footer span {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
 }
 </style>

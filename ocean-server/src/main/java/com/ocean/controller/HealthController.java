@@ -7,6 +7,7 @@ import com.ocean.service.SystemConfigService;
 import com.ocean.task.HealthAssessmentTask;
 import com.ocean.task.HealthSmsTask;
 import com.ocean.vo.ZoneHealthVO;
+import com.ocean.vo.ZoneHealthV2VO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,6 +59,21 @@ public class HealthController {
     public Result<Map<String, Object>> runAssessment(@RequestParam(required = false) String date) {
         LocalDate assessDate = date != null ? LocalDate.parse(date) : systemConfigService.getSystemDate();
         return Result.success(healthAssessmentTask.run(assessDate));
+    }
+
+    @GetMapping("/assessment-v2")
+    public Result<ZoneHealthV2VO> getAssessmentV2(
+            @RequestParam(required = false) String date,
+            @RequestParam(defaultValue = "5") int lookback,
+            @RequestParam(defaultValue = "3") int lookahead) {
+        LocalDate d = date != null ? LocalDate.parse(date) : systemConfigService.getSystemDate();
+        return Result.success(healthService.getAssessmentV2(d, lookback, lookahead));
+    }
+
+    @GetMapping("/alert-map")
+    public Result<Map<String, Object>> getAlertMap(@RequestParam(required = false) String date) {
+        LocalDate d = date != null ? LocalDate.parse(date) : systemConfigService.getSystemDate();
+        return Result.success(healthService.getAlertMap(d));
     }
 
     @PostMapping("/sms-test")

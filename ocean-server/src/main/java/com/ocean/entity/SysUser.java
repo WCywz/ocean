@@ -30,6 +30,10 @@ public class SysUser {
     /** 手机号（用于SMS通知） */
     private String phone;
 
+    /** 头像URL路径 */
+    @TableField("avatar_url")
+    private String avatarUrl;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
 

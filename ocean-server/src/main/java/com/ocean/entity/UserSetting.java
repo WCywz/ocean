@@ -5,24 +5,22 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-/**
- * 告警站点详情实体
- */
 @Data
-@TableName("alert_station_detail")
-public class AlertStationDetail {
+@TableName("user_setting")
+public class UserSetting {
 
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    private Long alertId;
+    private Long userId;
 
-    private Long stationId;
+    private String settingKey;
 
-    private Double actualValue;
-
-    private Double threshold;
+    private String settingValue;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
+
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updateTime;
 }
