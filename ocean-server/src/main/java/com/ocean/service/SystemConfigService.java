@@ -7,4 +7,6 @@ public interface SystemConfigService {
     LocalDate getSystemDate();
 
     void advanceDay();
+
+    void setDate(LocalDate date);
 }

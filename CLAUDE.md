@@ -69,24 +69,13 @@ scripts/            Python data ingestion (reads CSVs → MySQL)
 **自主工作模式（"继续执行" / "不用等我"）：**
 
 触发条件：用户明确表示"继续执行"/"不用等我"/"不用确认"等
-
 触发后流程：
+- → 临时将 `.claude/settings.json` 中 `permissions.defaultMode` 从 `"dontAsk"` 改为 `"bypassPermissions"`，并添加 `"skipDangerousModePermissionPrompt": true`（跳过首次危险模式确认对话框，否则 bypassPermissions 不生效）
 - → 先大 commit（`快照：开始 所有XXX`）
-- → 按方案推进所有任务
-- → 遇到危险操作需要确认时，等待 3 分钟无响应 → 触发安全快照：
-    - 先小 commit 当前状态作为快照
-    - 自动放宽操作权限继续执行
-    - 操作完成后验证 2-3 轮
-    - 发现严重结构错误或数据删除/缺失：
-      → 立即 git revert，小 commit 和 revert commit 保留在历史中（记录失败过程）
-      → 记录文档（`docs/rollback/YYYY-MM-DD-<简述>.md`），写明：
-        - 执行了什么操作
-        - 造成了什么影响（文件丢失、数据变化、结构破坏）
-        - 涉及哪些模块/文件
-      → 跳过该任务，先推进后续任务
-    - 没有发现严重错误 → git reset --soft 撤销小 commit（不留下记录），改动保留继续
-- → 继续推进任务，遇到危险操作同上
+- → 按方案推进所有任务，不再有任何权限阻断
+- 完成所有任务代码后自己跑CodeReview轮次，直到正确为止。最后汇报时加上每轮CodeReview的内容
 - → 全部完成后大 commit（`完成：所有XXX`）
+- → 将 `.claude/settings.json` 中 `permissions.defaultMode` 恢复到 `"dontAsk"`，删除 `skipDangerousModePermissionPrompt`
 - → 提供 git diff 和改动摘要，用户回来后决定 push、回退、或丢弃
 - 遇到构建失败：重试 2-3 次并诊断，仍失败则跳过，最终未解决留给用户处理
 

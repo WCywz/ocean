@@ -40,6 +40,25 @@
       />
     </div>
 
+    <!-- Bar chart: 7-day forecast overview -->
+    <div v-if="trendDates.length && chlMode === 'concentration'" class="editorial-section">
+      <p class="editorial-section-label">Overview · 逐日预报</p>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <h3 class="editorial-section-heading" style="margin: 0;">7 天预报概览</h3>
+      </div>
+      <TrendChart
+        type="bar"
+        :series-data="trendSeries"
+        :x-axis-data="trendDates"
+        y-axis-name="浓度 (mg/m³)"
+        y-axis-unit="mg/m³"
+        :loading="trendLoading"
+        :colors="CHL_COLORS"
+        :color-ranges="chlConcColors"
+      />
+    </div>
+
+    <!-- Trend line -->
     <div class="editorial-section" style="border-bottom: none;">
       <p class="editorial-section-label">Feature · 趋势分析</p>
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
@@ -89,6 +108,11 @@ const currentColorRanges = computed(() => {
   }
   return isDark.value ? CHL_PROB_COLORS_DARK : CHL_PROB_COLORS
 })
+
+// 柱状图始终用浓度色阶（概率模式无逐日预报柱状图）
+const chlConcColors = computed(() =>
+  isDark.value ? CHL_CONC_COLORS_DARK : CHL_CONC_COLORS
+)
 
 const currentLegendLabels = computed(() =>
   chlMode.value === 'concentration'

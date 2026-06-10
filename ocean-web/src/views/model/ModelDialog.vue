@@ -6,11 +6,12 @@
     </div>
     <div style="margin-bottom: 18px;">
       <label class="editorial-form-label">模型类型</label>
-      <select v-model="form.modelType" class="editorial-select">
-        <option value="SST">海表温度 (SST)</option>
-        <option value="CHL">叶绿素浓度 (CHL)</option>
-        <option value="__custom__">自定义...</option>
-      </select>
+      <el-select v-model="form.modelType" style="width: 100%;">
+        <el-option label="海表温度 (SST)" value="SST" />
+        <el-option label="叶绿素浓度 (CHL)" value="CHL" />
+        <el-option label="盐度 (SALINITY)" value="SALINITY" />
+        <el-option label="自定义..." value="__custom__" />
+      </el-select>
       <input
         v-if="form.modelType === '__custom__'"
         v-model="form.customType"
@@ -54,7 +55,7 @@ watch(visible, (v) => {
       isEdit.value = true
       form.modelName = props.model.modelName
       form.description = props.model.description || ''
-      const knownTypes = ['SST', 'CHL']
+      const knownTypes = ['SST', 'CHL', 'SALINITY']
       if (knownTypes.includes(props.model.modelType)) {
         form.modelType = props.model.modelType
         form.customType = ''

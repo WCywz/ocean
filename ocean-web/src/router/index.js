@@ -38,9 +38,46 @@ const routes = [
       },
       {
         path: 'model',
-        name: 'Model',
-        component: () => import('../views/model/ModelView.vue'),
-        meta: { title: '预报模型管理', role: 'ADMIN' }
+        component: () => import('../layout/ModelLayout.vue'),
+        meta: { role: 'ADMIN' },
+        children: [
+          {
+            path: '',
+            name: 'Model',
+            component: () => import('../views/model/ModelList.vue'),
+            meta: { title: '模型管理', role: 'ADMIN' }
+          },
+          {
+            path: ':id(\\d+)',
+            name: 'ModelDetail',
+            component: () => import('../views/model/ModelDetail.vue'),
+            meta: { title: '模型详情', role: 'ADMIN' }
+          },
+          {
+            path: 'schedule',
+            name: 'ModelSchedule',
+            component: () => import('../views/model/ScheduleOverview.vue'),
+            meta: { title: '调度总览', role: 'ADMIN' }
+          },
+          {
+            path: 'monitor',
+            name: 'ModelMonitor',
+            component: () => import('../views/model/RunMonitor.vue'),
+            meta: { title: '运行监控', role: 'ADMIN' }
+          },
+          {
+            path: 'alerts',
+            name: 'ModelAlerts',
+            component: () => import('../views/model/AlertManagement.vue'),
+            meta: { title: '告警管理', role: 'ADMIN' }
+          },
+          {
+            path: 'compare',
+            name: 'ModelCompare',
+            component: () => import('../views/model/ModelCompare.vue'),
+            meta: { title: '模型对比', role: 'ADMIN' }
+          }
+        ]
       },
       {
         path: 'forecast/sst',
@@ -86,9 +123,40 @@ const routes = [
       },
       {
         path: 'profile',
-        name: 'Profile',
-        component: () => import('../views/profile/ProfileView.vue'),
-        meta: { title: '个人中心' }
+        component: () => import('../views/profile/ProfileLayout.vue'),
+        redirect: '/app/profile/info',
+        children: [
+          {
+            path: 'info',
+            name: 'ProfileInfo',
+            component: () => import('../views/profile/ProfileInfo.vue'),
+            meta: { title: '个人信息' }
+          },
+          {
+            path: 'security',
+            name: 'ProfileSecurity',
+            component: () => import('../views/profile/ProfileSecurity.vue'),
+            meta: { title: '账户安全' }
+          },
+          {
+            path: 'notifications',
+            name: 'ProfileNotifications',
+            component: () => import('../views/profile/ProfileNotifications.vue'),
+            meta: { title: '通知设置' }
+          },
+          {
+            path: 'announcements',
+            name: 'ProfileAnnouncements',
+            component: () => import('../views/profile/ProfileAnnouncements.vue'),
+            meta: { title: '系统公告' }
+          },
+          {
+            path: 'settings',
+            name: 'ProfileSettings',
+            component: () => import('../views/profile/ProfileSettings.vue'),
+            meta: { title: '系统设置' }
+          }
+        ]
       }
     ]
   },

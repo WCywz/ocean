@@ -8,6 +8,7 @@ import com.ocean.entity.ModelVersion;
 import com.ocean.mapper.ModelMapper;
 import com.ocean.mapper.ModelVersionMapper;
 import com.ocean.service.ModelVersionService;
+import com.ocean.service.SchedulerService;
 import com.ocean.vo.ModelVersionVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ public class ModelVersionServiceImpl implements ModelVersionService {
 
     @Autowired private ModelVersionMapper modelVersionMapper;
     @Autowired private ModelMapper modelMapper;
+    @Autowired private SchedulerService schedulerService;
 
     @Override
     public List<ModelVersionVO> getVersionsByModelId(Long modelId) {
@@ -74,8 +76,33 @@ public class ModelVersionServiceImpl implements ModelVersionService {
         ModelVersion mv = modelVersionMapper.selectById(versionId);
         if (mv == null || !mv.getModelId().equals(modelId)) throw new BusinessException("版本不存在");
         mv.setStatus(status);
-        if ("RUNNING".equals(status)) mv.setLastRunTime(LocalDateTime.now());
+        if ("RUNNING".equals(status)) {
+            mv.setLastRunTime(LocalDateTime.now());
+            modelVersionMapper.updateById(mv);
+            schedulerService.schedule(versionId);
+        } else {
+            modelVersionMapper.updateById(mv);
+            schedulerService.unschedule(versionId);
+        }
+    }
+
+    /**
+     * 更新版本属性后，如果版本处于 RUNNING 状态且 cron 发生变化，重新调度。
+     */
+    public void updateVersionWithReschedule(Long modelId, Long versionId, ModelVersionSaveDTO dto) {
+        ModelVersion mv = modelVersionMapper.selectById(versionId);
+        if (mv == null || !mv.getModelId().equals(modelId)) throw new BusinessException("版本不存在");
+        String oldCron = mv.getCronExpression();
+        mv.setVersionLabel(dto.getVersionLabel());
+        mv.setCronExpression(dto.getCronExpression());
+        mv.setParamsConfig(dto.getParamsConfig());
+        mv.setDataSource(dto.getDataSource());
+        mv.setDataTimeRange(dto.getDataTimeRange());
+        mv.setChangeNote(dto.getChangeNote());
         modelVersionMapper.updateById(mv);
+        if ("RUNNING".equals(mv.getStatus()) && !dto.getCronExpression().equals(oldCron)) {
+            schedulerService.reschedule(versionId);
+        }
     }
 
     private ModelVersionVO toVO(ModelVersion mv) {

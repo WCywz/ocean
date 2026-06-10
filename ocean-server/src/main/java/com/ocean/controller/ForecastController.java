@@ -7,6 +7,9 @@ import com.ocean.dto.MapGridQueryDTO;
 import com.ocean.service.ForecastService;
 import com.ocean.vo.DashboardVO;
 import com.ocean.vo.ForecastVO;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +22,9 @@ public class ForecastController {
 
     @Autowired
     private ForecastService forecastService;
+
+    @Autowired
+    private Scheduler scheduler;
 
     @GetMapping("/dashboard")
     public Result<DashboardVO> getDashboard() {
@@ -80,5 +86,29 @@ public class ForecastController {
     @PostMapping("/run")
     public Result<Map<String, Object>> runForecast() {
         return Result.success(forecastService.runForecast());
+    }
+
+    /** 测试：按模型版本触发预报 */
+    @PostMapping("/run/{versionId}")
+    public Result<Map<String, Object>> runForecastForVersion(
+            @PathVariable Long versionId,
+            @RequestParam(defaultValue = "1") Long modelId,
+            @RequestParam(required = false) String modelType) {
+        return Result.success(forecastService.runForecast(versionId, modelId, modelType));
+    }
+
+    /** 测试：通过 Quartz 触发 ModelForecastJob */
+    @PostMapping("/trigger/{versionId}")
+    public Result<Map<String, Object>> triggerQuartzJob(@PathVariable Long versionId) {
+        try {
+            JobKey jobKey = new JobKey("forecast-v" + versionId, "model-forecast");
+            if (!scheduler.checkExists(jobKey)) {
+                return Result.error("Job 不存在，请先注册调度: forecast-v" + versionId);
+            }
+            scheduler.triggerJob(jobKey);
+            return Result.success(Map.of("message", "Job 已触发: forecast-v" + versionId));
+        } catch (SchedulerException e) {
+            return Result.error("触发失败: " + e.getMessage());
+        }
     }
 }

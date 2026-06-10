@@ -22,4 +22,7 @@ public interface ForecastService {
 
     /** Run model forecast and persist results to forecast_grid */
     Map<String, Object> runForecast();
+
+    /** Run model forecast for a specific version, filtering by model type */
+    Map<String, Object> runForecast(Long versionId, Long modelId, String modelType);
 }

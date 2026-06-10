@@ -55,12 +55,13 @@ public class SystemDateTask {
             log.error("观测数据入库失败: {}", today, e);
         }
 
-        try {
-            forecastService.runForecast();
-            log.info("模型预报完成: {}", today);
-        } catch (Exception e) {
-            log.error("模型预报失败: {}", today, e);
-        }
+        // 老管线预报已由 Quartz 调度接管，此处保留仅作备用
+        // try {
+        //     forecastService.runForecast();
+        //     log.info("模型预报完成: {}", today);
+        // } catch (Exception e) {
+        //     log.error("模型预报失败: {}", today, e);
+        // }
 
         try {
             healthAssessmentTask.run(today);

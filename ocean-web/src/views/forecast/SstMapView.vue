@@ -33,7 +33,25 @@
       />
     </div>
 
-    <!-- Trend -->
+    <!-- Bar chart: 7-day forecast overview -->
+    <div v-if="trendDates.length" class="editorial-section">
+      <p class="editorial-section-label">Overview · 逐日预报</p>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+        <h3 class="editorial-section-heading" style="margin: 0;">7 天预报概览</h3>
+      </div>
+      <TrendChart
+        type="bar"
+        :series-data="trendSeries"
+        :x-axis-data="trendDates"
+        y-axis-name="温度 (°C)"
+        y-axis-unit="°C"
+        :loading="trendLoading"
+        :colors="SST_COLORS"
+        :color-ranges="mapColors"
+      />
+    </div>
+
+    <!-- Trend line -->
     <div class="editorial-section" style="border-bottom: none;">
       <p class="editorial-section-label">Feature · 趋势分析</p>
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">

@@ -31,7 +31,7 @@ public class ModelVersionController {
     public Result<?> updateVersion(@PathVariable Long modelId, @PathVariable Long versionId,
                                    @RequestBody ModelVersionSaveDTO dto) {
         dto.setId(versionId);
-        modelVersionService.updateVersion(modelId, versionId, dto);
+        modelVersionService.updateVersionWithReschedule(modelId, versionId, dto);
         return Result.success("版本更新成功");
     }
 

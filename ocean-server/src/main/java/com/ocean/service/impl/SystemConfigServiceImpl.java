@@ -29,9 +29,23 @@ public class SystemConfigServiceImpl implements SystemConfigService {
     public void advanceDay() {
         LocalDate current = getSystemDate();
         LocalDate next = current.plusDays(1);
+        saveOrUpdate(next);
+    }
+
+    @Override
+    public void setDate(LocalDate date) {
+        saveOrUpdate(date);
+    }
+
+    /** insert if row missing, update if exists — 防止行被误删后静默失败 */
+    private void saveOrUpdate(LocalDate date) {
         SystemConfig config = new SystemConfig();
         config.setConfigKey(KEY_SYSTEM_DATE);
-        config.setConfigValue(next.toString());
-        systemConfigMapper.updateById(config);
+        config.setConfigValue(date.toString());
+        if (systemConfigMapper.selectById(KEY_SYSTEM_DATE) != null) {
+            systemConfigMapper.updateById(config);
+        } else {
+            systemConfigMapper.insert(config);
+        }
     }
 }

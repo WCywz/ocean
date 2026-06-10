@@ -68,14 +68,15 @@ public class StartupCatchUpTask {
                 }
             }
 
-            if (!forecasted) {
-                try {
-                    forecastService.runForecast();
-                    log.info("补录模型预报完成: {}", today);
-                } catch (Exception e) {
-                    log.error("补录模型预报失败: {}", today, e);
-                }
-            }
+            // 老管线预报已由 Quartz 调度接管
+            // if (!forecasted) {
+            //     try {
+            //         forecastService.runForecast();
+            //         log.info("补录模型预报完成: {}", today);
+            //     } catch (Exception e) {
+            //     log.error("补录模型预报失败: {}", today, e);
+            //     }
+            // }
 
             if (!assessed) {
                 try {
