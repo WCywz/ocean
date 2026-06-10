@@ -182,6 +182,11 @@ public class ForecastServiceImpl implements ForecastService {
 
     @Override
     public Map<String, Object> runForecast() {
+        return runForecast(1L, 1L, null);
+    }
+
+    @Override
+    public Map<String, Object> runForecast(Long versionId, Long modelId, String modelType) {
         Map<String, Object> result = new HashMap<>();
         LocalDate systemDate = systemConfigService.getSystemDate();
         String dateStr = systemDate.toString();
@@ -198,11 +203,13 @@ public class ForecastServiceImpl implements ForecastService {
         String outputPath = scriptDir + File.separator + "forecast_output.json";
         String csvPath = scriptDir + File.separator + "forecast_input.csv";
 
-        log.info("Starting forecast: systemDate={}, dataRange=[{}, {}]", dateStr, startStr, endStr);
+        // Map model type to forecast variable name
+        String targetVariable = modelTypeToVariable(modelType);
+        log.info("Starting forecast: systemDate={}, dataRange=[{}, {}], modelType={}, targetVar={}",
+                dateStr, startStr, endStr, modelType, targetVariable);
 
         try {
             // 1. Generate forecast input CSV from interpolated CSVs
-            //    (interpolated = all variables on same grid, required by model)
             String prepareScript = scriptDir + File.separator + "prepare_forecast_input.py";
 
             ProcessBuilder pbPrepare = new ProcessBuilder(
@@ -222,9 +229,7 @@ public class ForecastServiceImpl implements ForecastService {
                     while ((line = reader.readLine()) != null) {
                         prepareLog.append(line).append("\n");
                     }
-                } catch (IOException ignored) {
-                    // stream closed by process exit or destroy
-                }
+                } catch (IOException ignored) {}
             }, "forecast-prepare-reader");
             prepareReader.start();
 
@@ -237,12 +242,7 @@ public class ForecastServiceImpl implements ForecastService {
                 result.put("message", "Prepare script timed out");
                 return result;
             }
-            try {
-                prepareReader.join(5000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.warn("等待prepare输出线程被中断", e);
-            }
+            try { prepareReader.join(5000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
             int prepareExit = procPrepare.exitValue();
             if (prepareExit != 0) {
                 log.error("Prepare script failed (exit={}):\n{}", prepareExit, prepareLog);
@@ -277,9 +277,7 @@ public class ForecastServiceImpl implements ForecastService {
                     while ((line = reader.readLine()) != null) {
                         logBuf.append(line).append("\n");
                     }
-                } catch (IOException ignored) {
-                    // stream closed by process exit or destroy
-                }
+                } catch (IOException ignored) {}
             }, "forecast-inference-reader");
             inferenceReader.start();
 
@@ -292,12 +290,7 @@ public class ForecastServiceImpl implements ForecastService {
                 result.put("message", "Model inference timed out");
                 return result;
             }
-            try {
-                inferenceReader.join(5000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.warn("等待推理输出线程被中断", e);
-            }
+            try { inferenceReader.join(5000); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
             int exitCode = process.exitValue();
             if (exitCode != 0) {
                 log.error("Python script failed (exit={}):\n{}", exitCode, logBuf);
@@ -326,16 +319,19 @@ public class ForecastServiceImpl implements ForecastService {
                 return result;
             }
 
-            // 4. Write to forecast_grid
+            // 4. Filter by target variable and write to forecast_grid
             Set<String> dateVars = new HashSet<>();
             List<ForecastGrid> grids = new ArrayList<>();
 
             for (Map<String, Object> pred : predictions) {
+                String variable = String.valueOf(pred.get("variable"));
+                if (targetVariable != null && !targetVariable.equalsIgnoreCase(variable)) {
+                    continue;
+                }
                 ForecastGrid g = new ForecastGrid();
-                Object mid = pred.get("model_id");
-                g.setModelId(mid != null ? ((Number) mid).longValue() : 1L);
-                g.setVersionId(1L);
-                g.setVariable(String.valueOf(pred.get("variable")));
+                g.setModelId(modelId != null ? modelId : 1L);
+                g.setVersionId(versionId != null ? versionId : 1L);
+                g.setVariable(variable);
                 g.setForecastDate(LocalDate.parse(String.valueOf(pred.get("forecast_date"))));
                 g.setLat(((Number) pred.get("lat")).doubleValue());
                 g.setLon(((Number) pred.get("lon")).doubleValue());
@@ -344,6 +340,16 @@ public class ForecastServiceImpl implements ForecastService {
                 g.setDepth(0.0);
                 grids.add(g);
                 dateVars.add(g.getVariable() + "|" + g.getForecastDate());
+            }
+
+            if (grids.isEmpty()) {
+                String msg = targetVariable != null
+                        ? "No predictions matched variable: " + targetVariable
+                        : "No predictions";
+                log.warn(msg);
+                result.put("success", false);
+                result.put("message", msg);
+                return result;
             }
 
             for (String dv : dateVars) {
@@ -357,7 +363,7 @@ public class ForecastServiceImpl implements ForecastService {
                 forecastGridMapper.insert(g);
             }
 
-            log.info("Forecast complete: {} predictions inserted", grids.size());
+            log.info("Forecast complete: {} predictions inserted (filtered to {})", grids.size(), targetVariable);
             result.put("success", true);
             result.put("message", "Forecast complete");
             result.put("count", grids.size());
@@ -380,6 +386,16 @@ public class ForecastServiceImpl implements ForecastService {
                 log.warn("删除临时CSV文件异常: {}", csvPath, e);
             }
         }
+    }
+
+    private String modelTypeToVariable(String modelType) {
+        if (modelType == null) return null;
+        return switch (modelType.toUpperCase()) {
+            case "SST" -> "sst";
+            case "CHL" -> "chl";
+            case "SALINITY" -> "so";
+            default -> null;
+        };
     }
 
 }

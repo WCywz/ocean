@@ -10,4 +10,6 @@ public interface ModelVersionService {
     void updateVersion(Long modelId, Long versionId, ModelVersionSaveDTO dto);
     void deleteVersion(Long modelId, Long versionId);
     void toggleStatus(Long modelId, Long versionId, String status);
+
+    void updateVersionWithReschedule(Long modelId, Long versionId, ModelVersionSaveDTO dto);
 }

@@ -10,7 +10,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import { buildBaseOption, buildTooltipFormatter } from '../utils/chart-config'
+import { buildBaseOption, buildTooltipFormatter, getMapColor } from '../utils/chart-config'
 import { useTheme } from '../composables/useTheme'
 
 const props = defineProps({
@@ -19,7 +19,11 @@ const props = defineProps({
   yAxisName: { type: String, default: '' },
   yAxisUnit: { type: String, default: '' },
   loading: { type: Boolean, default: false },
-  colors: { type: Array, default: () => ['#3498DB'] }
+  colors: { type: Array, default: () => ['#3498DB'] },
+  /** 'line' | 'bar' */
+  type: { type: String, default: 'line' },
+  /** 柱状图模式下的色阶映射 [{min,max,color}]，与地图色阶一致 */
+  colorRanges: { type: Array, default: () => [] }
 })
 
 const { resolved: themeResolved } = useTheme()
@@ -54,8 +58,60 @@ function render() {
   base.grid.bottom = 30
   base.tooltip.formatter = buildTooltipFormatter(props.yAxisUnit, {}, dark)
 
+  const isBar = props.type === 'bar'
+
+  /** 将 hex 颜色加深指定比例（0~1），用于柱状图渐变 */
+  function darken(hex, factor) {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    const f = 1 - factor
+    return '#' + [r, g, b]
+      .map(v => Math.max(0, Math.round(v * f)).toString(16).padStart(2, '0'))
+      .join('')
+  }
+
   const series = props.seriesData.map((s, idx) => {
     const c = props.colors[idx % props.colors.length]
+
+    if (isBar) {
+      // 柱状图：上浅下深渐变 + 数值标签
+      const ranges = props.colorRanges.length > 0 ? props.colorRanges : null
+      const barData = s.data.map(v => {
+        const base = ranges ? getMapColor(v, ranges) : c
+        return {
+          value: v,
+          itemStyle: {
+            borderRadius: [3, 3, 0, 0],
+            color: {
+              type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [
+                { offset: 0,   color: base },
+                { offset: 0.4, color: darken(base, 0.08) },
+                { offset: 1,   color: darken(base, 0.25) }
+              ]
+            }
+          }
+        }
+      })
+      return {
+        name: s.name,
+        type: 'bar',
+        barWidth: '35%',
+        emphasis: { itemStyle: { color: c } },
+        label: {
+          show: true,
+          position: 'top',
+          fontSize: 12,
+          color: dark ? '#c9d1d9' : '#555',
+          fontFamily: 'Georgia, serif',
+          formatter: `{c} ${props.yAxisUnit || ''}`
+        },
+        data: barData
+      }
+    }
+
+    // 折线图（默认）
     return {
       name: s.name,
       type: 'line',

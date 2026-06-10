@@ -38,9 +38,46 @@ const routes = [
       },
       {
         path: 'model',
-        name: 'Model',
-        component: () => import('../views/model/ModelView.vue'),
-        meta: { title: '预报模型管理', role: 'ADMIN' }
+        component: () => import('../layout/ModelLayout.vue'),
+        meta: { role: 'ADMIN' },
+        children: [
+          {
+            path: '',
+            name: 'Model',
+            component: () => import('../views/model/ModelList.vue'),
+            meta: { title: '模型管理', role: 'ADMIN' }
+          },
+          {
+            path: ':id(\\d+)',
+            name: 'ModelDetail',
+            component: () => import('../views/model/ModelDetail.vue'),
+            meta: { title: '模型详情', role: 'ADMIN' }
+          },
+          {
+            path: 'schedule',
+            name: 'ModelSchedule',
+            component: () => import('../views/model/ScheduleOverview.vue'),
+            meta: { title: '调度总览', role: 'ADMIN' }
+          },
+          {
+            path: 'monitor',
+            name: 'ModelMonitor',
+            component: () => import('../views/model/RunMonitor.vue'),
+            meta: { title: '运行监控', role: 'ADMIN' }
+          },
+          {
+            path: 'alerts',
+            name: 'ModelAlerts',
+            component: () => import('../views/model/AlertManagement.vue'),
+            meta: { title: '告警管理', role: 'ADMIN' }
+          },
+          {
+            path: 'compare',
+            name: 'ModelCompare',
+            component: () => import('../views/model/ModelCompare.vue'),
+            meta: { title: '模型对比', role: 'ADMIN' }
+          }
+        ]
       },
       {
         path: 'forecast/sst',
@@ -106,12 +143,6 @@ const routes = [
             name: 'ProfileNotifications',
             component: () => import('../views/profile/ProfileNotifications.vue'),
             meta: { title: '通知设置' }
-          },
-          {
-            path: 'preferences',
-            name: 'ProfilePreferences',
-            component: () => import('../views/profile/ProfilePreferences.vue'),
-            meta: { title: '显示偏好' }
           },
           {
             path: 'announcements',

@@ -41,13 +41,15 @@ public class DataSyncTask {
             log.info("流水线正在执行中，跳过: {}", today);
             return;
         }
-        try {
-            Map<String, Object> result = forecastService.runForecast();
-            log.info("<<<<<< 模型预报完成: {}", result);
-        } catch (Exception e) {
-            log.error("<<<<<< 模型预报失败", e);
-        } finally {
-            pipelineLock.unlock();
-        }
+        // 老管线预报已由 Quartz 调度接管
+        // try {
+        //     Map<String, Object> result = forecastService.runForecast();
+        //     log.info("<<<<<< 模型预报完成: {}", result);
+        // } catch (Exception e) {
+        //     log.error("<<<<<< 模型预报失败", e);
+        // } finally {
+        //     pipelineLock.unlock();
+        // }
+        pipelineLock.unlock();
     }
 }

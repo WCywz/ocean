@@ -71,6 +71,38 @@
 
       <span class="editorial-nav__spacer"></span>
 
+      <!-- Alert bell -->
+      <div v-if="isAdmin" class="nav-alert-bell" @click.stop="toggleDropdown('alert')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span v-if="unreadAlertCount > 0" class="nav-alert-bell__badge">{{ unreadAlertCount > 9 ? '9+' : unreadAlertCount }}</span>
+        <div v-show="activeDropdown === 'alert'" class="nav-alert-dropdown">
+          <div v-if="recentAlerts.length === 0" style="padding: 16px; font-size: 13px; color: var(--color-text-muted); text-align: center;">暂无告警</div>
+          <div v-else>
+            <div class="nav-alert-dropdown__header">
+              <span>告警通知</span>
+              <a v-if="unreadAlertCount > 0" class="editorial-link" style="font-size: 12px;" @click.stop="markAllRead">全部已读</a>
+            </div>
+            <div
+              v-for="alert in recentAlerts.slice(0, 5)"
+              :key="alert.id"
+              class="nav-alert-dropdown__item"
+              :class="{ 'nav-alert-dropdown__item--unread': alert.isRead === 0 }"
+              @click.stop="goToMonitor"
+            >
+              <span class="nav-alert-dropdown__type">{{ alert.alertType === 'CONSECUTIVE_FAILURES' ? '⚠' : '✕' }}</span>
+              <span class="nav-alert-dropdown__msg">{{ alert.message }}</span>
+              <span class="nav-alert-dropdown__time">{{ formatAlertTime(alert.createTime) }}</span>
+            </div>
+            <div class="nav-alert-dropdown__footer">
+              <router-link to="/app/model/monitor" class="editorial-link" style="font-size: 12px;" @click.stop="closeDropdowns">查看全部 →</router-link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <span v-if="isAdmin" class="editorial-tag" style="margin-right: 12px;">ADMIN</span>
 
       <div class="nav-user-menu" @click.stop="toggleDropdown('user')">
@@ -79,7 +111,11 @@
           <span v-else class="nav-user-avatar__placeholder">{{ avatarLetter }}</span>
         </div>
         <div v-show="activeDropdown === 'user'" class="nav-user-dropdown">
-          <router-link to="/app/profile" class="nav-user-dropdown__item">个人中心</router-link>
+          <router-link to="/app/profile/info" class="nav-user-dropdown__item">个人信息</router-link>
+          <router-link to="/app/profile/security" class="nav-user-dropdown__item">账户安全</router-link>
+          <router-link to="/app/profile/notifications" class="nav-user-dropdown__item">通知设置</router-link>
+          <router-link to="/app/profile/announcements" class="nav-user-dropdown__item">系统公告</router-link>
+          <router-link to="/app/profile/settings" class="nav-user-dropdown__item">系统设置</router-link>
           <a class="nav-user-dropdown__item" @click="handleLogout">退出登录</a>
         </div>
       </div>
@@ -101,6 +137,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '../store/user'
 import { ElMessageBox } from 'element-plus'
+import { getUnreadAlertCount, getRecentAlerts, markAllAlertsRead } from '../api/model'
 
 const route = useRoute()
 const router = useRouter()
@@ -116,6 +153,54 @@ function closeDropdowns() {
 
 onMounted(() => { document.addEventListener('click', closeDropdowns) })
 onUnmounted(() => { document.removeEventListener('click', closeDropdowns) })
+
+// Alert bell
+const unreadAlertCount = ref(0)
+const recentAlerts = ref([])
+let alertTimer = null
+
+async function fetchAlerts() {
+  try {
+    const [countRes, alertsRes] = await Promise.all([
+      getUnreadAlertCount(),
+      getRecentAlerts(10)
+    ])
+    unreadAlertCount.value = countRes.data?.unreadCount || 0
+    recentAlerts.value = alertsRes.data || []
+  } catch { /* silent */ }
+}
+
+async function markAllRead() {
+  try {
+    await markAllAlertsRead()
+    unreadAlertCount.value = 0
+    recentAlerts.value = recentAlerts.value.map(a => ({ ...a, isRead: 1 }))
+  } catch { /* silent */ }
+}
+
+function goToMonitor() {
+  closeDropdowns()
+  router.push('/app/model/monitor')
+}
+
+function formatAlertTime(d) {
+  if (!d) return ''
+  const date = new Date(d)
+  const now = new Date()
+  const diff = now - date
+  if (diff < 60000) return '刚刚'
+  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
+  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
+  return d.replace('T', ' ').substring(0, 10)
+}
+
+onMounted(() => {
+  fetchAlerts()
+  alertTimer = setInterval(fetchAlerts, 30000) // poll every 30s
+})
+onUnmounted(() => {
+  if (alertTimer) clearInterval(alertTimer)
+})
 
 const avatarLetter = computed(() => {
   const name = userInfo.value?.realName || userInfo.value?.username || '?'
@@ -228,5 +313,82 @@ function handleLogout() {
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--color-text-muted);
+}
+
+.nav-alert-bell {
+  position: relative;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  padding: 4px;
+  margin-right: 12px;
+  transition: color 0.15s;
+}
+.nav-alert-bell:hover {
+  color: var(--color-text);
+}
+.nav-alert-bell__badge {
+  position: absolute;
+  top: -2px; right: -4px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  min-width: 16px; height: 16px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600;
+}
+.nav-alert-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-divider-strong);
+  width: 360px;
+  z-index: 200;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.nav-alert-dropdown__header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 12px; font-weight: 600;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-divider);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.nav-alert-dropdown__item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--color-divider);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.nav-alert-dropdown__item:hover {
+  background: var(--color-surface);
+}
+.nav-alert-dropdown__item--unread {
+  border-left: 2px solid #ef4444;
+}
+.nav-alert-dropdown__type {
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.nav-alert-dropdown__msg {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+.nav-alert-dropdown__time {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.nav-alert-dropdown__footer {
+  padding: 8px 14px;
+  text-align: center;
+  border-top: 1px solid var(--color-divider);
 }
 </style>

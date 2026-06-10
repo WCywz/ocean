@@ -2,9 +2,11 @@ package com.ocean.controller;
 
 import com.ocean.common.Result;
 import com.ocean.dto.*;
+import com.ocean.service.AnnouncementService;
 import com.ocean.service.SysUserService;
 import com.ocean.service.UserCredentialService;
 import com.ocean.service.UserSettingService;
+import com.ocean.vo.AnnouncementVO;
 import com.ocean.vo.UserVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +39,9 @@ public class ProfileController {
 
     @Autowired
     private UserCredentialService userCredentialService;
+
+    @Autowired
+    private AnnouncementService announcementService;
 
     @Value("${upload.avatar.dir:/data/ocean/uploads/avatars/}")
     private String avatarDir;
@@ -150,5 +155,38 @@ public class ProfileController {
     public Result<?> deleteCredential(HttpServletRequest request, @PathVariable Long id) {
         userCredentialService.deleteCredential(getUserId(request), id);
         return Result.success("密钥已删除");
+    }
+
+    @GetMapping("/announcements")
+    public Result<com.baomidou.mybatisplus.core.metadata.IPage<AnnouncementVO>> getAnnouncements(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize) {
+        return Result.success(announcementService.getPage(pageNum, pageSize));
+    }
+
+    @PostMapping("/announcements")
+    public Result<?> addAnnouncement(@Validated @RequestBody AnnouncementSaveDTO dto) {
+        announcementService.add(dto);
+        return Result.success("公告已发布");
+    }
+
+    @PutMapping("/announcements/{id}")
+    public Result<?> updateAnnouncement(@PathVariable Long id,
+                                        @Validated @RequestBody AnnouncementSaveDTO dto) {
+        dto.setId(id);
+        announcementService.update(dto);
+        return Result.success("公告已更新");
+    }
+
+    @DeleteMapping("/announcements/{id}")
+    public Result<?> deleteAnnouncement(@PathVariable Long id) {
+        announcementService.delete(id);
+        return Result.success("公告已删除");
+    }
+
+    @DeleteMapping("/account")
+    public Result<?> deleteAccount(HttpServletRequest request) {
+        sysUserService.deleteUser(getUserId(request));
+        return Result.success("账户已注销");
     }
 }

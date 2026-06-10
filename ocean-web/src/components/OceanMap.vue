@@ -35,7 +35,7 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   center: { type: Array, default: () => [29.8, 123.5] },
   zoom: { type: Number, default: 7 },
-  height: { type: String, default: '450px' },
+  height: { type: String, default: '800px' },
   minZoom: { type: Number, default: 4 },
   maxZoom: { type: Number, default: 10 }
 })
@@ -501,12 +501,20 @@ onMounted(() => {
       minZoom: props.minZoom,
       maxZoom: props.maxZoom,
       maxBounds: [[0, 100], [48, 145]],
-      maxBoundsViscosity: 0.8
+      maxBoundsViscosity: 0.8,
+      scrollWheelZoom: false
     })
 
     initBaseLayers()
     map.on('moveend', onMoveEnd)
     map.on('click', onMapClick)
+    map.getContainer().addEventListener('wheel', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        const delta = e.deltaY > 0 ? -1 : 1
+        map.zoomIn(delta, { animate: false })
+      }
+    }, { passive: false })
     initDraw()
     drawGrid()
   })

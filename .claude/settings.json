@@ -1,5 +1,6 @@
 {
   "permissions": {
+    "defaultMode": "dontAsk",
     "allow": [
       "Bash(git -C c:/Users/chutaorui/Desktop/ocean rev-parse --show-toplevel)",
       "Bash(pnpm install *)",

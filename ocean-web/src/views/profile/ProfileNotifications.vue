@@ -7,10 +7,6 @@
       <h2 class="editorial-section-heading">通知渠道</h2>
       <div class="profile-settings">
         <div class="profile-settings__item">
-          <span class="profile-settings__label">短信通知</span>
-          <el-switch v-model="settingsForm.sms_enabled" />
-        </div>
-        <div class="profile-settings__item">
           <span class="profile-settings__label">ServerChan 推送</span>
           <el-switch v-model="settingsForm.push_enabled" />
         </div>
@@ -26,6 +22,15 @@
       <button class="editorial-btn-outline" @click="showCredentialDialog = true">
         {{ credential ? '更换 Key' : '配置 Key' }}
       </button>
+      <button class="guide-toggle" @click="showGuide = !showGuide">
+        使用教程 {{ showGuide ? '▴' : '▾' }}
+      </button>
+      <div v-if="showGuide" class="serverchan-guide">
+        <div class="serverchan-guide__title">如何获取 SendKey？</div>
+        <div class="serverchan-guide__step">1. 打开 <a href="https://sct.ftqq.com/" target="_blank" rel="noopener">sct.ftqq.com</a>，用微信扫码登录</div>
+        <div class="serverchan-guide__step">2. 登录后页面选择Key&API，然后新建 SendKey</div>
+        <div class="serverchan-guide__step">3. 复制 SendKey，粘贴到上方输入框并保存</div>
+      </div>
     </div>
 
     <el-dialog
@@ -58,15 +63,16 @@ import { ElMessage } from 'element-plus'
 import { getSettings, updateSettings, getCredentials, saveCredential } from '../../api/profile'
 
 const showCredentialDialog = ref(false)
+const showGuide = ref(false)
 const loaded = ref(false)
-const settingsForm = ref({ sms_enabled: true, push_enabled: true })
+const settingsForm = ref({ push_enabled: true })
 const credential = ref(null)
 const credentialForm = ref({ credentialKey: 'serverchan_key', credentialValue: '' })
 
 onMounted(async () => {
   try {
     const res = await getSettings()
-    settingsForm.value = { sms_enabled: res.data.sms_enabled === 'true', push_enabled: res.data.push_enabled === 'true' }
+    settingsForm.value = { push_enabled: res.data.push_enabled === 'true' }
   } catch (e) { console.error('获取设置失败', e); ElMessage.error('获取设置失败，请刷新页面重试') }
 
   try {
@@ -78,12 +84,11 @@ onMounted(async () => {
   loaded.value = true
 })
 
-watch([() => settingsForm.value.sms_enabled, () => settingsForm.value.push_enabled], async () => {
+watch([() => settingsForm.value.push_enabled], async () => {
   if (!loaded.value) return
   try {
     await updateSettings({
       settings: {
-        sms_enabled: String(settingsForm.value.sms_enabled),
         push_enabled: String(settingsForm.value.push_enabled)
       }
     })
@@ -130,5 +135,47 @@ async function handleSaveCredential() {
   font-family: var(--font-mono);
   font-size: 13px;
   color: var(--color-text-muted);
+}
+
+.guide-toggle {
+  display: block;
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.guide-toggle:hover {
+  color: var(--color-text);
+}
+
+.serverchan-guide {
+  margin-top: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: #f0f4ff;
+  border-left: 3px solid #409eff;
+  border-radius: 0 4px 4px 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.8;
+}
+.serverchan-guide__title {
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+.serverchan-guide__step {
+  padding-left: 4px;
+}
+
+[data-theme="dark"] .serverchan-guide {
+  background: #161b22;
+  border-left-color: #58a6ff;
+}
+[data-theme="dark"] .serverchan-guide a {
+  color: #58a6ff;
 }
 </style>

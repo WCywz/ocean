@@ -138,14 +138,12 @@
           dataType="SST"
           :data="data.latestSstData"
           :loading="loading.dashboard"
-          @navigate="goOceanData"
         />
         <LatestDataTable
           title="最新叶绿素浓度 (CHL)"
           dataType="CHL"
           :data="data.latestChlData"
           :loading="loading.dashboard"
-          @navigate="goOceanData"
         />
       </div>
     </div>
@@ -293,7 +291,6 @@ async function fetchAlertMap() {
 function goModel() { router.push('/app/model') }
 function goSst() { router.push('/app/forecast/sst') }
 function goChl() { router.push('/app/forecast/chl') }
-function goOceanData() { router.push('/app/ocean-data') }
 function goHealth() { router.push('/app/ocean-health') }
 
 onMounted(async () => {

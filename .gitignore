@@ -27,6 +27,8 @@ ocean-model/*.pt
 .env.local
 .env.*.local
 
+ocean-model/forecast_output.json
+
 # Accidental commits
 ocean-server/query
 
@@ -38,3 +40,13 @@ ocean-server/uploads/
 
 # Spring Boot build output
 BOOT-INF/
+
+# Course reports and temporary files
+~$*.docx
+~$*.doc
+*.docx
+*.doc
+
+# Accidental npm
+package.json
+package-lock.json

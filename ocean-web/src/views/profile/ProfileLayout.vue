@@ -1,7 +1,7 @@
 <template>
   <div class="profile-layout">
     <aside class="profile-sidebar">
-      <div class="profile-sidebar__label">个人中心</div>
+      <div class="profile-sidebar__label">设置</div>
       <nav class="profile-sidebar__nav">
         <router-link
           v-for="item in navItems"
@@ -27,7 +27,6 @@ const navItems = [
   { path: '/app/profile/info', label: '个人信息' },
   { path: '/app/profile/security', label: '账户安全' },
   { path: '/app/profile/notifications', label: '通知设置' },
-  { path: '/app/profile/preferences', label: '显示偏好' },
   { path: '/app/profile/announcements', label: '系统公告' },
   { path: '/app/profile/settings', label: '系统设置' }
 ]

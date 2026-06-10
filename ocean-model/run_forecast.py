@@ -39,6 +39,7 @@ N_DEPTHS = len(DEPTH_LEVELS)
 MODELS = {
     "chl": ("best_model_chl.pt", "y_chl", 1, "mg/m³", "CHL"),
     "sst": ("best_model_thetao.pt", "y_temp", 2, "degree_C", "SST"),
+    "so": ("best_model_so.pt", "y_so", 3, "PSU", "SALINITY"),
 }
 
 
@@ -124,6 +125,7 @@ def load_scalers():
         "lat": joblib.load(os.path.join(DATA_DIR, "scaler_lat.pkl")),
         "y_chl": joblib.load(os.path.join(DATA_DIR, "scaler_y_chl.pkl")),
         "y_temp": joblib.load(os.path.join(DATA_DIR, "scaler_y_temp.pkl")),
+        "y_so": joblib.load(os.path.join(DATA_DIR, "scaler_y_so.pkl")),
     }
 
 
